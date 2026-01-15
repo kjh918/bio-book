@@ -1,0 +1,16 @@
+site:
+  title: "PCR Primer Manual"
+  theme: "cosmo"
+  app_link: "/"
+  sidebar:
+    style: "docked"
+    search: true
+    collapse_level: 1
+
+pages:
+  - section: "Getting started"
+    items:
+      - path: "getting-started/install.qmd"
+        title: "Install"
+      - path: "getting-started/quickstart.qmd"
+        title: "Quickstart"

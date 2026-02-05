@@ -1,88 +1,115 @@
 import pandas as pd
 from copy import deepcopy
-from openpyxl.utils import get_column_letter # [MODIFIED] 열 문자 계산 유틸 추가
+from openpyxl.utils import get_column_letter
 from src.xl_obj_engine.core.engine import ExcelObjectEngine
+from src.xl_obj_engine.core.models import FillModel, DimensionModel # DimensionModel 추가
+from openpyxl.cell.rich_text import CellRichText, TextBlock, InlineFont
+import time
+
+
+def set_starlet_superscript(sheet_model, coord):
+	""" STARLET 문자열에서 LET을 윗첨자로 처리 (Bold 포함) """
+	if coord not in sheet_model.cells: return
+	superscript_font = InlineFont(vertAlign='superscript', b=True, sz=10) 
+	rich_text = CellRichText("STAR", TextBlock(superscript_font, "LET"))
+	sheet_model.cells[coord].value = rich_text	
+		
+	font_style = sheet_model.cells[coord].style.font
+	if isinstance(font_style, dict): font_style["color"] = None
+	else: font_style.color = None
+
+def set_signature_rich_text(sheet_model, coord, name):
+	""" 특정 셀에 '이름(검정) (서명)(회색, Bold)' 부분 서식 적용 """
+	if coord not in sheet_model.cells: return
+	signature_font = InlineFont(color="AEAAAA", b=True, sz=10)	 
+	rich_text = CellRichText(f"{name}", TextBlock(signature_font, "(서명)"))
+	sheet_model.cells[coord].value = rich_text
+		
+	font_style = sheet_model.cells[coord].style.font
+	if hasattr(font_style, "get"): font_style["color"] = None
+	else: font_style.color = None
 
 def run_report_generation():
 	engine = ExcelObjectEngine()
-		
-	# 1. 경로 설정
 	template_path = "data/templete.xlsx"
-	input_path = "data/input_data.xlsx"
+	input_path = "data/input_data_sample.xlsx"
 	output_path = "output/final_report.xlsx"
 
-	# 2. 데이터 로드 및 전처리
-	# ffill()로 병합된 검체명/일자 등을 채우고, 첫 번째 데이터 행(iloc[1:])부터 시작
+	s = time.time()
+
+	# 1. 데이터 로드 및 전처리
 	df = pd.read_excel(input_path).ffill()
 	df = df.iloc[1:].reset_index(drop=True) 
-
+	
 	samples = []
-	# 3행씩 단위를 묶어 샘플 객체 생성
 	for i in range(0, len(df), 3):
 		chunk = df.iloc[i:i+3]
-		if chunk.empty or len(chunk) < 3: break # 3행이 안 되는 자투리 데이터 방지
-		
+		if chunk.empty or len(chunk) < 3: break
 		samples.append({
 			"name": str(chunk.iloc[0]["검체명"]),
-			"date": str(chunk.iloc[0]["시험일자"]).split(' ')[0], # 시간 제외 날짜만 추출
+			"date": str(chunk.iloc[0]["시험일자"]).split(' ')[0],
 			"lot": str(chunk.iloc[0]["Plate Lot No."]),
-			"results": chunk.iloc[:, 7:16].values.tolist() # UBE2C ~ UBQLN1 데이터 슬라이싱
+			"results": chunk.iloc[:, 7:16].values.tolist()
 		})
 
-	# 3. 템플릿 로드 (Style 보존을 위해 엔진 사용)
+	# 2. 템플릿 로드
 	base_template_model = engine.read_to_model(template_path)
 	base_sheet = base_template_model.sheets[0]
-		
 	final_sheets = []
 		
-	# 10개 샘플 단위로 새로운 시트 생성
+	# 3. 시트별 데이터 주입
 	for sheet_idx, i in enumerate(range(0, len(samples), 10)):
 		chunk_10 = samples[i:i+10]
-		
-		# [MODIFIED] 시트 이름 결정 로직 통합
-		date_str = chunk_10[0]["date"].replace('.', '')
 		new_sheet = deepcopy(base_sheet)
-		new_sheet.sheet_name = f"Rawdata_{date_str}_{sheet_idx + 1}"
+		new_sheet.sheet_name = f"Rawdata_Page_{chunk_10[0]['date']}_{sheet_idx + 1}"
 		
-		# 공통 헤더 정보 업데이트
+		# 공통 헤더 정보
 		new_sheet.cells["K5"].value = chunk_10[0]["date"]
 		new_sheet.cells["S6"].value = chunk_10[0]["lot"]
 
 		for idx, sample in enumerate(chunk_10):
-			# A. 검체명 리스트 매핑 (B9 ~ B18)
 			new_sheet.cells[f"E{10+idx}"].value = sample["name"]
-			
-			# B. 결과값 배치 (3개 행 단위 블록)
-			# 1-5번 샘플: F45~F59 배치 (57, 58, 59행까지 사용)
-			if idx < 5:
-				start_row = 45 + (idx * 3)
-			# 6-10번 샘플: 60~62행 건너뛰고 F63부터 배치
-			else:
-				start_row = 63 + ((idx - 5) * 3)
+			start_row = 45 + (idx * 3) if idx < 5 else 63 + ((idx - 5) * 3)
 			
 			for r_offset in range(3):
 				new_sheet.cells[f"F{start_row + r_offset}"].value = sample["name"]
 			
-			# 유전자별 결과값 주입
 			for r_idx, row_values in enumerate(sample["results"]):
 				for c_idx, val in enumerate(row_values):
-					# [MODIFIED] chr() 대신 get_column_letter를 사용하여 F열(6번째)부터 계산
-					col_letter = get_column_letter(7 + c_idx) # F=6, G=7...
+					col_letter = get_column_letter(7 + c_idx)
 					coord = f"{col_letter}{start_row + r_idx}"
-					
 					if coord in new_sheet.cells:
 						new_sheet.cells[coord].value = val
 		
+		# [스타일 1] Q43, Q44 빨간색 처리
+		for target_coord in ["Q43", "Q44"]:
+			if target_coord in new_sheet.cells:
+				font_style = new_sheet.cells[target_coord].style.font
+				if isinstance(font_style, dict): font_style["color"] = "FF0000"
+				else: font_style.color = "FF0000"
+		
+		# [스타일 2] STARLET 윗첨자 (J22)
+		set_starlet_superscript(new_sheet, "J22")
+
+		# [스타일 3] 서명 2인 (C6: 우영진, K6: 문영호)
+		set_signature_rich_text(new_sheet, "C6", "				  우영진			  ")
+		set_signature_rich_text(new_sheet, "K6", "		  문영호		   ")
+		
+		# [스타일 4] G-Y 열 너비 5.5 고정 (반드시 append 이전에 실행)
+		for col_idx in range(7, 26): 
+			col_letter = get_column_letter(col_idx)
+			new_sheet.col_widths[col_letter] = DimensionModel(value=6.07, hidden=False)
+
+		# 모든 스타일이 반영된 시트를 리스트에 추가
 		final_sheets.append(new_sheet)
 
-	# 4. 최종 결과물 저장
-	if not final_sheets:
-		print("Error: No data to export.")
-		return
-
+	# 4. 저장
 	base_template_model.sheets = final_sheets
 	engine.export_from_model(base_template_model, output_path)
-	print(f"Report Generated: {len(final_sheets)} sheets created at {output_path}")
+	print(f"Report Generated at {output_path}")
+	e = time.time()
+	
+	print(f"Elapsed Time: {e - s:.2f} seconds")
 
 if __name__ == "__main__":
 	run_report_generation()

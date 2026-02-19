@@ -1,0 +1,8 @@
+type: manual
+project_name: "cbNIPT Workflow Manual"
+version: "1.0.0"
+author: "BioDev Team"
+date: "2024-05-20"
+source_dir: "./"
+pipeline_script: "/storage/home/jhkim/Projects/cbNIPT/260122-GCX-cbNIPT_Workflow/pipeline.py"
+scripts_dir: "/storage/home/jhkim/Projects/cbNIPT/260122-GCX-cbNIPT_Workflow/scripts"

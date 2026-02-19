@@ -1,0 +1,38 @@
+# {{ project_name }} Manual
+
+**Version:** {{ version }}  
+**Author:** {{ author }}  
+**Date:** {{ date }}
+
+## Workflow Overview
+
+{% for step in workflow %}
+### {{ loop.index }}. {{ step.name }}
+
+* **Script**: `{{ step.script }}`
+
+{% if step.desc %}
+> {{ step.desc }}
+{% endif %}
+
+{% if step.args %}
+#### Parameters
+
+| Argument | Required | Default | Description |
+|:---|:---:|:---|:---|
+{% for arg in step.args %}
+| `{{ arg.flags_str }}` | {{ '✅' if arg.required else ' ' }} | {{ arg.default if arg.default else '-' }} | {{ arg.help }} |
+{% endfor %}
+
+{% else %}
+> 파라미터 정보가 없거나 argparse를 사용하지 않는 스크립트입니다.
+{% endif %}
+
+***
+
+{% endfor %}
+
+## Code Structure
+
+```text
+{{ tree_structure }}

@@ -1,0 +1,15 @@
+README.md
+pyproject.toml
+src/qmanual/__init__.py
+src/qmanual/cli.py
+src/qmanual/generator.py
+src/qmanual/spec.py
+src/qmanual.egg-info/PKG-INFO
+src/qmanual.egg-info/SOURCES.txt
+src/qmanual.egg-info/dependency_links.txt
+src/qmanual.egg-info/entry_points.txt
+src/qmanual.egg-info/requires.txt
+src/qmanual.egg-info/top_level.txt
+src/qmanual/templates/index_qmd.j2
+src/qmanual/templates/page_qmd.j2
+src/qmanual/templates/quarto_yml_website.j2

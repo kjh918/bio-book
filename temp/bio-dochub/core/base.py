@@ -15,11 +15,10 @@ class BaseGenerator(ABC):
         else:
             template_path = Path(template_dir)
             
-        # [MODIFIED] 마크다운 표 깨짐 방지를 위해 공백/줄바꿈 자동 제거 옵션 활성화
         self.env = Environment(
             loader=FileSystemLoader(str(template_path)),
-            trim_blocks=True,   # 템플릿 태그({% %}) 뒤의 첫 번째 줄바꿈 제거
-            lstrip_blocks=True  # 템플릿 태그 앞의 공백/탭 제거
+            trim_blocks=True,
+            lstrip_blocks=True
         )
         
         self.output_dir = Path("output")

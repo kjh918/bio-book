@@ -1,8 +1,0 @@
-type: manual
-project_name: "Mock cbNIPT Pipeline"
-version: "0.1.0-test"
-author: "Test User"
-date: "2026-02-19"
-source_dir: "./test_env"
-pipeline_script: "./test_env/mock_pipeline.py"
-scripts_dir: "./test_env/scripts"

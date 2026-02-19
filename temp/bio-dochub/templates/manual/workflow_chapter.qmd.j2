@@ -1,0 +1,27 @@
+# {{ category_title }}
+
+{% for step in tasks %}
+## {{ step.name }}
+
+* **Script Runner**: `{{ step.script }}`
+
+{% if step.desc %}
+> {{ step.desc }}
+{% endif %}
+
+{% if step.args %}
+### Parameters
+
+| Argument | Required | Default | Description |
+|:---|:---:|:---|:---|
+{% for arg in step.args %}
+| `{{ arg.flags_str }}` | {{ '✅' if arg.required else ' ' }} | {{ arg.default }} | {{ arg.help }} |
+{% endfor %}
+
+{% else %}
+> 파라미터 정보가 없습니다.
+{% endif %}
+
+***
+
+{% endfor %}

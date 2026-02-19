@@ -1,9 +1,9 @@
 type: manual
-project_name: "cbNIPT Workflow Book"
-version: "2.0.0"
+project_name: "cbNIPT Workflow Book (Builder Test)"
+version: "3.0.0"
 author: "BioDev Team"
 date: "2026-02-19"
-source_dir: "./"
+source_dir: "./test/test_env"
 
 requirements:
   python: ">= 3.11"
@@ -25,15 +25,21 @@ workflows:
         args:
           - flags_str: "--SeqID, -s"
             required: true
+            default: ""
             help: "샘플 고유 ID"
+          - flags_str: "--Threads, -t"
+            required: false
+            default: "4"
+            help: "할당할 코어 수"
   align:
     title: "2. Alignment & Processing"
     filename: "04_workflow_align.qmd"
     tasks:
-      - name: "bwa_picard_align_merge"
-        script: "run_bwa_picard.py"
-        desc: "BWA-MEM 매핑 및 BAM 생성"
+      - name: "bwa_align"
+        script: "run_bwa.py"
+        desc: "BWA-MEM 매핑"
         args:
           - flags_str: "--ReferenceFasta"
             required: true
+            default: ""
             help: "hg38 참조 유전체 경로"

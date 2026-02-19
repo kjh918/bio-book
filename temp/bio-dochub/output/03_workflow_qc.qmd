@@ -1,0 +1,18 @@
+# 1. Quality Control
+
+## fastqc
+
+* **Script Runner**: `run_fastqc.py`
+
+> FastQC를 이용한 Raw Reads 품질 평가
+
+### Parameters
+
+| Argument | Required | Default | Description |
+|:---|:---:|:---|:---|
+| `--SeqID, -s` | ✅ |  | 샘플 고유 ID |
+| `--Threads, -t` |   | 4 | 할당할 코어 수 |
+
+
+***
+

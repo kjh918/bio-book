@@ -1,0 +1,21 @@
+project:
+  type: book
+
+book:
+  title: "cbNIPT Workflow Book (Builder Test)"
+  author: "BioDev Team"
+  chapters:
+    - index.qmd
+    - 01_architecture.qmd
+    - 02_execution.qmd
+    - part: "Pipeline Workflows"
+      chapters:
+        - 03_workflow_qc.qmd
+        - 04_workflow_align.qmd
+    - 06_scaling.qmd
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    number-sections: true

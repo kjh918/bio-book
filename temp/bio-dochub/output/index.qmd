@@ -1,0 +1,19 @@
+# Preface {.unnumbered}
+
+**Version:** 3.0.0  
+**Last Updated:** 2026-02-19
+
+이 문서는 **cbNIPT Workflow Book (Builder Test)** 운영 및 유지보수를 위한 공식 가이드북입니다.
+
+## 1. Environment Requirements
+
+| Component | Version/Details |
+|:---|:---|
+| Python | >= 3.11 |
+| Container | Singularity 3.8+ |
+| Executor | SunGridEngine (SGE) |
+
+## 2. Reference Resources
+분석에 필요한 기본 참조 데이터 세트의 마운트 경로는 다음과 같습니다.
+* **Fasta**: `/storage/references_and_index/hg38/fasta/cbNIPT/hg38.fa`
+* **dbSNP**: `/storage/references_and_index/hg38/vcf/Homo_sapiens_assembly38.dbsnp138.vcf.gz`

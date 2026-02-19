@@ -1,0 +1,2 @@
+[console_scripts]
+qmanual = qmanual.cli:main

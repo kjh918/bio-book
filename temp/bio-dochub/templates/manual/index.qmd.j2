@@ -1,38 +1,19 @@
-# {{ project_name }} Manual
+# Preface {.unnumbered}
 
 **Version:** {{ version }}  
-**Author:** {{ author }}  
-**Date:** {{ date }}
+**Last Updated:** {{ date }}
 
-## Workflow Overview
+이 문서는 **{{ project_name }}** 운영 및 유지보수를 위한 공식 가이드북입니다.
 
-{% for step in workflow %}
-### {{ loop.index }}. {{ step.name }}
+## 1. Environment Requirements
 
-* **Script**: `{{ step.script }}`
+| Component | Version/Details |
+|:---|:---|
+| Python | {{ requirements.python }} |
+| Container | {{ requirements.container }} |
+| Executor | {{ requirements.executor }} |
 
-{% if step.desc %}
-> {{ step.desc }}
-{% endif %}
-
-{% if step.args %}
-#### Parameters
-
-| Argument | Required | Default | Description |
-|:---|:---:|:---|:---|
-{% for arg in step.args %}
-| `{{ arg.flags_str }}` | {{ '✅' if arg.required else ' ' }} | {{ arg.default if arg.default else '-' }} | {{ arg.help }} |
-{% endfor %}
-
-{% else %}
-> 파라미터 정보가 없거나 argparse를 사용하지 않는 스크립트입니다.
-{% endif %}
-
-***
-
-{% endfor %}
-
-## Code Structure
-
-```text
-{{ tree_structure }}
+## 2. Reference Resources
+분석에 필요한 기본 참조 데이터 세트의 마운트 경로는 다음과 같습니다.
+* **Fasta**: `{{ references.fasta }}`
+* **dbSNP**: `{{ references.dbsnp }}`

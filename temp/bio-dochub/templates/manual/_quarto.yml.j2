@@ -1,10 +1,24 @@
 project:
   type: book
+
 book:
   title: "{{ project_name }}"
+  author: "{{ author }}"
   chapters:
-    - index.qmd
+{% for item in toc %}
+{% if item is string %}
+    - {{ item }}
+{% else %}
+    - part: "{{ item.part }}"
+      chapters:
+{% for chap in item.chapters %}
+        - {{ chap }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+
 format:
   html:
     theme: cosmo
     toc: true
+    number-sections: true

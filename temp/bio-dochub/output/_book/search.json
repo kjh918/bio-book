@@ -1,0 +1,76 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "",
+    "section": "",
+    "text": "Introduction\n이 문서는 cbNIPT Pipeline Manual로 파이프라인의 운영 및 유지보수를 위한 공식 가이드북입니다.",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Introduction</span>"
+    ]
+  },
+  {
+    "objectID": "index.html#introduction",
+    "href": "index.html#introduction",
+    "title": "",
+    "section": "",
+    "text": "1. Document Information\n\n\n\nCategory\nDetails\n\n\n\n\nTeam\nNGS Team\n\n\nAuthor\nJihoon Kim\n\n\nVersion\n3.0.0\n\n\nLast Updated\n2026-02-20\n\n\n\n\n\n2. Environment Requirements\n\n\n\nComponent\nVersion/Details\n\n\n\n\nPython\n&gt;= 3.11\n\n\nContainer\nSingularity 4.0.0\n\n\nExecutor\nSunGridEngine (SGE)\n\n\n\n\n\n3. Resources\n분석에 필요한 기본 참조 데이터는 다음과 같습니다.\n\n\n\n\n\n\n\n\nResource Type\nPath\n\n\n\n\nReference Genome\n/storage/references_and_index/hg38/fasta/cbNIPT/hg38.fa\n\n\nKnown dbSNP\n/storage/references_and_index/hg38/vcf/Homo_sapiens_assembly38.dbsnp138.vcf.gz\n\n\nKnown Indel 1\n/storage/references_and_index/hg38/vcf/Homo_sapiens_assembly38.known_indels.vcf.gz\n\n\nKnown Indel 2\n/storage/references_and_index/hg38/vcf/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Introduction</span>"
+    ]
+  },
+  {
+    "objectID": "01_architecture.html",
+    "href": "01_architecture.html",
+    "title": "Architecture & IO",
+    "section": "",
+    "text": "1. Repository Structure\n이 파이프라인의 핵심 코드 자산 구조입니다.\n```text Directory not found.",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Architecture & IO</span>"
+    ]
+  },
+  {
+    "objectID": "03_workflow_fastqc.html",
+    "href": "03_workflow_fastqc.html",
+    "title": "Rawdata Quality Control",
+    "section": "",
+    "text": "fastqc (v0.12.1)",
+    "crumbs": [
+      "Pipeline Workflows",
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Rawdata Quality Control</span>"
+    ]
+  },
+  {
+    "objectID": "03_workflow_fastqc.html#fastqc-v0.12.1",
+    "href": "03_workflow_fastqc.html#fastqc-v0.12.1",
+    "title": "Rawdata Quality Control",
+    "section": "",
+    "text": "FastQC: Comprehensive Quality Control for Sequence Data- Generates HTML reports and data zip files- Supports automated extraction for direct data parsing- Singularity-based execution for environment consistency\n\n\nExecution Script\n실제 분석을 구동하기 위해 사용자가 실행하는 래퍼(Wrapper) 스크립트입니다.\npython /storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0/scripts/run_fastqc_singularity_pe_qc_extract.py [arguments...]\n\n\nLocal Command (Internal)\n스크립트 내부에서 설정값을 조합하여 실행되는 명령어입니다.\n[singularity_bin] exec -B [bind] [sif] [fastqc_bin] [fastqc_args] --threads \\\n  [Threads] --outdir [qcResDir] [RawFastqDir]/[SeqID]_R1.fastq.gz \\\n  [RawFastqDir]/[SeqID]_R2.fastq.gz\n\n\nParameters & I/O\n\n\nInputs\n\n\n\n\n\n\n\n\nArgument\nRequired\nDescription\n\n\n\n\nSeqID\n✅\nSequence identifier used to locate FASTQ files\n\n\nRawFastqDir\n✅\nDirectory containing raw or trimmed FASTQ files\n\n\nqcResDir\n✅\nDirectory where FastQC reports will be saved\n\n\n\n\n\nOutputs\n\n\n\n\n\n\n\n\nArgument\nDefault\nDescription\n\n\n\n\nr1_html\n[qcResDir]/[SeqID]_R1_fastqc.html\nQuality report for Read 1 in HTML\n\n\nr2_html\n[qcResDir]/[SeqID]_R2_fastqc.html\nQuality report for Read 2 in HTML\n\n\nr1_zip\n[qcResDir]/[SeqID]_R1_fastqc.zip\nData zip file for Read 1\n\n\nr2_zip\n[qcResDir]/[SeqID]_R2_fastqc.zip\nData zip file for Read 2\n\n\nr1_dir\n[qcResDir]/[SeqID]_R1_fastqc\nExtracted report directory for Read 1\n\n\nr2_dir\n[qcResDir]/[SeqID]_R2_fastqc\nExtracted report directory for Read 2\n\n\n\n\n\nParameters\n\n\n\n\n\n\n\n\nArgument\nDefault\nDescription\n\n\n\n\nsingularity_bin\nsingularity\nPath to singularity executable\n\n\nfastqc_bin\nfastqc\nFastQC binary name inside container\n\n\nsif\n/storage/images/fastqc-0.12.1.sif\nPath to FastQC SIF image\n\n\nbind\n/storage,/data\nMount paths for singularity exec\n\n\nThreads\n8\nNumber of threads (FastQC processes files in parallel)\n\n\nfastqc_args\n–extract\nAdditional FastQC flags (e.g., –extract, –nogroup)",
+    "crumbs": [
+      "Pipeline Workflows",
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Rawdata Quality Control</span>"
+    ]
+  },
+  {
+    "objectID": "04_workflow_fastp.html",
+    "href": "04_workflow_fastp.html",
+    "title": "Trim adapter and remove low quality reads",
+    "section": "",
+    "text": "fastp (v0.23.4)",
+    "crumbs": [
+      "Pipeline Workflows",
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Trim adapter and remove low quality reads</span>"
+    ]
+  },
+  {
+    "objectID": "04_workflow_fastp.html#fastp-v0.23.4",
+    "href": "04_workflow_fastp.html#fastp-v0.23.4",
+    "title": "Trim adapter and remove low quality reads",
+    "section": "",
+    "text": "fastp: Picoplex Gold Library PE Trimming- Optimized for Picoplex Gold (14bp front trimming)- Custom adapter sequences for R1/R2- Singularity-based execution for reproducibility\n\n\nExecution Script\n실제 분석을 구동하기 위해 사용자가 실행하는 래퍼(Wrapper) 스크립트입니다.\npython /storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0/scripts/run_fastp_picoplexgold_pe_trim_using_singularity.py [arguments...]\n\n\nLocal Command (Internal)\n스크립트 내부에서 설정값을 조합하여 실행되는 명령어입니다.\n[singularity_bin] exec -B [bind] [sif] [fastp_bin] --thread [Threads] --in1 \\\n  [RawFastqDir]/[SeqID]_R1.fastq.gz --in2 [RawFastqDir]/[SeqID]_R2.fastq.gz --out1 \\\n  [out_read1] --out2 [out_read2] --json [json] --html [html] --trim_poly_g \\\n  --detect_adapter_for_pe --adapter_sequence [adapter_sequence] \\\n  --adapter_sequence_r2 [adapter_sequence_r2] --length_required [length_required] \\\n  --average_qual [average_qual] --qualified_quality_phred \\\n  [qualified_quality_phred] --trim_front1 [trim_front1] --trim_front2 \\\n  [trim_front2]\n\n\nParameters & I/O\n\n\nInputs\n\n\n\n\n\n\n\n\nArgument\nRequired\nDescription\n\n\n\n\nSeqID\n✅\nSequence identifier used for file naming and sample tracking\n\n\nRawFastqDir\n✅\nDirectory containing the raw input FASTQ files\n\n\nTrimFastqDir\n✅\nTarget directory for the processed (trimmed) FASTQ files\n\n\nqcResDir\n✅\nDirectory for quality control reports (JSON/HTML)\n\n\n\n\n\nOutputs\n\n\n\n\n\n\n\n\nArgument\nDefault\nDescription\n\n\n\n\nout_read1\n[TrimFastqDir]/[SeqID].trimmed_R1.fastq.gz\nFinal trimmed Read 1 FASTQ\n\n\nout_read2\n[TrimFastqDir]/[SeqID].trimmed_R2.fastq.gz\nFinal trimmed Read 2 FASTQ\n\n\njson\n[qcResDir]/[SeqID].fastp.json\nJSON format quality report\n\n\nhtml\n[qcResDir]/[SeqID].fastp.html\nHTML format quality report\n\n\n\n\n\nParameters\n\n\n\n\n\n\n\n\nArgument\nDefault\nDescription\n\n\n\n\nsingularity_bin\nsingularity\nPath to the singularity executable\n\n\nfastp_bin\nfastp\nfastp executable name or path inside container\n\n\nsif\n/storage/images/fastp-0.23.4.sif\nPath to fastp Singularity image (.sif)\n\n\nbind\n/storage,/data\nDirectories to mount for Singularity\n\n\nThreads\n8\nNumber of threads for parallel processing\n\n\nlength_required\n100\nMinimum read length filter\n\n\naverage_qual\n10\nMinimum average quality filter\n\n\nqualified_quality_phred\n15\nPhred quality score threshold (base quality)\n\n\ntrim_front1\n14\nNumber of bases to trim from the start of Read 1\n\n\ntrim_front2\n14\nNumber of bases to trim from the start of Read 2\n\n\nadapter_sequence\nAGATCGGAAGAGCACACGTCTGAACTCCAGTCA\nAdapter sequence for Read 1\n\n\nadapter_sequence_r2\nAGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT\nAdapter sequence for Read 2",
+    "crumbs": [
+      "Pipeline Workflows",
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Trim adapter and remove low quality reads</span>"
+    ]
+  }
+]

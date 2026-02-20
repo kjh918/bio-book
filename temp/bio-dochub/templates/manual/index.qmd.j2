@@ -1,19 +1,33 @@
-# Preface {.unnumbered}
+## Introduction
 
-**Version:** {{ version }}  
-**Last Updated:** {{ date }}
+이 문서는 **{{ project_name }}**로 파이프라인의 운영 및 유지보수를 위한 공식 가이드북입니다.
 
-이 문서는 **{{ project_name }}** 운영 및 유지보수를 위한 공식 가이드북입니다.
+### 1. Document Information
 
-## 1. Environment Requirements
+| Category | Details |
+|:---|:---|
+| **Team** | {{ team }} |
+| **Author** | {{ author }} |
+| **Version** | {{ version }} |
+| **Last Updated** | {{ date }} |
+
+### 2. Environment Requirements
 
 | Component | Version/Details |
 |:---|:---|
-| Python | {{ requirements.python }} |
-| Container | {{ requirements.container }} |
-| Executor | {{ requirements.executor }} |
+| **Python** | {{ requirements.python }} |
+| **Container** | {{ requirements.container }} |
+| **Executor** | {{ requirements.executor }} |
 
-## 2. Reference Resources
-분석에 필요한 기본 참조 데이터 세트의 마운트 경로는 다음과 같습니다.
-* **Fasta**: `{{ references.fasta }}`
-* **dbSNP**: `{{ references.dbsnp }}`
+### 3. Resources
+분석에 필요한 기본 참조 데이터는 다음과 같습니다.
+
+::: {style="font-size: 0.85em;"}
+| Resource Type | Path |
+|:---|:---|
+| Reference Genome | `{{ resources.reference_genome }}` |
+| Known dbSNP | `{{ resources.KnownSnp }}` |
+| Known Indel 1 | `{{ resources.KnownIndel1 }}` |
+| Known Indel 2 | `{{ resources.KnownIndel2 }}` |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}

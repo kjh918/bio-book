@@ -1,26 +1,64 @@
 # {{ category_title }}
 
 {% for step in tasks %}
-## {{ step.name }}
-
-* **Script Runner**: `{{ step.script }}`
+## {{ step.tool.name }} (v{{ step.tool.version }})
 
 {% if step.desc %}
-> {{ step.desc }}
+> {{ step.desc | safe }}
 {% endif %}
 
-{% if step.args %}
-### Parameters
+### Execution Script
+실제 분석을 구동하기 위해 사용자가 실행하는 래퍼(Wrapper) 스크립트입니다.
 
-| Argument | Required | Default | Description |
-|:---|:---:|:---|:---|
-{% for arg in step.args %}
-| `{{ arg.flags_str }}` | {{ '✅' if arg.required else ' ' }} | {{ arg.default }} | {{ arg.help }} |
+```bash
+python {{ step.run_script }} [arguments...]
+```
+
+### Local Command (Internal)
+스크립트 내부에서 설정값을 조합하여 실행되는 명령어입니다.
+
+```bash
+{{ step.cmd_line | safe }}
+```
+
+### Parameters & I/O
+
+::: {style="font-size: 0.85em;"}
+
+{% if step.io and step.io.inputs %}
+#### Inputs
+| Argument | Required | Description |
+|:---|:---|:---|
+{% for key, val in step.io.inputs.items() -%}
+| `{{ key }}` | {{ '✅' if val.required else ' ' }} | {{ val.help | default('', true) | replace('\n', '<br>') | replace('|', '&#124;') }} |
 {% endfor %}
 
-{% else %}
-> 파라미터 정보가 없습니다.
+: {tbl-colwidths="[20, 12, 28, 40]"}
 {% endif %}
+
+{% if step.io and step.io.outputs %}
+#### Outputs
+| Argument | Default | Description |
+|:---|:---|:---|
+{% for key, val in step.io.outputs.items() -%}
+| `{{ key }}` | {{ val.default | default('-', true) }} | {{ val.help | default('', true) | replace('\n', '<br>') | replace('|', '&#124;') }} |
+{% endfor %}
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+{% endif %}
+
+{% if step.params %}
+#### Parameters
+| Argument | Default | Description |
+|:---|:---|:---|
+{% for key, val in step.params.items() -%}
+| `{{ key }}` | {{ val.default | default('-', true) }} | {{ val.help | default('', true) | replace('\n', '<br>') | replace('|', '&#124;') }} |
+{% endfor %}
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+{% endif %}
+
+:::
 
 ***
 

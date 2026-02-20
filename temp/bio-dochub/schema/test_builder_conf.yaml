@@ -7,7 +7,7 @@ source_dir: "./test/test_env"
 
 requirements:
   python: ">= 3.11"
-  container: "Singularity 3.8+"
+  container: "Singularity 4.0.0"
   executor: "SunGridEngine (SGE)"
 
 references:

@@ -2,8 +2,6 @@ project:
   type: book
 
 book:
-  title: "{{ project_name }}"
-  author: "{{ author }}"
   chapters:
 {% for item in toc %}
 {% if item is string %}
@@ -21,4 +19,6 @@ format:
   html:
     theme: cosmo
     toc: true
-    number-sections: true
+    number-sections: false  # ✅ 이 줄을 추가하세요! (HTML 렌더링 시 숫자 제거)
+  pdf:
+    number-sections: false  # ✅ (선택) PDF로 뽑을 때도 숫자를 없애고 싶다면 추가

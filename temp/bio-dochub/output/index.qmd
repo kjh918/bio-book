@@ -1,19 +1,33 @@
-# Preface {.unnumbered}
+## Introduction
 
-**Version:** 3.0.0  
-**Last Updated:** 2026-02-19
+이 문서는 **cbNIPT Pipeline Manual**로 파이프라인의 운영 및 유지보수를 위한 공식 가이드북입니다.
 
-이 문서는 **cbNIPT Workflow Book (Builder Test)** 운영 및 유지보수를 위한 공식 가이드북입니다.
+### 1. Document Information
 
-## 1. Environment Requirements
+| Category | Details |
+|:---|:---|
+| **Team** | NGS Team |
+| **Author** | Jihoon Kim |
+| **Version** | 3.0.0 |
+| **Last Updated** | 2026-02-20 |
+
+### 2. Environment Requirements
 
 | Component | Version/Details |
 |:---|:---|
-| Python | >= 3.11 |
-| Container | Singularity 3.8+ |
-| Executor | SunGridEngine (SGE) |
+| **Python** | >= 3.11 |
+| **Container** | Singularity 4.0.0 |
+| **Executor** | SunGridEngine (SGE) |
 
-## 2. Reference Resources
-분석에 필요한 기본 참조 데이터 세트의 마운트 경로는 다음과 같습니다.
-* **Fasta**: `/storage/references_and_index/hg38/fasta/cbNIPT/hg38.fa`
-* **dbSNP**: `/storage/references_and_index/hg38/vcf/Homo_sapiens_assembly38.dbsnp138.vcf.gz`
+### 3. Resources
+분석에 필요한 기본 참조 데이터는 다음과 같습니다.
+
+::: {style="font-size: 0.85em;"}
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+| Resource Type | Path |
+|:---|:---|
+| Reference Genome | `/storage/references_and_index/hg38/fasta/cbNIPT/hg38.fa` |
+| Known dbSNP | `/storage/references_and_index/hg38/vcf/Homo_sapiens_assembly38.dbsnp138.vcf.gz` |
+| Known Indel 1 | `/storage/references_and_index/hg38/vcf/Homo_sapiens_assembly38.known_indels.vcf.gz` |
+| Known Indel 2 | `/storage/references_and_index/hg38/vcf/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz` |

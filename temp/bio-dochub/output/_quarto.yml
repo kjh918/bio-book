@@ -2,20 +2,19 @@ project:
   type: book
 
 book:
-  title: "cbNIPT Workflow Book (Builder Test)"
-  author: "BioDev Team"
   chapters:
     - index.qmd
     - 01_architecture.qmd
-    - 02_execution.qmd
     - part: "Pipeline Workflows"
       chapters:
-        - 03_workflow_qc.qmd
-        - 04_workflow_align.qmd
+        - 03_workflow_fastqc.qmd
+        - 04_workflow_fastp.qmd
     - 06_scaling.qmd
 
 format:
   html:
     theme: cosmo
     toc: true
-    number-sections: true
+    number-sections: false  # ✅ 이 줄을 추가하세요! (HTML 렌더링 시 숫자 제거)
+  pdf:
+    number-sections: false  # ✅ (선택) PDF로 뽑을 때도 숫자를 없애고 싶다면 추가

@@ -1,0 +1,63 @@
+# Rawdata Quality Control
+
+## fastqc (v0.12.1)
+
+> FastQC: Comprehensive Quality Control for Sequence Data<br>- Generates HTML reports and data zip files<br>- Supports automated extraction for direct data parsing<br>- Singularity-based execution for environment consistency
+
+### Execution Script
+실제 분석을 구동하기 위해 사용자가 실행하는 래퍼(Wrapper) 스크립트입니다.
+
+```bash
+python /storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0/scripts/run_fastqc_singularity_pe_qc_extract.py [arguments...]
+```
+
+### Local Command (Internal)
+스크립트 내부에서 설정값을 조합하여 실행되는 명령어입니다.
+
+```bash
+[singularity_bin] exec -B [bind] [sif] [fastqc_bin] [fastqc_args] --threads \
+  [Threads] --outdir [qcResDir] [RawFastqDir]/[SeqID]_R1.fastq.gz \
+  [RawFastqDir]/[SeqID]_R2.fastq.gz
+```
+
+### Parameters & I/O
+
+::: {style="font-size: 0.85em;"}
+
+#### Inputs
+| Argument | Required | Description |
+|:---|:---|:---|
+| `SeqID` | ✅ | Sequence identifier used to locate FASTQ files |
+| `RawFastqDir` | ✅ | Directory containing raw or trimmed FASTQ files |
+| `qcResDir` | ✅ | Directory where FastQC reports will be saved |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+#### Outputs
+| Argument | Default | Description |
+|:---|:---|:---|
+| `r1_html` | [qcResDir]/[SeqID]_R1_fastqc.html | Quality report for Read 1 in HTML |
+| `r2_html` | [qcResDir]/[SeqID]_R2_fastqc.html | Quality report for Read 2 in HTML |
+| `r1_zip` | [qcResDir]/[SeqID]_R1_fastqc.zip | Data zip file for Read 1 |
+| `r2_zip` | [qcResDir]/[SeqID]_R2_fastqc.zip | Data zip file for Read 2 |
+| `r1_dir` | [qcResDir]/[SeqID]_R1_fastqc | Extracted report directory for Read 1 |
+| `r2_dir` | [qcResDir]/[SeqID]_R2_fastqc | Extracted report directory for Read 2 |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+#### Parameters
+| Argument | Default | Description |
+|:---|:---|:---|
+| `singularity_bin` | singularity | Path to singularity executable |
+| `fastqc_bin` | fastqc | FastQC binary name inside container |
+| `sif` | /storage/images/fastqc-0.12.1.sif | Path to FastQC SIF image |
+| `bind` | /storage,/data | Mount paths for singularity exec |
+| `Threads` | 8 | Number of threads (FastQC processes files in parallel) |
+| `fastqc_args` | --extract | Additional FastQC flags (e.g., --extract, --nogroup) |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+:::
+
+***
+

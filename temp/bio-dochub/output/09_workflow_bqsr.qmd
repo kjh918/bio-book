@@ -1,0 +1,71 @@
+# Base Quality Score Recalibration
+
+## gatk4 (v4.4.0.0)
+
+> GATK4 BQSR (Base Quality Score Recalibration)<br>1. BaseRecalibrator: 보정 테이블(.table) 생성<br>2. ApplyBQSR: 보정된 품질 점수를 BAM에 적용
+
+### Execution Script
+실제 분석을 구동하기 위해 사용자가 실행하는 래퍼(Wrapper) 스크립트입니다.
+
+```bash
+python /storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0/scripts/run_gatk4_bqsr_using_singularity.py [arguments...]
+```
+
+### Local Command (Internal)
+스크립트 내부에서 설정값을 조합하여 실행되는 명령어입니다.
+
+```bash
+[singularity_bin] exec -B [bind] [sif] [gatk_bin] BaseRecalibrator \
+  --java-options "-XX:ParallelGCThreads=[Threads] -Xmx[xmx_mb]m" --input \
+  [BamDir]/[SeqID].[InputSuffix].bam --reference [ReferenceFasta] --output \
+  [recal_table] --known-sites [KnownSnp] --known-sites [KnownIndel1] --known-sites \
+  [KnownIndel2] && [singularity_bin] exec -B [bind] [sif] [gatk_bin] ApplyBQSR \
+  --java-options "-XX:ParallelGCThreads=[Threads] -Xmx[xmx_mb]m" --input \
+  [BamDir]/[SeqID].[InputSuffix].bam --bqsr-recal-file [recal_table] --output \
+  [recal_bam] --create-output-bam-index true
+```
+
+### Parameters & I/O
+
+::: {style="font-size: 0.85em;"}
+
+#### Inputs
+| Argument | Required | Description |
+|:---|:---|:---|
+| `SeqID` | ✅ | Sequence identifier used for file naming |
+| `BamDir` | ✅ | Directory containing the input BAM and target output BAM |
+| `qcResDir` | ✅ | Directory for the recalibration table output |
+| `ReferenceFasta` | ✅ | Path to the reference genome FASTA file |
+| `KnownSnp` | ✅ | Path to known SNPs VCF (e.g., dbSNP) |
+| `KnownIndel1` | ✅ | Path to known Indels VCF (e.g., Mills and 1000G) |
+| `KnownIndel2` | ✅ | Path to additional known Indels VCF |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+#### Outputs
+| Argument | Default | Description |
+|:---|:---|:---|
+| `recal_table` | [qcResDir]/[SeqID].[InputSuffix].recal_table.txt | Recalibration report table used by ApplyBQSR |
+| `recal_bam` | [BamDir]/[SeqID].[OutputSuffix].bam | Final recalibrated BAM file |
+| `recal_bai` | [BamDir]/[SeqID].[OutputSuffix].bam.bai | Index file for the recalibrated BAM |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+#### Parameters
+| Argument | Default | Description |
+|:---|:---|:---|
+| `InputSuffix` | realign | Suffix of input BAM (e.g., dedup, sorted, primary) |
+| `OutputSuffix` | recal | Suffix for output BAM (e.g., recal, bqsr) |
+| `singularity_bin` | singularity | Path to singularity executable |
+| `gatk_bin` | gatk | GATK wrapper script or binary inside container |
+| `sif` | /storage/images/gatk-4.4.0.0.sif | GATK singularity image file |
+| `bind` | /storage,/data | Mount paths for singularity |
+| `Threads` | 14 | Threads for ParallelGC and GATK engine |
+| `xmx_mb` | 16384 | Maximum Java heap memory (MB) |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+:::
+
+***
+

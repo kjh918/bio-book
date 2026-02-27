@@ -1,0 +1,92 @@
+# Mapping
+
+## bwa_picard (vbwa_0.7.17-picard_3.1.0)
+
+> Picard/GATK Best Practices Alignment Pipeline<br>1. FastqToSam: FASTQ를 메타데이터가 포함된 uBAM으로 변환<br>2. BWA MEM: 정렬 수행 (순수 매핑 정보 SAM 생성)<br>3. MergeBamAlignment: uBAM의 메타데이터 + SAM의 매핑 정보 병합
+
+### Execution Script
+실제 분석을 구동하기 위해 사용자가 실행하는 래퍼(Wrapper) 스크립트입니다.
+
+```bash
+python /storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0/scripts/run_bwa_picard_pe_align_merge.py [arguments...]
+```
+
+### Local Command (Internal)
+스크립트 내부에서 설정값을 조합하여 실행되는 명령어입니다.
+
+```bash
+[java_bin] -XX:ParallelGCThreads=[Threads] -Xmx[xmx_mb]m -jar [picard_jar] \
+  FastqToSam --FASTQ [TrimFastqDir]/[SeqID].[InputSuffix]_R1.fastq.gz --FASTQ2 \
+  [TrimFastqDir]/[SeqID].[InputSuffix]_R2.fastq.gz --SAMPLE_NAME [SeqID] --OUTPUT \
+  [unmapped_bam] --READ_GROUP_NAME [ReadGroupID] --PLATFORM [ReadGroupPlatform] \
+  --LIBRARY_NAME [ReadGroupLibrary] --SEQUENCING_CENTER [ReadGroupCenter] \
+  --TMP_DIR [TmpDir] && [singularity_bin] exec -B [bind] [bwa_sif] [bwa_bin] mem \
+  [mark_short_split] [soft_clipping] [clipping_penalty] [other_args]  -t [Threads] \
+  -R \
+  "@RG\\tID:[ReadGroupID]\\tPL:[ReadGroupPlatform]\\tLB:[ReadGroupLibrary]\\tSM:[SeqID]\\tCN:[ReadGroupCenter]" \
+  [ReferenceFasta] [TrimFastqDir]/[SeqID].[InputSuffix]_R1.fastq.gz \
+  [TrimFastqDir]/[SeqID].[InputSuffix]_R2.fastq.gz > [aligned_sam] && [java_bin] \
+  -XX:ParallelGCThreads=[Threads] -Xmx[xmx_mb]m -jar [picard_jar] \
+  MergeBamAlignment --UNMAPPED_BAM [unmapped_bam] --ALIGNED_BAM [aligned_sam] \
+  --REFERENCE_SEQUENCE [ReferenceFasta] --OUTPUT [primary_bam] \
+  --PRIMARY_ALIGNMENT_STRATEGY [mba_strategy] --ATTRIBUTES_TO_RETAIN \
+  [mba_attributes] --EXPECTED_ORIENTATIONS [mba_orientations] [mba_other_flags]
+```
+
+### Parameters & I/O
+
+::: {style="font-size: 0.85em;"}
+
+#### Inputs
+| Argument | Required | Description |
+|:---|:---|:---|
+| `SeqID` | ✅ | Sequence identifier for sample tracking |
+| `TrimFastqDir` | ✅ | Directory containing input FASTQ files |
+| `BamDir` | ✅ | Directory to store intermediate and final BAM files |
+| `TmpDir` | ✅ | Temporary directory for Picard operations |
+| `ReferenceFasta` | ✅ | Path to the reference genome FASTA file |
+| `ReadGroupID` | ✅ | Read Group ID (ID tag) |
+| `ReadGroupPlatform` | ✅ | Sequencing platform (PL tag) |
+| `ReadGroupLibrary` | ✅ | Library identifier (LB tag) |
+| `ReadGroupCenter` | ✅ | Sequencing center (CN tag) |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+#### Outputs
+| Argument | Default | Description |
+|:---|:---|:---|
+| `unmapped_bam` | [BamDir]/[SeqID].[InputSuffix].u.bam | Intermediate unmapped BAM containing original metadata |
+| `aligned_sam` | [BamDir]/[SeqID].[InputSuffix].bwa_raw.sam | Raw BWA alignment output without metadata |
+| `primary_bam` | [BamDir]/[SeqID].[OutputSuffix].bam | Final merged and coordinate-sorted BAM file |
+| `primary_bai` | [BamDir]/[SeqID].[OutputSuffix].bai | Index for the final merged BAM |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+#### Parameters
+| Argument | Default | Description |
+|:---|:---|:---|
+| `InputSuffix` | trimmed | Suffix of input FASTQs (e.g., trimmed, raw) |
+| `OutputSuffix` | primary | Suffix for the final merged result |
+| `java_bin` | java | Path to Java executable |
+| `picard_jar` | /storage/apps/bin/picard.jar | Path to Picard.jar |
+| `singularity_bin` | singularity | Path to Singularity |
+| `bwa_sif` | /storage/images/bwa-0.7.17.sif | BWA Singularity image |
+| `bind` | /storage,/data | Mount paths for Singularity |
+| `xmx_mb` | 16384 | Max Java heap memory (MB) |
+| `Threads` | 8 | Threads for BWA and Java ParallelGC |
+| `bwa_bin` | bwa |  |
+| `mark_short_split` | -M |  |
+| `soft_clipping` | -Y |  |
+| `clipping_penalty` | -L 50,50 |  |
+| `other_args` | - |  |
+| `mba_strategy` | MostDistant |  |
+| `mba_attributes` | XS |  |
+| `mba_orientations` | FR --EXPECTED_ORIENTATIONS RF |  |
+| `mba_other_flags` | --CREATE_INDEX true --MAX_INSERTIONS_OR_DELETIONS -1 --CLIP_ADAPTERS false |  |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+:::
+
+***
+

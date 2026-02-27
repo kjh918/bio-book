@@ -1,0 +1,61 @@
+# Artifacts
+
+## gatk4 (v4.4.0.0)
+
+> GATK4 CollectSequencingArtifactMetrics (Modular Version)<br>- Collects metrics for sequencing artifacts (e.g., OxoG, UR)<br>- Flexible input via InputSuffix (e.g., analysisReady, recal, primary)<br>- Singularity-based execution with resource optimization
+
+### Execution Script
+실제 분석을 구동하기 위해 사용자가 실행하는 래퍼(Wrapper) 스크립트입니다.
+
+```bash
+python /storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0/scripts/run_gatk4_qc_artifacts_using_singularity.py [arguments...]
+```
+
+### Local Command (Internal)
+스크립트 내부에서 설정값을 조합하여 실행되는 명령어입니다.
+
+```bash
+[singularity_bin] exec -B [bind] [sif] [gatk_bin] \
+  CollectSequencingArtifactMetrics --java-options "-XX:ParallelGCThreads=[Threads] \
+  -Xmx[xmx_mb]m" --INPUT [BamDir]/[SeqID].[InputSuffix].bam --OUTPUT \
+  [artifacts_txt] --FILE_EXTENSION .txt --REFERENCE_SEQUENCE [ReferenceFasta]
+```
+
+### Parameters & I/O
+
+::: {style="font-size: 0.85em;"}
+
+#### Inputs
+| Argument | Required | Description |
+|:---|:---|:---|
+| `SeqID` | ✅ | Sequence identifier used for file naming |
+| `BamDir` | ✅ | Directory containing the BAM file to be analyzed |
+| `qcResDir` | ✅ | Output directory for artifact metrics |
+| `ReferenceFasta` | ✅ | Path to the reference genome FASTA file |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+#### Outputs
+| Argument | Default | Description |
+|:---|:---|:---|
+| `artifacts_txt` | [qcResDir]/[SeqID].artifacts | Base name for artifact metrics output files |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+#### Parameters
+| Argument | Default | Description |
+|:---|:---|:---|
+| `InputSuffix` | analysisReady | Suffix of the input BAM file (default : analysisReady / e.g., recal, sorted) |
+| `singularity_bin` | singularity | Path to singularity executable |
+| `gatk_bin` | gatk | GATK wrapper script or binary path inside container |
+| `sif` | /storage/images/gatk-4.4.0.0.sif | Path to GATK singularity image (.sif) |
+| `bind` | /storage,/data | Mount paths for singularity |
+| `Threads` | 14 | Number of threads for ParallelGC |
+| `xmx_mb` | 16384 | Maximum Java heap memory (MB) |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+:::
+
+***
+

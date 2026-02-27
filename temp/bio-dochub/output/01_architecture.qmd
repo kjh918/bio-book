@@ -1,7 +1,146 @@
-# Architecture & IO
+# Architecture & I/O
 
 ## 1. Repository Structure
-이 파이프라인의 핵심 코드 자산 구조입니다.
 
+### Source Directory (`/storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0`)
+파이프라인의 핵심 코드 및 스크립트가 위치한 메인 디렉토리입니다.
 ```text
-Directory not found.
+📂 scripts/
+```
+
+### Test Directory (`/storage/home/jhkim/Projects/cbNIPT/260122-GCX-cbNIPT_Workflow/Results/`)
+분석 테스트 환경 및 임시 파일이 위치한 디렉토리입니다.
+```text
+📂 cbNIPT_25_04_01/
+  📂 bam/
+  📂 copykit/
+  📂 fastq_raw/
+    📂 cbNIPT_25_04_01_R1_fastqc/
+      📂 Icons/
+      📂 Images/
+    📂 cbNIPT_25_04_01_R2_fastqc/
+      📂 Icons/
+      📂 Images/
+  📂 fastq_trimmed/
+  📂 logs/
+    📂 00_fastqc/
+    📂 01_fastp/
+    📂 02_bwa_picard_align_merge/
+    📂 03_samtools_bam_sort_index/
+    📂 04_gatk4_singularity_dedup/
+    📂 05_gatk3_singularity_indel_realign/
+    📂 06_gatk4_singularity_bqsr/
+    📂 07_samtools_filter_index_recal_bam_filter/
+    📂 08_gatk4_singularity_qc_artifacts/
+    📂 09_gatk4_singularity_qc_alignment_summary/
+    📂 10_gatk4_singularity_qc_insert_size/
+    📂 11_gatk4_singularity_qc_wgs_metrics/
+    📂 12_mosdepth_singularity_coverage_100kb/
+    📂 13_copykit_cbnipt_copynumber_analysis.py/
+  📂 qc/
+  📂 tmp/
+📂 cbNIPT_25_04_02/
+  📂 bam/
+  📂 copykit/
+  📂 fastq_raw/
+    📂 cbNIPT_25_04_02_R1_fastqc/
+      📂 Icons/
+      📂 Images/
+    📂 cbNIPT_25_04_02_R2_fastqc/
+      📂 Icons/
+      📂 Images/
+  📂 fastq_trimmed/
+  📂 logs/
+    📂 00_fastqc/
+    📂 01_fastp/
+    📂 02_bwa_picard_align_merge/
+    📂 03_samtools_bam_sort_index/
+    📂 04_gatk4_singularity_dedup/
+    📂 05_gatk3_singularity_indel_realign/
+    📂 06_gatk4_singularity_bqsr/
+    📂 07_samtools_filter_index_recal_bam_filter/
+    📂 08_gatk4_singularity_qc_artifacts/
+    📂 09_gatk4_singularity_qc_alignment_summary/
+    📂 10_gatk4_singularity_qc_insert_size/
+    📂 11_gatk4_singularity_qc_wgs_metrics/
+    📂 11_mosdepth_singularity_coverage_100kb/
+    📂 12_mosdepth_singularity_coverage_100kb/
+    📂 13_copykit_cbnipt_copynumber_analysis.py/
+  📂 qc/
+  📂 tmp/
+📂 logs/
+  📂 20260219_154333/
+  📂 20260220_080620/
+  📂 20260220_081233/
+  📂 20260220_090837/
+  📂 20260220_094618/
+  📂 20260220_094918/
+  📂 20260220_130943/
+  📂 20260220_145917/
+  📂 20260220_150222/
+```
+
+## 2. Pipeline Workflow
+
+아래는 파이프라인의 전체 실행 흐름도입니다.
+
+```{mermaid}
+flowchart TD
+    %% [1] 스타일: 프로세스는 회색 바탕, 기본 연결선 굵게
+    classDef proc fill:#e6e6e6,stroke:#999,stroke-width:1px,color:#000;
+    linkStyle default stroke:#757575,stroke-width:2px;
+
+    %% [2] 그룹 및 노드 생성 (가로 폭 160px 고정)
+    subgraph part1["Pre-processing"]
+        fastqc["<div style='width: 160px; text-align: center;'><b>Rawdata Quality Control</b><br><span style='font-size:12px'>(fastqc)</span></div>"]
+        fastp["<div style='width: 160px; text-align: center;'><b>Trim adapter and remove low quality reads</b><br><span style='font-size:12px'>(fastp)</span></div>"]
+    end
+    subgraph part2["Alignment & BAM Processing"]
+        bwa_align["<div style='width: 160px; text-align: center;'><b>Mapping</b><br><span style='font-size:12px'>(bwa_align)</span></div>"]
+        sort_and_index["<div style='width: 160px; text-align: center;'><b>Sort and index</b><br><span style='font-size:12px'>(sort_and_index)</span></div>"]
+        gatk_dedup["<div style='width: 160px; text-align: center;'><b>Remove duplicates</b><br><span style='font-size:12px'>(gatk_dedup)</span></div>"]
+        gatk_realign["<div style='width: 160px; text-align: center;'><b>Realign</b><br><span style='font-size:12px'>(gatk_realign)</span></div>"]
+        gatk_bqsr["<div style='width: 160px; text-align: center;'><b>Base Quality Score Recalibration</b><br><span style='font-size:12px'>(gatk_bqsr)</span></div>"]
+        samtools_filtering["<div style='width: 160px; text-align: center;'><b>Remove low qualtiy read</b><br><span style='font-size:12px'>(samtools_filtering)</span></div>"]
+    end
+    subgraph part3["Analysis"]
+        copykit["<div style='width: 160px; text-align: center;'><b>Calculate CNV</b><br><span style='font-size:12px'>(copykit)</span></div>"]
+    end
+    subgraph part4["QC"]
+        gatk_qc_artifacts["<div style='width: 160px; text-align: center;'><b>Artifacts</b><br><span style='font-size:12px'>(gatk_qc_artifacts)</span></div>"]
+        picard_qc_insert_size["<div style='width: 160px; text-align: center;'><b>Insert Size</b><br><span style='font-size:12px'>(picard_qc_insert_size)</span></div>"]
+        gatk_qc_alignment_summary["<div style='width: 160px; text-align: center;'><b>Alignment Summary</b><br><span style='font-size:12px'>(gatk_qc_alignment_summary)</span></div>"]
+        gatk_qc_wgs_metrics["<div style='width: 160px; text-align: center;'><b>WGS Metrics</b><br><span style='font-size:12px'>(gatk_qc_wgs_metrics)</span></div>"]
+        mosdepth_coverage["<div style='width: 160px; text-align: center;'><b>Coverage</b><br><span style='font-size:12px'>(mosdepth_coverage)</span></div>"]
+    end
+
+    %% [3] 화살표 연결 (YAML 데이터)
+    fastqc --> data_fastq[Fastq]
+    data_fastq --> fastp
+    fastp --> data_trimmed[Trimmed Fastq]
+    data_trimmed --> bwa_align
+    bwa_align --> data_bam1[Bam]
+    data_bam1 --> gatk_dedup
+    gatk_dedup --> data_bam2[Bam]
+    aligned_bam_qc[Aligned BAM QC] --> data_bam2
+
+    %% [4] 디자인 입히기
+        class fastqc proc;
+        class fastp proc;
+    style part1 fill:none,stroke:#b0bec5,stroke-width:2px,stroke-dasharray: 5 5;
+        class bwa_align proc;
+        class sort_and_index proc;
+        class gatk_dedup proc;
+        class gatk_realign proc;
+        class gatk_bqsr proc;
+        class samtools_filtering proc;
+    style part2 fill:none,stroke:#b0bec5,stroke-width:2px,stroke-dasharray: 5 5;
+        class copykit proc;
+    style part3 fill:none,stroke:#b0bec5,stroke-width:2px,stroke-dasharray: 5 5;
+        class gatk_qc_artifacts proc;
+        class picard_qc_insert_size proc;
+        class gatk_qc_alignment_summary proc;
+        class gatk_qc_wgs_metrics proc;
+        class mosdepth_coverage proc;
+    style part4 fill:none,stroke:#b0bec5,stroke-width:2px,stroke-dasharray: 5 5;
+```

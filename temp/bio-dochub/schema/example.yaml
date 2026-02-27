@@ -4,7 +4,8 @@ version: "3.0.0"
 team: "NGS Team"
 author: "Jihoon Kim"
 date: "2026-02-20"
-source_dir: "./test/test_env"
+source_dir: "/storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0"
+test_dir: "/storage/home/jhkim/Projects/cbNIPT/260122-GCX-cbNIPT_Workflow/Results/"
 
 requirements:
   python: ">= 3.11"
@@ -27,6 +28,56 @@ static_chapters:
     template: "01_architecture.qmd.j2"
 
 workflows:
+  "1. Pre-processing":
+    - fastqc
+    - fastp
+  "2. Alignment & BAM Processing":
+    - bwa_align
+    - sort_and_index
+    - gatk_dedup
+    - gatk_realign
+    - gatk_bqsr
+    - samtools_filtering
+  "3. Analysis":
+    - copykit
+  "4. QC":
+    - gatk_qc_artifacts
+    - picard_qc_insert_size
+    - gatk_qc_alignment_summary
+    - gatk_qc_wgs_metrics
+    - mosdepth_coverage
+
+#flowchart:
+#  - "fastqc --> fastp"
+#  - "fastp --> bwa_align"
+#  - "bwa_align --> sort_and_index"
+#  - "sort_and_index --> gatk_dedup"
+#  - "gatk_dedup --> gatk_realign"
+#  - "gatk_realign --> gatk_bqsr"
+#  - "gatk_bqsr --> samtools_filtering"
+#  - "samtools_filtering --> copykit"
+#  - "samtools_filtering --> gatk_qc_artifacts"
+#  - "samtools_filtering --> picard_qc_insert_size"
+#  - "samtools_filtering --> gatk_qc_alignment_summary"
+#  - "samtools_filtering --> gatk_qc_wgs_metrics"
+#  - "samtools_filtering --> mosdepth_coverage"
+flowchart:
+  # 데이터 노드(Fastq)를 새로 만들어서 연결!
+  - "fastqc --> data_fastq[Fastq]"
+  - "data_fastq --> fastp"
+  
+  # Trimmed Fastq 데이터 노드 연결!
+  - "fastp --> data_trimmed[Trimmed Fastq]"
+  - "data_trimmed --> bwa_align"
+  
+  # Bam 데이터 노드 연결!
+  - "bwa_align --> data_bam1[Bam]"
+  - "data_bam1 --> gatk_dedup"
+  
+  # 사이드 입력(Aligned BAM QC) 예시
+  - "gatk_dedup --> data_bam2[Bam]"
+  - "aligned_bam_qc[Aligned BAM QC] --> data_bam2"
+tasks:
   fastqc:
     title: "Rawdata Quality Control"
     filename: "03_workflow_fastqc.qmd"
@@ -38,6 +89,79 @@ workflows:
     filename: "04_workflow_fastp.qmd"
     config: "/storage/home/jhkim/scripts/bioscript/configs/fastp_0.23.4_PicoplexGold_singularity_pe_trim.yaml"
     script: "/storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0/scripts/run_fastp_picoplexgold_pe_trim_using_singularity.py"
+
+  bwa_align: 
+    title: "Mapping"
+    filename: "05_workflow_bwa_picard_align_merge.qmd"
+    config: "/storage/home/jhkim/scripts/bioscript/configs/bwa_0.7.17_pe_merge.yaml"
+    script: "/storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0/scripts/run_bwa_picard_pe_align_merge.py"
+
+  sort_and_index: 
+    title: "Sort and index"
+    filename: "06_workflow_sort_and_index.qmd"
+    config: "/storage/home/jhkim/scripts/bioscript/configs/samtools_1.10_sort_and_index.yaml"
+    script: "/storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0/scripts/run_samtools_bam_sort_index.py"
+
+  gatk_dedup: 
+    title: "Remove duplicates"
+    filename: "07_workflow_dedup.qmd"
+    config: "/storage/home/jhkim/scripts/bioscript/configs/gatk_4.4.0.0_singularity_mark_duplicates.yaml"
+    script: "/storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0/scripts/run_fastp_picoplexgold_pe_trim_using_singularity.py"
+
+  gatk_realign: 
+    title: "Realign"
+    filename: "08_workflow_realign.qmd"
+    config: "/storage/home/jhkim/scripts/bioscript/configs/gatk_3.8_singularity_indel_realign.yaml"
+    script: "/storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0/scripts/run_gatk4_dedup_using_singularity.py"
+
+  gatk_bqsr: 
+    title: "Base Quality Score Recalibration"
+    filename: "09_workflow_bqsr.qmd"
+    config: "/storage/home/jhkim/scripts/bioscript/configs/gatk_4.4.0.0_singularity_bqsr.yaml"
+    script: "/storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0/scripts/run_gatk4_bqsr_using_singularity.py"
+
+  samtools_filtering: 
+    title: "Remove low qualtiy read"
+    filename: "10_workflow_remove_low_quality_read.qmd"
+    config: "/storage/home/jhkim/scripts/bioscript/configs/samtools_1.10_filter_read.yaml"
+    script: "/storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0/scripts/run_samtools_filter_bam.py"
+
+  copykit: 
+    title: "Calculate CNV"
+    filename: "11_workflow_copykit.qmd"
+    config: "/storage/home/jhkim/scripts/bioscript/configs/copykit_cbNIPT_analysis.yaml"
+    script: "/storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0/scripts/run_copykit_cbnipt_copynumber_analysis.py"
+
+  gatk_qc_artifacts: 
+    title: "Artifacts"
+    filename: "12_workflow_qc_artifacts.qmd"
+    config: "/storage/home/jhkim/scripts/bioscript/configs/gatk_4.4.0.0_singularity_qc_artifacts.yaml"
+    script: "/storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0/scripts/run_gatk4_qc_artifacts_using_singularity.py"
+
+  picard_qc_insert_size: 
+    title: "Insert Size"
+    filename: "13_workflow_insert_size.qmd"
+    config: "/storage/home/jhkim/scripts/bioscript/configs/gatk_4.4.0.0_singularity_qc_insert_size.yaml"
+    script: "/storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0/scripts/run_gatk4_qc_insert_size_using_singularity.py"
+
+  gatk_qc_alignment_summary: 
+    title: "Alignment Summary"
+    filename: "14_workflow_alignment_summary.qmd"
+    config: "/storage/home/jhkim/scripts/bioscript/configs/gatk_4.4.0.0_singularity_collect_alignment_summary.yaml"
+    script: "/storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0/scripts/run_gatk4_qc_alignment_summary_using_singularity.py"
+
+  gatk_qc_wgs_metrics: 
+    title: "WGS Metrics"
+    filename: "15_workflow_qc_wgs_metrics.qmd"
+    config: "/storage/home/jhkim/scripts/bioscript/configs/gatk_4.4.0.0_singularity_qc_wgs_metrics.yaml"
+    script: "/storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0/scripts/run_gatk4_qc_wgs_metrics_using_singularity.py"
+
+  mosdepth_coverage: 
+    title: "Coverage"
+    filename: "16_workflow_coverage.qmd"
+    config: "/storage/home/jhkim/scripts/bioscript/configs/mosdepth_0.3.6_singularity_coverage_100kb.yaml"
+    script: "/storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0/scripts/run_mosdepth_singularity_coverage.py"
+
 
 footer_chapters:
   - filename: "06_scaling.qmd"

@@ -1,0 +1,63 @@
+# Coverage
+
+## CopyKit (v1.0.0)
+
+> CopyKit CNV Analysis Pipeline for cbNIPT (Modular Version)<br>1. Create analysis directory<br>2. Symbolic link of analysis-ready BAM files<br>3. Run R-based CopyKit analysis script
+
+### Execution Script
+실제 분석을 구동하기 위해 사용자가 실행하는 래퍼(Wrapper) 스크립트입니다.
+
+```bash
+python /storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0/scripts/run_copykit_cbnipt_copynumber_analysis.py [arguments...]
+```
+
+### Local Command (Internal)
+스크립트 내부에서 설정값을 조합하여 실행되는 명령어입니다.
+
+```bash
+[mkdir_bin] -p [AnalysisRunDir] && ln -Tsf \
+  [NGS_DataBaseDir]/[SeqID].[InputSuffix].bam [AnalysisRunDir]/[SeqID].bam && ln \
+  -Tsf [NGS_DataBaseDir]/[SeqID].[InputSuffix].bam.bai \
+  [AnalysisRunDir]/[SeqID].bam.bai && [rscript_bin] [Rscript_path]  --SeqID \
+  [SeqID]  --AnalysisRunDir [AnalysisRunDir]  --BinSize [BinSize]  --Ploidy \
+  [SamplePloidy]  --GenomeVersion [GenomeVersion]
+```
+
+### Parameters & I/O
+
+::: {style="font-size: 0.85em;"}
+
+#### Inputs
+| Argument | Required | Description |
+|:---|:---|:---|
+| `SeqID` | ✅ | Original sequence identifier from mapping stage |
+| `NGS_DataBaseDir` | ✅ | Directory containing the processed BAM files |
+| `ResultBaseDir` | ✅ | Base directory where all sample results are stored |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+#### Outputs
+| Argument | Default | Description |
+|:---|:---|:---|
+| `AnalysisRunDir` | [ResultBaseDir]/[SeqID] | Target directory for this specific sample analysis |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+#### Parameters
+| Argument | Default | Description |
+|:---|:---|:---|
+| `InputSuffix` | analysisReady | Suffix of input BAM (e.g., analysisReady, recal, dedup) |
+| `mkdir_bin` | mkdir | Path to mkdir executable |
+| `rscript_bin` | Rscript | Path to Rscript executable |
+| `Rscript_path` | /storage/home/kangsm/runScripts/cbNIPT/GCX.cbNIPT_Run.CopyKit.Analysis.R | Path to the CopyKit analysis R script |
+| `Threads` | 1 | Number of threads for parallel processing |
+| `BinSize` | 220kb | Bin size for copy number estimation (e.g., 220kb, 500kb) |
+| `GenomeVersion` | hg38 | Reference genome version (hg38/hg19) |
+| `SamplePloidy` | 2 | Expected sample ploidy (Default: 2 for human) |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+:::
+
+***
+

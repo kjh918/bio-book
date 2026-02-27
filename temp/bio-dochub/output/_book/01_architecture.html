@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Architecture &amp; IO</title>
+<title>Architecture &amp; I/O</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -70,6 +70,9 @@ ul.task-list li input[type="checkbox"] {
     "search-label": "Search"
   }
 }</script>
+<script src="site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
 
 
 </head>
@@ -83,7 +86,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./01_architecture.html"><span class="chapter-title">Architecture &amp; IO</span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./01_architecture.html"><span class="chapter-title">Architecture &amp; I/O</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -110,13 +113,13 @@ ul.task-list li input[type="checkbox"] {
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./01_architecture.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Architecture &amp; IO</span></a>
+  <a href="./01_architecture.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Architecture &amp; I/O</span></a>
   </div>
 </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
- <span class="menu-text">Pipeline Workflows</span></a>
+ <span class="menu-text">1. Pre-processing</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
@@ -130,6 +133,99 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./04_workflow_fastp.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Trim adapter and remove low quality reads</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">2. Alignment &amp; BAM Processing</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05_workflow_bwa_picard_align_merge.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Mapping</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./06_workflow_sort_and_index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Sort and index</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./07_workflow_dedup.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Remove duplicates</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./08_workflow_realign.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Realign</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./09_workflow_bqsr.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Base Quality Score Recalibration</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./10_workflow_remove_low_quality_read.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Remove low qualtiy read</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">3. Analysis</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./11_workflow_copykit.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Calculate CNV</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">4. QC</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./12_workflow_qc_artifacts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Artifacts</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./13_workflow_insert_size.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Insert Size</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./14_workflow_alignment_summary.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Alignment Summary</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./15_workflow_qc_wgs_metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">WGS Metrics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./16_workflow_coverage.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Coverage</span></a>
   </div>
 </li>
       </ul>
@@ -149,7 +245,12 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">Table of contents</h2>
    
   <ul>
-  <li><a href="#repository-structure" id="toc-repository-structure" class="nav-link active" data-scroll-target="#repository-structure">1. Repository Structure</a></li>
+  <li><a href="#repository-structure" id="toc-repository-structure" class="nav-link active" data-scroll-target="#repository-structure">1. Repository Structure</a>
+  <ul class="collapse">
+  <li><a href="#source-directory-storagehomejhkimscriptsbioscriptpipelinecbniptv3.0.0" id="toc-source-directory-storagehomejhkimscriptsbioscriptpipelinecbniptv3.0.0" class="nav-link" data-scroll-target="#source-directory-storagehomejhkimscriptsbioscriptpipelinecbniptv3.0.0">Source Directory (<code>/storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0</code>)</a></li>
+  <li><a href="#test-directory-storagehomejhkimprojectscbnipt260122-gcx-cbnipt_workflowresults" id="toc-test-directory-storagehomejhkimprojectscbnipt260122-gcx-cbnipt_workflowresults" class="nav-link" data-scroll-target="#test-directory-storagehomejhkimprojectscbnipt260122-gcx-cbnipt_workflowresults">Test Directory (<code>/storage/home/jhkim/Projects/cbNIPT/260122-GCX-cbNIPT_Workflow/Results/</code>)</a></li>
+  </ul></li>
+  <li><a href="#pipeline-workflow" id="toc-pipeline-workflow" class="nav-link" data-scroll-target="#pipeline-workflow">2. Pipeline Workflow</a></li>
   </ul>
 </nav>
     </div>
@@ -158,7 +259,7 @@ ul.task-list li input[type="checkbox"] {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-title">Architecture &amp; IO</span></h1>
+<h1 class="title"><span class="chapter-title">Architecture &amp; I/O</span></h1>
 </div>
 
 
@@ -177,8 +278,155 @@ ul.task-list li input[type="checkbox"] {
 
 <section id="repository-structure" class="level2">
 <h2 class="anchored" data-anchor-id="repository-structure">1. Repository Structure</h2>
-<p>이 파이프라인의 핵심 코드 자산 구조입니다.</p>
-<p>```text Directory not found.</p>
+<section id="source-directory-storagehomejhkimscriptsbioscriptpipelinecbniptv3.0.0" class="level3">
+<h3 class="anchored" data-anchor-id="source-directory-storagehomejhkimscriptsbioscriptpipelinecbniptv3.0.0">Source Directory (<code>/storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0</code>)</h3>
+<p>파이프라인의 핵심 코드 및 스크립트가 위치한 메인 디렉토리입니다.</p>
+<pre class="text"><code>📂 scripts/</code></pre>
+</section>
+<section id="test-directory-storagehomejhkimprojectscbnipt260122-gcx-cbnipt_workflowresults" class="level3">
+<h3 class="anchored" data-anchor-id="test-directory-storagehomejhkimprojectscbnipt260122-gcx-cbnipt_workflowresults">Test Directory (<code>/storage/home/jhkim/Projects/cbNIPT/260122-GCX-cbNIPT_Workflow/Results/</code>)</h3>
+<p>분석 테스트 환경 및 임시 파일이 위치한 디렉토리입니다.</p>
+<pre class="text"><code>📂 cbNIPT_25_04_01/
+  📂 bam/
+  📂 copykit/
+  📂 fastq_raw/
+    📂 cbNIPT_25_04_01_R1_fastqc/
+      📂 Icons/
+      📂 Images/
+    📂 cbNIPT_25_04_01_R2_fastqc/
+      📂 Icons/
+      📂 Images/
+  📂 fastq_trimmed/
+  📂 logs/
+    📂 00_fastqc/
+    📂 01_fastp/
+    📂 02_bwa_picard_align_merge/
+    📂 03_samtools_bam_sort_index/
+    📂 04_gatk4_singularity_dedup/
+    📂 05_gatk3_singularity_indel_realign/
+    📂 06_gatk4_singularity_bqsr/
+    📂 07_samtools_filter_index_recal_bam_filter/
+    📂 08_gatk4_singularity_qc_artifacts/
+    📂 09_gatk4_singularity_qc_alignment_summary/
+    📂 10_gatk4_singularity_qc_insert_size/
+    📂 11_gatk4_singularity_qc_wgs_metrics/
+    📂 12_mosdepth_singularity_coverage_100kb/
+    📂 13_copykit_cbnipt_copynumber_analysis.py/
+  📂 qc/
+  📂 tmp/
+📂 cbNIPT_25_04_02/
+  📂 bam/
+  📂 copykit/
+  📂 fastq_raw/
+    📂 cbNIPT_25_04_02_R1_fastqc/
+      📂 Icons/
+      📂 Images/
+    📂 cbNIPT_25_04_02_R2_fastqc/
+      📂 Icons/
+      📂 Images/
+  📂 fastq_trimmed/
+  📂 logs/
+    📂 00_fastqc/
+    📂 01_fastp/
+    📂 02_bwa_picard_align_merge/
+    📂 03_samtools_bam_sort_index/
+    📂 04_gatk4_singularity_dedup/
+    📂 05_gatk3_singularity_indel_realign/
+    📂 06_gatk4_singularity_bqsr/
+    📂 07_samtools_filter_index_recal_bam_filter/
+    📂 08_gatk4_singularity_qc_artifacts/
+    📂 09_gatk4_singularity_qc_alignment_summary/
+    📂 10_gatk4_singularity_qc_insert_size/
+    📂 11_gatk4_singularity_qc_wgs_metrics/
+    📂 11_mosdepth_singularity_coverage_100kb/
+    📂 12_mosdepth_singularity_coverage_100kb/
+    📂 13_copykit_cbnipt_copynumber_analysis.py/
+  📂 qc/
+  📂 tmp/
+📂 logs/
+  📂 20260219_154333/
+  📂 20260220_080620/
+  📂 20260220_081233/
+  📂 20260220_090837/
+  📂 20260220_094618/
+  📂 20260220_094918/
+  📂 20260220_130943/
+  📂 20260220_145917/
+  📂 20260220_150222/</code></pre>
+</section>
+</section>
+<section id="pipeline-workflow" class="level2">
+<h2 class="anchored" data-anchor-id="pipeline-workflow">2. Pipeline Workflow</h2>
+<p>아래는 파이프라인의 전체 실행 흐름도입니다.</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+    %% [1] 스타일: 프로세스는 회색 바탕, 기본 연결선 굵게
+    classDef proc fill:#e6e6e6,stroke:#999,stroke-width:1px,color:#000;
+    linkStyle default stroke:#757575,stroke-width:2px;
+
+    %% [2] 그룹 및 노드 생성 (가로 폭 160px 고정)
+    subgraph part1["Pre-processing"]
+        fastqc["&lt;div style='width: 160px; text-align: center;'&gt;&lt;b&gt;Rawdata Quality Control&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:12px'&gt;(fastqc)&lt;/span&gt;&lt;/div&gt;"]
+        fastp["&lt;div style='width: 160px; text-align: center;'&gt;&lt;b&gt;Trim adapter and remove low quality reads&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:12px'&gt;(fastp)&lt;/span&gt;&lt;/div&gt;"]
+    end
+    subgraph part2["Alignment &amp; BAM Processing"]
+        bwa_align["&lt;div style='width: 160px; text-align: center;'&gt;&lt;b&gt;Mapping&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:12px'&gt;(bwa_align)&lt;/span&gt;&lt;/div&gt;"]
+        sort_and_index["&lt;div style='width: 160px; text-align: center;'&gt;&lt;b&gt;Sort and index&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:12px'&gt;(sort_and_index)&lt;/span&gt;&lt;/div&gt;"]
+        gatk_dedup["&lt;div style='width: 160px; text-align: center;'&gt;&lt;b&gt;Remove duplicates&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:12px'&gt;(gatk_dedup)&lt;/span&gt;&lt;/div&gt;"]
+        gatk_realign["&lt;div style='width: 160px; text-align: center;'&gt;&lt;b&gt;Realign&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:12px'&gt;(gatk_realign)&lt;/span&gt;&lt;/div&gt;"]
+        gatk_bqsr["&lt;div style='width: 160px; text-align: center;'&gt;&lt;b&gt;Base Quality Score Recalibration&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:12px'&gt;(gatk_bqsr)&lt;/span&gt;&lt;/div&gt;"]
+        samtools_filtering["&lt;div style='width: 160px; text-align: center;'&gt;&lt;b&gt;Remove low qualtiy read&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:12px'&gt;(samtools_filtering)&lt;/span&gt;&lt;/div&gt;"]
+    end
+    subgraph part3["Analysis"]
+        copykit["&lt;div style='width: 160px; text-align: center;'&gt;&lt;b&gt;Calculate CNV&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:12px'&gt;(copykit)&lt;/span&gt;&lt;/div&gt;"]
+    end
+    subgraph part4["QC"]
+        gatk_qc_artifacts["&lt;div style='width: 160px; text-align: center;'&gt;&lt;b&gt;Artifacts&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:12px'&gt;(gatk_qc_artifacts)&lt;/span&gt;&lt;/div&gt;"]
+        picard_qc_insert_size["&lt;div style='width: 160px; text-align: center;'&gt;&lt;b&gt;Insert Size&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:12px'&gt;(picard_qc_insert_size)&lt;/span&gt;&lt;/div&gt;"]
+        gatk_qc_alignment_summary["&lt;div style='width: 160px; text-align: center;'&gt;&lt;b&gt;Alignment Summary&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:12px'&gt;(gatk_qc_alignment_summary)&lt;/span&gt;&lt;/div&gt;"]
+        gatk_qc_wgs_metrics["&lt;div style='width: 160px; text-align: center;'&gt;&lt;b&gt;WGS Metrics&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:12px'&gt;(gatk_qc_wgs_metrics)&lt;/span&gt;&lt;/div&gt;"]
+        mosdepth_coverage["&lt;div style='width: 160px; text-align: center;'&gt;&lt;b&gt;Coverage&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:12px'&gt;(mosdepth_coverage)&lt;/span&gt;&lt;/div&gt;"]
+    end
+
+    %% [3] 화살표 연결 (YAML 데이터)
+    fastqc --&gt; data_fastq[Fastq]
+    data_fastq --&gt; fastp
+    fastp --&gt; data_trimmed[Trimmed Fastq]
+    data_trimmed --&gt; bwa_align
+    bwa_align --&gt; data_bam1[Bam]
+    data_bam1 --&gt; gatk_dedup
+    gatk_dedup --&gt; data_bam2[Bam]
+    aligned_bam_qc[Aligned BAM QC] --&gt; data_bam2
+
+    %% [4] 디자인 입히기
+        class fastqc proc;
+        class fastp proc;
+    style part1 fill:none,stroke:#b0bec5,stroke-width:2px,stroke-dasharray: 5 5;
+        class bwa_align proc;
+        class sort_and_index proc;
+        class gatk_dedup proc;
+        class gatk_realign proc;
+        class gatk_bqsr proc;
+        class samtools_filtering proc;
+    style part2 fill:none,stroke:#b0bec5,stroke-width:2px,stroke-dasharray: 5 5;
+        class copykit proc;
+    style part3 fill:none,stroke:#b0bec5,stroke-width:2px,stroke-dasharray: 5 5;
+        class gatk_qc_artifacts proc;
+        class picard_qc_insert_size proc;
+        class gatk_qc_alignment_summary proc;
+        class gatk_qc_wgs_metrics proc;
+        class mosdepth_coverage proc;
+    style part4 fill:none,stroke:#b0bec5,stroke-width:2px,stroke-dasharray: 5 5;
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
 
 
 </section>

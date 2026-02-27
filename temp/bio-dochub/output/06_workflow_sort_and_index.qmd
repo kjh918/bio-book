@@ -1,0 +1,55 @@
+# Sort and index
+
+## samtools (v1.10)
+
+> samtools sort + index pipeline<br>- Coordinate sort of primary BAM<br>- Generate BAM index (.bai) for downstream analysis
+
+### Execution Script
+실제 분석을 구동하기 위해 사용자가 실행하는 래퍼(Wrapper) 스크립트입니다.
+
+```bash
+python /storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0/scripts/run_samtools_bam_sort_index.py [arguments...]
+```
+
+### Local Command (Internal)
+스크립트 내부에서 설정값을 조합하여 실행되는 명령어입니다.
+
+```bash
+[samtools_bin] sort -@ [Threads] -o [sorted_bam] [BamDir]/[SeqID].bam && \
+  [samtools_bin] index -b -@ [Threads] [sorted_bam]
+```
+
+### Parameters & I/O
+
+::: {style="font-size: 0.85em;"}
+
+#### Inputs
+| Argument | Required | Description |
+|:---|:---|:---|
+| `SeqID` | ✅ | Sequence identifier used for file naming |
+| `BamDir` | ✅ | Directory containing the primary (unsorted) BAM file |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+#### Outputs
+| Argument | Default | Description |
+|:---|:---|:---|
+| `sorted_bam` | [BamDir]/[SeqID].[InputSuffix].bam | Coordinate sorted BAM file |
+| `sorted_bai` | [BamDir]/[SeqID].[OutputSuffix].bam.bai | BAM index file (BAI) |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+#### Parameters
+| Argument | Default | Description |
+|:---|:---|:---|
+| `InputSuffix` | primary | Suffix of input BAM (e.g., primary, initial) |
+| `OutputSuffix` | sorted | Suffix for output BAM (e.g., sorted, coord_sorted) |
+| `samtools_bin` | samtools | Path to samtools executable or binary name |
+| `Threads` | 8 | Number of threads for sorting and indexing |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+:::
+
+***
+

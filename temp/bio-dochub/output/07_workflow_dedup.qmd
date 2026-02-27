@@ -1,0 +1,67 @@
+# Remove duplicates
+
+## gatk4 (v4.4.0.0)
+
+> GATK4 MarkDuplicates (Modular Version)<br>- Identifies and flags/removes PCR and optical duplicates<br>- Singularity-based execution with resource optimization
+
+### Execution Script
+실제 분석을 구동하기 위해 사용자가 실행하는 래퍼(Wrapper) 스크립트입니다.
+
+```bash
+python /storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0/scripts/run_fastp_picoplexgold_pe_trim_using_singularity.py [arguments...]
+```
+
+### Local Command (Internal)
+스크립트 내부에서 설정값을 조합하여 실행되는 명령어입니다.
+
+```bash
+[singularity_bin] exec -B [bind] [sif] [gatk_bin] MarkDuplicates --java-options \
+  "-XX:ParallelGCThreads=[Threads] -Xmx[xmx_mb]m" --INPUT \
+  [BamDir]/[SeqID].[InputSuffix].bam --OUTPUT [dedup_bam] --METRICS_FILE \
+  [metrics_txt] --CREATE_INDEX [create_index] --REMOVE_SEQUENCING_DUPLICATES \
+  [remove_seq_dups] [other_md_args]
+```
+
+### Parameters & I/O
+
+::: {style="font-size: 0.85em;"}
+
+#### Inputs
+| Argument | Required | Description |
+|:---|:---|:---|
+| `SeqID` | ✅ | Sequence identifier used for file naming |
+| `BamDir` | ✅ | Directory containing the input BAM file |
+| `qcResDir` | ✅ | Directory for duplicate metrics output |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+#### Outputs
+| Argument | Default | Description |
+|:---|:---|:---|
+| `dedup_bam` | [BamDir]/[SeqID].[InputSuffix].[OutputSuffix].bam | BAM file with marked/removed duplicates |
+| `dedup_bai` | [BamDir]/[SeqID].[InputSuffix].[OutputSuffix].bam.bai | Index file for the deduplicated BAM |
+| `metrics_txt` | [qcResDir]/[SeqID].[InputSuffix].[OutputSuffix].metrics.txt | Text file containing duplication metrics |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+#### Parameters
+| Argument | Default | Description |
+|:---|:---|:---|
+| `InputSuffix` | sorted | Suffix of the input BAM (e.g., sorted, primary) |
+| `OutputSuffix` | dedup | Suffix for the output file (e.g., dedup, md) |
+| `singularity_bin` | singularity | Path to singularity executable |
+| `gatk_bin` | gatk | GATK binary path inside container |
+| `sif` | /storage/images/gatk-4.4.0.0.sif | GATK singularity image (.sif) |
+| `bind` | /storage,/data | Mount paths for singularity |
+| `Threads` | 14 | Number of threads for ParallelGC |
+| `xmx_mb` | 16384 | Maximum Java heap memory (MB) |
+| `remove_seq_dups` | true | Whether to remove sequencing duplicates |
+| `create_index` | true | Whether to create a BAM index for the output |
+| `other_md_args` | - | Other additional GATK MarkDuplicates arguments |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+:::
+
+***
+

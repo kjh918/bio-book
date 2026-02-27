@@ -1,0 +1,62 @@
+# WGS Metrics
+
+## gatk4 (v4.4.0.0)
+
+> GATK4 CollectWgsMetrics (Modular Version)<br>- Collects metrics about coverage and performance of WGS<br>- Flexible input via InputSuffix (e.g., analysisReady, recal, sorted)<br>- Singularity-based execution with resource optimization
+
+### Execution Script
+실제 분석을 구동하기 위해 사용자가 실행하는 래퍼(Wrapper) 스크립트입니다.
+
+```bash
+python /storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0/scripts/run_gatk4_qc_wgs_metrics_using_singularity.py [arguments...]
+```
+
+### Local Command (Internal)
+스크립트 내부에서 설정값을 조합하여 실행되는 명령어입니다.
+
+```bash
+[singularity_bin] exec -B [bind] [sif] [java_bin] \
+  -XX:ParallelGCThreads=[Threads] -Xmx[xmx_mb]m -jar [gatk_jar] CollectWgsMetrics \
+  --INPUT [BamDir]/[SeqID].[InputSuffix].bam --OUTPUT [wgs_metrics_txt] \
+  --REFERENCE_SEQUENCE [ReferenceFasta]
+```
+
+### Parameters & I/O
+
+::: {style="font-size: 0.85em;"}
+
+#### Inputs
+| Argument | Required | Description |
+|:---|:---|:---|
+| `SeqID` | ✅ | Sequence identifier used for file naming |
+| `BamDir` | ✅ | Directory containing the BAM file to be analyzed |
+| `qcResDir` | ✅ | Output directory for WGS metrics |
+| `ReferenceFasta` | ✅ | Path to the reference genome FASTA file |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+#### Outputs
+| Argument | Default | Description |
+|:---|:---|:---|
+| `wgs_metrics_txt` | [qcResDir]/[SeqID].collect_wgs_metrics.txt | Text file containing detailed WGS coverage and performance metrics |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+#### Parameters
+| Argument | Default | Description |
+|:---|:---|:---|
+| `InputSuffix` | analysisReady | Suffix of the input BAM file (e.g., analysisReady, recal, sorted) |
+| `singularity_bin` | singularity | Path to singularity executable |
+| `java_bin` | java | Path to java executable inside container |
+| `gatk_jar` | /gatk/gatk-package-4.4.0.0-local.jar | Path to GATK local jar inside container |
+| `sif` | /storage/images/gatk-4.4.0.0.sif | Path to GATK singularity image (.sif) |
+| `bind` | /storage,/data | Mount paths for singularity |
+| `Threads` | 14 | Number of threads for ParallelGC |
+| `xmx_mb` | 16384 | Maximum Java heap memory (MB) |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+:::
+
+***
+

@@ -5,10 +5,28 @@ book:
   chapters:
     - index.qmd
     - 01_architecture.qmd
-    - part: "Pipeline Workflows"
+    - part: "1. Pre-processing"
       chapters:
         - 03_workflow_fastqc.qmd
         - 04_workflow_fastp.qmd
+    - part: "2. Alignment & BAM Processing"
+      chapters:
+        - 05_workflow_bwa_picard_align_merge.qmd
+        - 06_workflow_sort_and_index.qmd
+        - 07_workflow_dedup.qmd
+        - 08_workflow_realign.qmd
+        - 09_workflow_bqsr.qmd
+        - 10_workflow_remove_low_quality_read.qmd
+    - part: "3. Analysis"
+      chapters:
+        - 11_workflow_copykit.qmd
+    - part: "4. QC"
+      chapters:
+        - 12_workflow_qc_artifacts.qmd
+        - 13_workflow_insert_size.qmd
+        - 14_workflow_alignment_summary.qmd
+        - 15_workflow_qc_wgs_metrics.qmd
+        - 16_workflow_coverage.qmd
     - 06_scaling.qmd
 
 format:

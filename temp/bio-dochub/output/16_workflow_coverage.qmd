@@ -1,0 +1,65 @@
+# Coverage
+
+## mosdepth (v0.3.6)
+
+> mosdepth: Fast BAM/CRAM depth calculation<br>- Generates global distribution and quantized/thresholded depth<br>- Flexible input via InputSuffix (e.g., analysisReady, recal, sorted)<br>- Prefix-based output management for multi-step QC
+
+### Execution Script
+실제 분석을 구동하기 위해 사용자가 실행하는 래퍼(Wrapper) 스크립트입니다.
+
+```bash
+python /storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0/scripts/run_mosdepth_singularity_coverage.py [arguments...]
+```
+
+### Local Command (Internal)
+스크립트 내부에서 설정값을 조합하여 실행되는 명령어입니다.
+
+```bash
+[singularity_bin] exec -B [bind] [sif] [mosdepth_bin] --threads [Threads] \
+  [mosdepth_args] --by [bin] --mapq [mapq] [prefix] \
+  [BamDir]/[SeqID].[InputSuffix].bam
+```
+
+### Parameters & I/O
+
+::: {style="font-size: 0.85em;"}
+
+#### Inputs
+| Argument | Required | Description |
+|:---|:---|:---|
+| `SeqID` | ✅ | Sequence identifier used for file tracking |
+| `BamDir` | ✅ | Directory containing the BAM file to be analyzed |
+| `qcResDir` | ✅ | Output directory for coverage results |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+#### Outputs
+| Argument | Default | Description |
+|:---|:---|:---|
+| `prefix` | [qcResDir]/[SeqID].[InputSuffix] | Output prefix for all mosdepth result files |
+| `regions_bed_gz` | [prefix].regions.bed.gz | Compressed BED file containing region depth |
+| `regions_bed_gz_csi` | [prefix].regions.bed.gz.csi | Index file for the regions BED |
+| `summary_txt` | [prefix].mosdepth.summary.txt | Summary of mean depths per chromosome/region |
+| `global_dist_txt` | [prefix].global.dist.txt | Global distribution of coverage |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+#### Parameters
+| Argument | Default | Description |
+|:---|:---|:---|
+| `InputSuffix` | analysisReady | Suffix of the input BAM (e.g., analysisReady, recal, sorted) |
+| `singularity_bin` | singularity | Path to singularity executable |
+| `mosdepth_bin` | /opt/mosdepth | Path to mosdepth binary inside container |
+| `sif` | /storage/images/mosdepth-0.3.6.sif | mosdepth singularity image file |
+| `bind` | /storage,/data | Mount paths for singularity |
+| `Threads` | 8 | Number of threads for decompression and processing |
+| `bin` | 100000 | Window size for quantized output (used with --by) |
+| `mapq` | 20 | Minimum mapping quality for a read to be counted |
+| `mosdepth_args` | --no-per-base --fast-mode | Additional mosdepth arguments |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+:::
+
+***
+

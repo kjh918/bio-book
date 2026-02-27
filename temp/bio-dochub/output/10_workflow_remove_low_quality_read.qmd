@@ -1,0 +1,65 @@
+# Remove low qualtiy read
+
+## samtools_filter_index (v1.10)
+
+> samtools BAM filtering + index (Modular Version)<br>- Input/Output Suffix를 파라미터로 조절하여 재사용 가능
+
+### Execution Script
+실제 분석을 구동하기 위해 사용자가 실행하는 래퍼(Wrapper) 스크립트입니다.
+
+```bash
+python /storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0/scripts/run_samtools_filter_bam.py [arguments...]
+```
+
+### Local Command (Internal)
+스크립트 내부에서 설정값을 조합하여 실행되는 명령어입니다.
+
+```bash
+[samtools_bin] view -b -h -q [min_mapq] -f [include_flag] -F [exclude_flag] -e \
+  "[expr_nm]" --threads [Threads] [BamDir]/[SeqID].[InputSuffix].bam > \
+  [filtered_bam] && [samtools_bin] index --threads [Threads] [filtered_bam] && \
+  [ln_bin] -Tsf [filtered_bam] [analysis_ready_bam] && [ln_bin] -Tsf \
+  [filtered_bai] [analysis_ready_bai]
+```
+
+### Parameters & I/O
+
+::: {style="font-size: 0.85em;"}
+
+#### Inputs
+| Argument | Required | Description |
+|:---|:---|:---|
+| `SeqID` | ✅ | Sequence identifier |
+| `BamDir` | ✅ | Directory containing BAM files |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+#### Outputs
+| Argument | Default | Description |
+|:---|:---|:---|
+| `filtered_bam` | [BamDir]/[SeqID].[InputSuffix].[OutputSuffix].bam | Filtered BAM file |
+| `filtered_bai` | [BamDir]/[SeqID].[InputSuffix].[OutputSuffix].bam.bai |  |
+| `analysis_ready_bam` | [BamDir]/[SeqID].analysisReady.bam |  |
+| `analysis_ready_bai` | [BamDir]/[SeqID].analysisReady.bam.bai |  |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+#### Parameters
+| Argument | Default | Description |
+|:---|:---|:---|
+| `InputSuffix` | recal | Suffix of the input BAM (e.g., primary, sorted, recal) |
+| `OutputSuffix` | filtered | Suffix for the filtered output |
+| `samtools_bin` | samtools |  |
+| `ln_bin` | ln |  |
+| `Threads` | 8 |  |
+| `min_mapq` | 20 |  |
+| `include_flag` | 0x2 |  |
+| `exclude_flag` | 0x104 |  |
+| `expr_nm` | [NM] < 12 |  |
+
+: {tbl-colwidths="[20, 12, 28, 40]"}
+
+:::
+
+***
+

@@ -1,4 +1,4 @@
-# Trim adapter and remove low quality reads
+# Trim adpater and remove low qual reads
 
 ## fastp (v0.23.4)
 

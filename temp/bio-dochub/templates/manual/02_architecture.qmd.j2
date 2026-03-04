@@ -1,0 +1,66 @@
+# Architecture & I/O
+
+## 1. Pipeline Workflow
+아래는 파이프라인의 전체 실행 흐름도입니다.
+
+::: {id="mermaid-lightbox" style="cursor: zoom-in; border: 1px solid #e3e6f0; border-radius: 8px; padding: 20px; background-color: #fff; margin-bottom: 2rem;"}
+{% if workflows and workflows|length > 0 %}
+```{mermaid}
+flowchart TD
+    classDef default fill:#ffffff,stroke:#888,stroke-width:2px,color:#000,rx:5px,ry:5px;
+    classDef proc fill:#e6e6e6,stroke:#999,stroke-width:1px,color:#000,rx:5px,ry:5px;
+    
+    linkStyle default stroke:#757575,stroke-width:2px;
+
+{% for part_title, task_list in workflows.items() %}
+{% set safe_title = part_title.split('.', 1) | last | trim | replace('&', 'and') %}
+    subgraph part{{ loop.index }} ["{{ safe_title }}"]
+        direction TB
+{% for task_key in task_list %}
+{% set t_title = tasks[task_key].title if tasks[task_key] is defined else task_key %}
+{% set safe_t_title = t_title.split('.', 1) | last | trim | replace('"', '') %}
+        {{ task_key }} ["{{ safe_t_title }} ({{ task_key }})"]
+{% endfor %}
+    end
+{% endfor %}
+
+{% for edge in flowchart %}
+    {{ edge }}
+{% endfor %}
+
+{% for part_title, task_list in workflows.items() %}
+{% for task_key in task_list %}
+        class {{ task_key }} proc;
+{% endfor %}
+    style part{{ loop.index }} fill:none,stroke:#b0bec5,stroke-width:2px;
+{% endfor %}
+```
+{% else %}
+<div style="text-align:center; padding: 40px; color: #888;">
+  <i>⚠️ Pipeline configuration data is missing.</i>
+</div>
+{% endif %}
+:::
+
+## 2. Repository Structure
+파이프라인의 핵심 코드 및 테스트 환경 디렉토리 구조입니다.
+
+<div class="card shadow-sm mb-4">
+<div class="card-header bg-light">
+<strong>📁 Source Directory</strong> (<code>{{ source_dir }}</code>)
+</div>
+<div class="card-body" style="max-height: 350px; overflow-y: auto; overflow-x: auto; padding: 15px; background-color: #f8f9fa;">
+<pre style="margin: 0; font-size: 0.85em; background: transparent; border: none;"><code>{{ source_tree }}</code></pre>
+</div>
+</div>
+
+{% if test_tree %}
+<div class="card shadow-sm mb-4">
+<div class="card-header bg-light">
+<strong>🧪 Test Directory</strong> (<code>{{ test_dir }}</code>)
+</div>
+<div class="card-body" style="max-height: 350px; overflow-y: auto; overflow-x: auto; padding: 15px; background-color: #f8f9fa;">
+<pre style="margin: 0; font-size: 0.85em; background: transparent; border: none;"><code>{{ test_tree }}</code></pre>
+</div>
+</div>
+{% endif %}

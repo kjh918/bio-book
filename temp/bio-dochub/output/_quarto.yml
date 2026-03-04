@@ -4,7 +4,8 @@ project:
 book:
   chapters:
     - index.qmd
-    - 01_architecture.qmd
+    - 01_manual.qmd
+    - 02_architecture.qmd
     - part: "1. Pre-processing"
       chapters:
         - 03_workflow_fastqc.qmd
@@ -27,7 +28,6 @@ book:
         - 14_workflow_alignment_summary.qmd
         - 15_workflow_qc_wgs_metrics.qmd
         - 16_workflow_coverage.qmd
-    - 06_scaling.qmd
 
 format:
   html:

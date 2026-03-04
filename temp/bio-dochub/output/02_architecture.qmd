@@ -1,0 +1,132 @@
+# Architecture & I/O
+
+## 1. Pipeline Workflow
+아래는 파이프라인의 전체 실행 흐름도입니다.
+
+::: {id="mermaid-lightbox" style="cursor: zoom-in; border: 1px solid #e3e6f0; border-radius: 8px; padding: 20px; background-color: #fff; margin-bottom: 2rem;"}
+```{mermaid}
+flowchart TD
+    classDef default fill:#ffffff,stroke:#888,stroke-width:2px,color:#000,rx:5px,ry:5px;
+    classDef proc fill:#e6e6e6,stroke:#999,stroke-width:1px,color:#000,rx:5px,ry:5px;
+    
+    linkStyle default stroke:#757575,stroke-width:2px;
+
+    subgraph part1 ["Pre-processing"]
+        direction TB
+        fastqc ["Rawdata Quality Control (fastqc)"]
+        fastp ["Trim adpater and remove low qual reads (fastp)"]
+    end
+    subgraph part2 ["Alignment and BAM Processing"]
+        direction TB
+        bwa_align ["Mapping (bwa_align)"]
+        sort_and_index ["Sort and index (sort_and_index)"]
+        gatk_dedup ["Remove duplicates (gatk_dedup)"]
+        gatk_realign ["Realign (gatk_realign)"]
+        gatk_bqsr ["Base Quality Score Recalibration (gatk_bqsr)"]
+        samtools_filtering ["Remove low qualtiy read (samtools_filtering)"]
+    end
+    subgraph part3 ["Analysis"]
+        direction TB
+        copykit ["Calculate CNV (copykit)"]
+    end
+    subgraph part4 ["QC"]
+        direction TB
+        gatk_qc_artifacts ["Artifacts (gatk_qc_artifacts)"]
+        picard_qc_insert_size ["Insert Size (picard_qc_insert_size)"]
+        gatk_qc_alignment_summary ["Alignment Summary (gatk_qc_alignment_summary)"]
+        gatk_qc_wgs_metrics ["WGS Metrics (gatk_qc_wgs_metrics)"]
+        mosdepth_coverage ["Coverage (mosdepth_coverage)"]
+    end
+
+    data_fastq["Fastq"] --> fastqc
+    data_fastq --> fastp
+    fastp --> data_trimmed["Trimmed Fastq"]
+    data_trimmed --> bwa_align
+    bwa_align --> sort_and_index
+    sort_and_index --> gatk_dedup
+    gatk_dedup --> gatk_realign
+    gatk_realign --> gatk_bqsr
+    gatk_bqsr --> samtools_filtering
+    samtools_filtering --> data_analysis_bam1["Analysis Bam"]
+    data_analysis_bam1 --> copykit
+    data_analysis_bam1 --> gatk_qc_artifacts
+    data_analysis_bam1 --> picard_qc_insert_size
+    data_analysis_bam1 --> gatk_qc_alignment_summary
+    data_analysis_bam1 --> gatk_qc_wgs_metrics
+    data_analysis_bam1 --> mosdepth_coverage
+
+        class fastqc proc;
+        class fastp proc;
+    style part1 fill:none,stroke:#b0bec5,stroke-width:2px;
+        class bwa_align proc;
+        class sort_and_index proc;
+        class gatk_dedup proc;
+        class gatk_realign proc;
+        class gatk_bqsr proc;
+        class samtools_filtering proc;
+    style part2 fill:none,stroke:#b0bec5,stroke-width:2px;
+        class copykit proc;
+    style part3 fill:none,stroke:#b0bec5,stroke-width:2px;
+        class gatk_qc_artifacts proc;
+        class picard_qc_insert_size proc;
+        class gatk_qc_alignment_summary proc;
+        class gatk_qc_wgs_metrics proc;
+        class mosdepth_coverage proc;
+    style part4 fill:none,stroke:#b0bec5,stroke-width:2px;
+```
+:::
+
+## 2. Repository Structure
+파이프라인의 핵심 코드 및 테스트 환경 디렉토리 구조입니다.
+
+<div class="card shadow-sm mb-4">
+<div class="card-header bg-light">
+<strong>📁 Source Directory</strong> (<code>/storage/home/jhkim/scripts/bioscript/pipeline/cbNIPT/v3.0.0</code>)
+</div>
+<div class="card-body" style="max-height: 350px; overflow-y: auto; overflow-x: auto; padding: 15px; background-color: #f8f9fa;">
+<pre style="margin: 0; font-size: 0.85em; background: transparent; border: none;"><code>📂 manual
+📄 run_pipeline.py
+📂 scripts
+  📄 run_bwa_picard_pe_align_merge.py
+  📄 run_copykit_cbnipt_copynumber_analysis.py
+  📄 run_fastp_picoplexgold_pe_trim_using_singularity.py
+  📄 run_fastqc_singularity_pe_qc_extract.py
+  📄 run_gatk3_indel_realign_using_singularity.py
+  📄 run_gatk4_bqsr_using_singularity.py
+  📄 run_gatk4_dedup_using_singularity.py
+  📄 run_gatk4_qc_alignment_summary_using_singularity.py
+  📄 run_gatk4_qc_artifacts_using_singularity.py
+  📄 run_gatk4_qc_insert_size_using_singularity.py
+  📄 run_gatk4_qc_wgs_metrics_using_singularity.py
+  📄 run_mosdepth_singularity_coverage.py
+  📄 run_multiqc_report_using_singularity.py
+  📄 run_samtools_bam_sort_index.py
+  📄 run_samtools_filter_bam.py
+  📄 temp.py
+📂 src
+  📄 bio_script.egg-info
+    📂 PKG-INFO
+    📄 SOURCES.txt
+    📄 dependency_links.txt
+    📄 entry_points.txt
+    📄 requires.txt
+    📄 top_level.txt
+  📂 bioscript
+    📄 __init__.py
+    📄 cli.py
+    📂 core
+      📄 executor.py
+      📄 flags.py
+      📄 pipeline.py
+    📂 generator
+      📄 factory.py
+      📂 templates
+        📄 bash.template.sh
+        📄 nextflow.template.nf
+        📄 python.template.py
+        📄 snakemake.template.smk
+      📄 writers.py
+    📂 utils</code></pre>
+</div>
+</div>
+

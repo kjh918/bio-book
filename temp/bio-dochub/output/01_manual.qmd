@@ -82,11 +82,11 @@ nohup /storage/home/jhkim/Apps/Python-3.11.13/python run_pipeline.py \
 파이프라인 실행이 완료되면 `--output`으로 지정한 디렉토리(`[workpath]`) 하위에 샘플별 분석 결과와 로그 파일들이 아래와 같은 구조로 생성됩니다.
 
 <div class="card shadow-sm mb-4">
-  <div class="card-header bg-light">
-    <strong>📂 Analysis Result Directory</strong> (<code>[workpath]/</code>)
-  </div>
-  <div class="card-body" style="max-height: 450px; overflow-y: auto; overflow-x: auto; padding: 15px; background-color: #f8f9fa;">
-    <pre style="margin: 0; font-size: 0.85em; background: transparent; border: none;"><code>[workpath]
+<div class="card-header bg-light">
+<strong>📂 Analysis Result Directory</strong> (<code>[workpath]/</code>)
+</div>
+<div class="card-body" style="max-height: 450px; overflow-y: auto; overflow-x: auto; padding: 15px; background-color: #f8f9fa;">
+<pre style="margin: 0; font-size: 0.85em; background: transparent; border: none;"><code>[workpath]
 ├── [sample_id]
 │   ├── bam/              # mapping 된 bam file 저장 디렉토리
 │   ├── copykit/          # copykit 분석결과
@@ -101,7 +101,7 @@ nohup /storage/home/jhkim/Apps/Python-3.11.13/python run_pipeline.py \
 │   ├── qc/               # 각종 QC 결과 파일들 (GATK, Picard, Mosdepth 등)
 │   └── tmp/              # 분석 중 생성되는 임시 파일들
 └── logs/                 # 파이프라인 전체 실행 로그
-    └── [date]/
-        └── [total_process_script].sh # 전체 task에 대한 qsub 명령어 및 job_id가 기록된 bash script</code></pre>
-  </div>
+└── [date]/
+└── [total_process_script].sh # 전체 task에 대한 qsub 명령어 및 job_id가 기록된 bash script</code></pre>
+</div>
 </div>

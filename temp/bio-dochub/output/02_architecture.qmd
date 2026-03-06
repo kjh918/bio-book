@@ -3,39 +3,44 @@
 ## 1. Pipeline Workflow
 아래는 파이프라인의 전체 실행 흐름도입니다.
 
-::: {id="mermaid-lightbox" style="cursor: zoom-in; border: 1px solid #e3e6f0; border-radius: 8px; padding: 20px; background-color: #fff; margin-bottom: 2rem;"}
+<style>
+  .diagram-thumbnail { cursor: zoom-in; border: 1px solid #e3e6f0; border-radius: 8px; padding: 20px; background-color: #fff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); position: relative; transition: all 0.3s ease; margin-bottom: 2rem; }
+  .diagram-thumbnail:hover { box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1); }
+  .diagram-thumbnail::before { content: "🔍 Click to Enlarge"; position: absolute; top: 15px; right: 15px; font-size: 0.85em; font-weight: bold; color: #666; background: #f8f9fa; padding: 6px 12px; border-radius: 20px; border: 1px solid #ddd; z-index: 10; }
+</style>
+
+::: {id="mermaid-lightbox" .diagram-thumbnail}
 ```{mermaid}
 flowchart TD
-    classDef default fill:#ffffff,stroke:#888,stroke-width:2px,color:#000,rx:5px,ry:5px;
-    classDef proc fill:#e6e6e6,stroke:#999,stroke-width:1px,color:#000,rx:5px,ry:5px;
-    
+    classDef default fill:#ffffff,stroke:#888,stroke-width:2px,color:#000,rx:5px,ry:5px,padding:15px;
+    classDef proc fill:#e6e6e6,stroke:#999,stroke-width:1px,color:#000,rx:5px,ry:5px,padding:15px;
     linkStyle default stroke:#757575,stroke-width:2px;
 
-    subgraph part1 ["Pre-processing"]
+    subgraph part1["Pre-processing"]
         direction TB
-        fastqc ["Rawdata Quality Control (fastqc)"]
-        fastp ["Trim adpater and remove low qual reads (fastp)"]
+        fastqc["<b>Rawdata Quality Control</b><br/>(fastqc)"]
+        fastp["<b>Trim adpater and remove low qual reads</b><br/>(fastp)"]
     end
-    subgraph part2 ["Alignment and BAM Processing"]
+    subgraph part2["Alignment and BAM Processing"]
         direction TB
-        bwa_align ["Mapping (bwa_align)"]
-        sort_and_index ["Sort and index (sort_and_index)"]
-        gatk_dedup ["Remove duplicates (gatk_dedup)"]
-        gatk_realign ["Realign (gatk_realign)"]
-        gatk_bqsr ["Base Quality Score Recalibration (gatk_bqsr)"]
-        samtools_filtering ["Remove low qualtiy read (samtools_filtering)"]
+        bwa_align["<b>Mapping</b><br/>(bwa_align)"]
+        sort_and_index["<b>Sort and index</b><br/>(sort_and_index)"]
+        gatk_dedup["<b>Remove duplicates</b><br/>(gatk_dedup)"]
+        gatk_realign["<b>Realign</b><br/>(gatk_realign)"]
+        gatk_bqsr["<b>Base Quality Score Recalibration</b><br/>(gatk_bqsr)"]
+        samtools_filtering["<b>Remove low qualtiy read</b><br/>(samtools_filtering)"]
     end
-    subgraph part3 ["Analysis"]
+    subgraph part3["Analysis"]
         direction TB
-        copykit ["Calculate CNV (copykit)"]
+        copykit["<b>Calculate CNV</b><br/>(copykit)"]
     end
-    subgraph part4 ["QC"]
+    subgraph part4["QC"]
         direction TB
-        gatk_qc_artifacts ["Artifacts (gatk_qc_artifacts)"]
-        picard_qc_insert_size ["Insert Size (picard_qc_insert_size)"]
-        gatk_qc_alignment_summary ["Alignment Summary (gatk_qc_alignment_summary)"]
-        gatk_qc_wgs_metrics ["WGS Metrics (gatk_qc_wgs_metrics)"]
-        mosdepth_coverage ["Coverage (mosdepth_coverage)"]
+        gatk_qc_artifacts["<b>Artifacts</b><br/>(gatk_qc_artifacts)"]
+        picard_qc_insert_size["<b>Insert Size</b><br/>(picard_qc_insert_size)"]
+        gatk_qc_alignment_summary["<b>Alignment Summary</b><br/>(gatk_qc_alignment_summary)"]
+        gatk_qc_wgs_metrics["<b>WGS Metrics</b><br/>(gatk_qc_wgs_metrics)"]
+        mosdepth_coverage["<b>Coverage</b><br/>(mosdepth_coverage)"]
     end
 
     data_fastq["Fastq"] --> fastqc
@@ -57,24 +62,75 @@ flowchart TD
 
         class fastqc proc;
         class fastp proc;
-    style part1 fill:none,stroke:#b0bec5,stroke-width:2px;
+    style part1 fill:none,stroke:#b0bec5,stroke-width:2px,stroke-dasharray: 5 5;
         class bwa_align proc;
         class sort_and_index proc;
         class gatk_dedup proc;
         class gatk_realign proc;
         class gatk_bqsr proc;
         class samtools_filtering proc;
-    style part2 fill:none,stroke:#b0bec5,stroke-width:2px;
+    style part2 fill:none,stroke:#b0bec5,stroke-width:2px,stroke-dasharray: 5 5;
         class copykit proc;
-    style part3 fill:none,stroke:#b0bec5,stroke-width:2px;
+    style part3 fill:none,stroke:#b0bec5,stroke-width:2px,stroke-dasharray: 5 5;
         class gatk_qc_artifacts proc;
         class picard_qc_insert_size proc;
         class gatk_qc_alignment_summary proc;
         class gatk_qc_wgs_metrics proc;
         class mosdepth_coverage proc;
-    style part4 fill:none,stroke:#b0bec5,stroke-width:2px;
+    style part4 fill:none,stroke:#b0bec5,stroke-width:2px,stroke-dasharray: 5 5;
 ```
 :::
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const wrapper = document.getElementById('mermaid-lightbox');
+    if (!wrapper) return;
+
+    wrapper.addEventListener('click', function() {
+        let overlay = document.getElementById('mermaid-fullscreen-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'mermaid-fullscreen-overlay';
+            overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(255, 255, 255, 0.98); z-index: 99999; overflow: auto; cursor: zoom-out; text-align: center; padding: 60px 20px; box-sizing: border-box; display: block;';
+            
+            const closeBtn = document.createElement('div');
+            closeBtn.innerText = '✖ Close';
+            closeBtn.style.cssText = 'position: fixed; top: 20px; right: 30px; background: #333; color: #fff; padding: 10px 20px; border-radius: 20px; font-weight: bold; z-index: 100000; box-shadow: 0 4px 6px rgba(0,0,0,0.2); pointer-events: none;';
+            overlay.appendChild(closeBtn);
+            
+            const content = document.createElement('div');
+            content.id = 'mermaid-fullscreen-content';
+            content.style.cssText = 'display: inline-block; min-width: 1200px; width: auto; max-width: none; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);';
+            overlay.appendChild(content);
+            
+            overlay.addEventListener('click', function() {
+                overlay.style.display = 'none';
+            });
+            
+            document.body.appendChild(overlay);
+        }
+        
+        const svgElement = wrapper.querySelector('svg'); 
+        if (svgElement) {
+            const content = document.getElementById('mermaid-fullscreen-content');
+            content.innerHTML = ''; 
+            
+            const clonedSvg = svgElement.cloneNode(true);
+            clonedSvg.removeAttribute('width');
+            clonedSvg.removeAttribute('height');
+            clonedSvg.style.width = '100%'; 
+            clonedSvg.style.height = 'auto';
+            clonedSvg.style.maxWidth = 'none';
+            clonedSvg.style.overflow = 'visible';
+            
+            content.appendChild(clonedSvg);
+            overlay.style.display = 'block';
+        }
+    });
+});
+</script>
+
+<br><br>
 
 ## 2. Repository Structure
 파이프라인의 핵심 코드 및 테스트 환경 디렉토리 구조입니다.

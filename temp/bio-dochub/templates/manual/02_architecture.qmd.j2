@@ -3,23 +3,28 @@
 ## 1. Pipeline Workflow
 아래는 파이프라인의 전체 실행 흐름도입니다.
 
-::: {id="mermaid-lightbox" style="cursor: zoom-in; border: 1px solid #e3e6f0; border-radius: 8px; padding: 20px; background-color: #fff; margin-bottom: 2rem;"}
+<style>
+  .diagram-thumbnail { cursor: zoom-in; border: 1px solid #e3e6f0; border-radius: 8px; padding: 20px; background-color: #fff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); position: relative; transition: all 0.3s ease; margin-bottom: 2rem; }
+  .diagram-thumbnail:hover { box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1); }
+  .diagram-thumbnail::before { content: "🔍 Click to Enlarge"; position: absolute; top: 15px; right: 15px; font-size: 0.85em; font-weight: bold; color: #666; background: #f8f9fa; padding: 6px 12px; border-radius: 20px; border: 1px solid #ddd; z-index: 10; }
+</style>
+
+::: {id="mermaid-lightbox" .diagram-thumbnail}
 {% if workflows and workflows|length > 0 %}
 ```{mermaid}
 flowchart TD
-    classDef default fill:#ffffff,stroke:#888,stroke-width:2px,color:#000,rx:5px,ry:5px;
-    classDef proc fill:#e6e6e6,stroke:#999,stroke-width:1px,color:#000,rx:5px,ry:5px;
-    
+    classDef default fill:#ffffff,stroke:#888,stroke-width:2px,color:#000,rx:5px,ry:5px,padding:15px;
+    classDef proc fill:#e6e6e6,stroke:#999,stroke-width:1px,color:#000,rx:5px,ry:5px,padding:15px;
     linkStyle default stroke:#757575,stroke-width:2px;
 
 {% for part_title, task_list in workflows.items() %}
-{% set safe_title = part_title.split('.', 1) | last | trim | replace('&', 'and') %}
-    subgraph part{{ loop.index }} ["{{ safe_title }}"]
+{% set safe_title = part_title.split('.', 1) | last | trim | replace('&', 'and') | replace('"', "'") %}
+    subgraph part{{ loop.index }}["{{ safe_title }}"]
         direction TB
 {% for task_key in task_list %}
 {% set t_title = tasks[task_key].title if tasks[task_key] is defined else task_key %}
-{% set safe_t_title = t_title.split('.', 1) | last | trim | replace('"', '') %}
-        {{ task_key }} ["{{ safe_t_title }} ({{ task_key }})"]
+{% set safe_t_title = t_title.split('.', 1) | last | trim | replace('"', "'") %}
+        {{ task_key }}["<b>{{ safe_t_title }}</b><br/>({{ task_key }})"]
 {% endfor %}
     end
 {% endfor %}
@@ -32,15 +37,66 @@ flowchart TD
 {% for task_key in task_list %}
         class {{ task_key }} proc;
 {% endfor %}
-    style part{{ loop.index }} fill:none,stroke:#b0bec5,stroke-width:2px;
+    style part{{ loop.index }} fill:none,stroke:#b0bec5,stroke-width:2px,stroke-dasharray: 5 5;
 {% endfor %}
 ```
 {% else %}
 <div style="text-align:center; padding: 40px; color: #888;">
-  <i>⚠️ Pipeline configuration data is missing.</i>
+  <i>⚠️ 파이프라인 흐름도(workflows) 데이터가 config.yaml에 정의되어 있지 않아 다이어그램을 생성할 수 없습니다.</i>
 </div>
 {% endif %}
 :::
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const wrapper = document.getElementById('mermaid-lightbox');
+    if (!wrapper) return;
+
+    wrapper.addEventListener('click', function() {
+        let overlay = document.getElementById('mermaid-fullscreen-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'mermaid-fullscreen-overlay';
+            overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(255, 255, 255, 0.98); z-index: 99999; overflow: auto; cursor: zoom-out; text-align: center; padding: 60px 20px; box-sizing: border-box; display: block;';
+            
+            const closeBtn = document.createElement('div');
+            closeBtn.innerText = '✖ Close';
+            closeBtn.style.cssText = 'position: fixed; top: 20px; right: 30px; background: #333; color: #fff; padding: 10px 20px; border-radius: 20px; font-weight: bold; z-index: 100000; box-shadow: 0 4px 6px rgba(0,0,0,0.2); pointer-events: none;';
+            overlay.appendChild(closeBtn);
+            
+            const content = document.createElement('div');
+            content.id = 'mermaid-fullscreen-content';
+            content.style.cssText = 'display: inline-block; min-width: 1200px; width: auto; max-width: none; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);';
+            overlay.appendChild(content);
+            
+            overlay.addEventListener('click', function() {
+                overlay.style.display = 'none';
+            });
+            
+            document.body.appendChild(overlay);
+        }
+        
+        const svgElement = wrapper.querySelector('svg'); 
+        if (svgElement) {
+            const content = document.getElementById('mermaid-fullscreen-content');
+            content.innerHTML = ''; 
+            
+            const clonedSvg = svgElement.cloneNode(true);
+            clonedSvg.removeAttribute('width');
+            clonedSvg.removeAttribute('height');
+            clonedSvg.style.width = '100%'; 
+            clonedSvg.style.height = 'auto';
+            clonedSvg.style.maxWidth = 'none';
+            clonedSvg.style.overflow = 'visible';
+            
+            content.appendChild(clonedSvg);
+            overlay.style.display = 'block';
+        }
+    });
+});
+</script>
+
+<br><br>
 
 ## 2. Repository Structure
 파이프라인의 핵심 코드 및 테스트 환경 디렉토리 구조입니다.

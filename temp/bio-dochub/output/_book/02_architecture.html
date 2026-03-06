@@ -1,12 +1,10 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
-<head>
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.26">
 
-<meta charset="utf-8" />
-<meta name="generator" content="quarto-1.8.26" />
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
 <title>Architecture &amp; I/O</title>
@@ -24,7 +22,27 @@ ul.task-list li input[type="checkbox"] {
 }
 </style>
 
-<!-- htmldependencies:E3FAD763 -->
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./03_workflow_fastqc.html" rel="next">
+<link href="./01_manual.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-6d5b9ca951fd2494b16b34fc1ed6c232.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -52,29 +70,24 @@ ul.task-list li input[type="checkbox"] {
     "search-label": "Search"
   }
 }</script>
-<script  src="site_libs/quarto-diagram/mermaid.min.js"></script>
-<script  src="site_libs/quarto-diagram/mermaid-init.js"></script>
-<link  href="site_libs/quarto-diagram/mermaid.css" rel="stylesheet" />
+<script src="site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
 
 
 </head>
 
-<body>
+<body class="nav-sidebar floating quarto-light">
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
   <nav class="quarto-secondary-nav">
     <div class="container-fluid d-flex">
-      <button type="button" class="quarto-btn-toggle btn"
-      data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" 
-      aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation"
-      onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <h1 class="quarto-secondary-nav-title no-breadcrumbs"></h1>
-        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" role="link"
-        aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation"
-        onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./02_architecture.html"><span class="chapter-title">Architecture &amp; I/O</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
         <i class="bi bi-search"></i>
@@ -95,25 +108,22 @@ ul.task-list li input[type="checkbox"] {
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class='chapter-number'>1</span>  <span class='chapter-title'>Introduction</span></span></a>
+  <a href="./index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Introduction</span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="/01_manual.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class='chapter-number'>2</span>  <span class='chapter-title'>User Manual</span></span></a>
+  <a href="./01_manual.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">User Manual</span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="/02_architecture.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text"><span class='chapter-number'>3</span>  <span class='chapter-title'>Architecture & I/O</span></span></a>
+  <a href="./02_architecture.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Architecture &amp; I/O</span></a>
   </div>
 </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1"  role="navigation" aria-expanded="true">
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
  <span class="menu-text">1. Pre-processing</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
@@ -122,22 +132,20 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="/03_workflow_fastqc.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class='chapter-number'>4</span>  <span class='chapter-title'>Rawdata Quality Control</span></span></a>
+  <a href="./03_workflow_fastqc.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Rawdata Quality Control</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="/04_workflow_fastp.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class='chapter-number'>5</span>  <span class='chapter-title'>Trim adpater and remove low qual reads</span></span></a>
+  <a href="./04_workflow_fastp.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Trim adpater and remove low qual reads</span></a>
   </div>
 </li>
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2"  role="navigation" aria-expanded="true">
- <span class="menu-text">2. Alignment & BAM Processing</span></a>
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">2. Alignment &amp; BAM Processing</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
@@ -145,45 +153,39 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="/05_workflow_bwa_picard_align_merge.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class='chapter-number'>6</span>  <span class='chapter-title'>Mapping</span></span></a>
+  <a href="./05_workflow_bwa_picard_align_merge.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Mapping</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="/06_workflow_sort_and_index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class='chapter-number'>7</span>  <span class='chapter-title'>Sort and index</span></span></a>
+  <a href="./06_workflow_sort_and_index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Sort and index</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="/07_workflow_dedup.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class='chapter-number'>8</span>  <span class='chapter-title'>Remove duplicates</span></span></a>
+  <a href="./07_workflow_dedup.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Remove duplicates</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="/08_workflow_realign.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class='chapter-number'>9</span>  <span class='chapter-title'>Realign</span></span></a>
+  <a href="./08_workflow_realign.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Realign</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="/09_workflow_bqsr.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class='chapter-number'>10</span>  <span class='chapter-title'>Base Quality Score Recalibration</span></span></a>
+  <a href="./09_workflow_bqsr.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Base Quality Score Recalibration</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="/10_workflow_remove_low_quality_read.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class='chapter-number'>11</span>  <span class='chapter-title'>Remove low qualtiy read</span></span></a>
+  <a href="./10_workflow_remove_low_quality_read.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Remove low qualtiy read</span></a>
   </div>
 </li>
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3"  role="navigation" aria-expanded="true">
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
  <span class="menu-text">3. Analysis</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
@@ -192,15 +194,14 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="/11_workflow_copykit.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class='chapter-number'>12</span>  <span class='chapter-title'>Calculate CNV</span></span></a>
+  <a href="./11_workflow_copykit.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Calculate CNV</span></a>
   </div>
 </li>
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4"  role="navigation" aria-expanded="true">
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
  <span class="menu-text">4. QC</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
@@ -209,32 +210,27 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="/12_workflow_qc_artifacts.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class='chapter-number'>13</span>  <span class='chapter-title'>Artifacts</span></span></a>
+  <a href="./12_workflow_qc_artifacts.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Artifacts</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="/13_workflow_insert_size.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class='chapter-number'>14</span>  <span class='chapter-title'>Insert Size</span></span></a>
+  <a href="./13_workflow_insert_size.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Insert Size</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="/14_workflow_alignment_summary.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class='chapter-number'>15</span>  <span class='chapter-title'>Alignment Summary</span></span></a>
+  <a href="./14_workflow_alignment_summary.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Alignment Summary</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="/15_workflow_qc_wgs_metrics.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class='chapter-number'>16</span>  <span class='chapter-title'>WGS Metrics</span></span></a>
+  <a href="./15_workflow_qc_wgs_metrics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">WGS Metrics</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="/16_workflow_coverage.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class='chapter-number'>17</span>  <span class='chapter-title'>Coverage</span></span></a>
+  <a href="./16_workflow_coverage.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Coverage</span></a>
   </div>
 </li>
       </ul>
@@ -242,10 +238,17 @@ ul.task-list li input[type="checkbox"] {
     </ul>
     </div>
 </nav>
-<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" ></div>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        <div id="quarto-toc-target"></div>
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#pipeline-workflow" id="toc-pipeline-workflow" class="nav-link active" data-scroll-target="#pipeline-workflow">1. Pipeline Workflow</a></li>
+  <li><a href="#repository-structure" id="toc-repository-structure" class="nav-link" data-scroll-target="#repository-structure">2. Repository Structure</a></li>
+  </ul>
+</nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
@@ -268,66 +271,63 @@ ul.task-list li input[type="checkbox"] {
 
 </header>
 
-<nav id="TOC" role="doc-toc">
-    <h2 id="toc-title">Table of contents</h2>
-   
-  <ul>
-  <li><a href="#pipeline-workflow" id="toc-pipeline-workflow">1. Pipeline Workflow</a></li>
-  <li><a href="#repository-structure" id="toc-repository-structure">2. Repository Structure</a></li>
-  </ul>
-</nav>
+
 <section id="pipeline-workflow" class="level2">
-<h2>1. Pipeline Workflow</h2>
+<h2 class="anchored" data-anchor-id="pipeline-workflow">1. Pipeline Workflow</h2>
 <p>아래는 파이프라인의 전체 실행 흐름도입니다.</p>
-<div id="mermaid-lightbox" style="cursor: zoom-in; border: 1px solid #e3e6f0; border-radius: 8px; padding: 20px; background-color: #fff; margin-bottom: 2rem;">
+<style>
+  .diagram-thumbnail { cursor: zoom-in; border: 1px solid #e3e6f0; border-radius: 8px; padding: 20px; background-color: #fff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); position: relative; transition: all 0.3s ease; margin-bottom: 2rem; }
+  .diagram-thumbnail:hover { box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1); }
+  .diagram-thumbnail::before { content: "🔍 Click to Enlarge"; position: absolute; top: 15px; right: 15px; font-size: 0.85em; font-weight: bold; color: #666; background: #f8f9fa; padding: 6px 12px; border-radius: 20px; border: 1px solid #ddd; z-index: 10; }
+</style>
+<div id="mermaid-lightbox" class="diagram-thumbnail">
 <div class="cell" data-layout-align="default">
 <div class="cell-output-display">
 <div>
-<p><figure class=''></p>
+<p></p><figure class="figure"><p></p>
 <div>
 <pre class="mermaid mermaid-js">flowchart TD
-    classDef default fill:#ffffff,stroke:#888,stroke-width:2px,color:#000,rx:5px,ry:5px;
-    classDef proc fill:#e6e6e6,stroke:#999,stroke-width:1px,color:#000,rx:5px,ry:5px;
-    
+    classDef default fill:#ffffff,stroke:#888,stroke-width:2px,color:#000,rx:5px,ry:5px,padding:15px;
+    classDef proc fill:#e6e6e6,stroke:#999,stroke-width:1px,color:#000,rx:5px,ry:5px,padding:15px;
     linkStyle default stroke:#757575,stroke-width:2px;
 
-    subgraph part1 [&quot;Pre-processing&quot;]
+    subgraph part1["Pre-processing"]
         direction TB
-        fastqc [&quot;Rawdata Quality Control (fastqc)&quot;]
-        fastp [&quot;Trim adpater and remove low qual reads (fastp)&quot;]
+        fastqc["&lt;b&gt;Rawdata Quality Control&lt;/b&gt;&lt;br/&gt;(fastqc)"]
+        fastp["&lt;b&gt;Trim adpater and remove low qual reads&lt;/b&gt;&lt;br/&gt;(fastp)"]
     end
-    subgraph part2 [&quot;Alignment and BAM Processing&quot;]
+    subgraph part2["Alignment and BAM Processing"]
         direction TB
-        bwa_align [&quot;Mapping (bwa_align)&quot;]
-        sort_and_index [&quot;Sort and index (sort_and_index)&quot;]
-        gatk_dedup [&quot;Remove duplicates (gatk_dedup)&quot;]
-        gatk_realign [&quot;Realign (gatk_realign)&quot;]
-        gatk_bqsr [&quot;Base Quality Score Recalibration (gatk_bqsr)&quot;]
-        samtools_filtering [&quot;Remove low qualtiy read (samtools_filtering)&quot;]
+        bwa_align["&lt;b&gt;Mapping&lt;/b&gt;&lt;br/&gt;(bwa_align)"]
+        sort_and_index["&lt;b&gt;Sort and index&lt;/b&gt;&lt;br/&gt;(sort_and_index)"]
+        gatk_dedup["&lt;b&gt;Remove duplicates&lt;/b&gt;&lt;br/&gt;(gatk_dedup)"]
+        gatk_realign["&lt;b&gt;Realign&lt;/b&gt;&lt;br/&gt;(gatk_realign)"]
+        gatk_bqsr["&lt;b&gt;Base Quality Score Recalibration&lt;/b&gt;&lt;br/&gt;(gatk_bqsr)"]
+        samtools_filtering["&lt;b&gt;Remove low qualtiy read&lt;/b&gt;&lt;br/&gt;(samtools_filtering)"]
     end
-    subgraph part3 [&quot;Analysis&quot;]
+    subgraph part3["Analysis"]
         direction TB
-        copykit [&quot;Calculate CNV (copykit)&quot;]
+        copykit["&lt;b&gt;Calculate CNV&lt;/b&gt;&lt;br/&gt;(copykit)"]
     end
-    subgraph part4 [&quot;QC&quot;]
+    subgraph part4["QC"]
         direction TB
-        gatk_qc_artifacts [&quot;Artifacts (gatk_qc_artifacts)&quot;]
-        picard_qc_insert_size [&quot;Insert Size (picard_qc_insert_size)&quot;]
-        gatk_qc_alignment_summary [&quot;Alignment Summary (gatk_qc_alignment_summary)&quot;]
-        gatk_qc_wgs_metrics [&quot;WGS Metrics (gatk_qc_wgs_metrics)&quot;]
-        mosdepth_coverage [&quot;Coverage (mosdepth_coverage)&quot;]
+        gatk_qc_artifacts["&lt;b&gt;Artifacts&lt;/b&gt;&lt;br/&gt;(gatk_qc_artifacts)"]
+        picard_qc_insert_size["&lt;b&gt;Insert Size&lt;/b&gt;&lt;br/&gt;(picard_qc_insert_size)"]
+        gatk_qc_alignment_summary["&lt;b&gt;Alignment Summary&lt;/b&gt;&lt;br/&gt;(gatk_qc_alignment_summary)"]
+        gatk_qc_wgs_metrics["&lt;b&gt;WGS Metrics&lt;/b&gt;&lt;br/&gt;(gatk_qc_wgs_metrics)"]
+        mosdepth_coverage["&lt;b&gt;Coverage&lt;/b&gt;&lt;br/&gt;(mosdepth_coverage)"]
     end
 
-    data_fastq[&quot;Fastq&quot;] --&gt; fastqc
+    data_fastq["Fastq"] --&gt; fastqc
     data_fastq --&gt; fastp
-    fastp --&gt; data_trimmed[&quot;Trimmed Fastq&quot;]
+    fastp --&gt; data_trimmed["Trimmed Fastq"]
     data_trimmed --&gt; bwa_align
     bwa_align --&gt; sort_and_index
     sort_and_index --&gt; gatk_dedup
     gatk_dedup --&gt; gatk_realign
     gatk_realign --&gt; gatk_bqsr
     gatk_bqsr --&gt; samtools_filtering
-    samtools_filtering --&gt; data_analysis_bam1[&quot;Analysis Bam&quot;]
+    samtools_filtering --&gt; data_analysis_bam1["Analysis Bam"]
     data_analysis_bam1 --&gt; copykit
     data_analysis_bam1 --&gt; gatk_qc_artifacts
     data_analysis_bam1 --&gt; picard_qc_insert_size
@@ -337,32 +337,81 @@ ul.task-list li input[type="checkbox"] {
 
         class fastqc proc;
         class fastp proc;
-    style part1 fill:none,stroke:#b0bec5,stroke-width:2px;
+    style part1 fill:none,stroke:#b0bec5,stroke-width:2px,stroke-dasharray: 5 5;
         class bwa_align proc;
         class sort_and_index proc;
         class gatk_dedup proc;
         class gatk_realign proc;
         class gatk_bqsr proc;
         class samtools_filtering proc;
-    style part2 fill:none,stroke:#b0bec5,stroke-width:2px;
+    style part2 fill:none,stroke:#b0bec5,stroke-width:2px,stroke-dasharray: 5 5;
         class copykit proc;
-    style part3 fill:none,stroke:#b0bec5,stroke-width:2px;
+    style part3 fill:none,stroke:#b0bec5,stroke-width:2px,stroke-dasharray: 5 5;
         class gatk_qc_artifacts proc;
         class picard_qc_insert_size proc;
         class gatk_qc_alignment_summary proc;
         class gatk_qc_wgs_metrics proc;
         class mosdepth_coverage proc;
-    style part4 fill:none,stroke:#b0bec5,stroke-width:2px;
+    style part4 fill:none,stroke:#b0bec5,stroke-width:2px,stroke-dasharray: 5 5;
 </pre>
 </div>
-<p></figure></p>
+<p></p></figure><p></p>
 </div>
 </div>
 </div>
 </div>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const wrapper = document.getElementById('mermaid-lightbox');
+    if (!wrapper) return;
+
+    wrapper.addEventListener('click', function() {
+        let overlay = document.getElementById('mermaid-fullscreen-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'mermaid-fullscreen-overlay';
+            overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(255, 255, 255, 0.98); z-index: 99999; overflow: auto; cursor: zoom-out; text-align: center; padding: 60px 20px; box-sizing: border-box; display: block;';
+            
+            const closeBtn = document.createElement('div');
+            closeBtn.innerText = '✖ Close';
+            closeBtn.style.cssText = 'position: fixed; top: 20px; right: 30px; background: #333; color: #fff; padding: 10px 20px; border-radius: 20px; font-weight: bold; z-index: 100000; box-shadow: 0 4px 6px rgba(0,0,0,0.2); pointer-events: none;';
+            overlay.appendChild(closeBtn);
+            
+            const content = document.createElement('div');
+            content.id = 'mermaid-fullscreen-content';
+            content.style.cssText = 'display: inline-block; min-width: 1200px; width: auto; max-width: none; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);';
+            overlay.appendChild(content);
+            
+            overlay.addEventListener('click', function() {
+                overlay.style.display = 'none';
+            });
+            
+            document.body.appendChild(overlay);
+        }
+        
+        const svgElement = wrapper.querySelector('svg'); 
+        if (svgElement) {
+            const content = document.getElementById('mermaid-fullscreen-content');
+            content.innerHTML = ''; 
+            
+            const clonedSvg = svgElement.cloneNode(true);
+            clonedSvg.removeAttribute('width');
+            clonedSvg.removeAttribute('height');
+            clonedSvg.style.width = '100%'; 
+            clonedSvg.style.height = 'auto';
+            clonedSvg.style.maxWidth = 'none';
+            clonedSvg.style.overflow = 'visible';
+            
+            content.appendChild(clonedSvg);
+            overlay.style.display = 'block';
+        }
+    });
+});
+</script>
+<p><br><br></p>
 </section>
 <section id="repository-structure" class="level2">
-<h2>2. Repository Structure</h2>
+<h2 class="anchored" data-anchor-id="repository-structure">2. Repository Structure</h2>
 <p>파이프라인의 핵심 코드 및 테스트 환경 디렉토리 구조입니다.</p>
 <div class="card shadow-sm mb-4">
 <div class="card-header bg-light">
@@ -414,16 +463,12 @@ ul.task-list li input[type="checkbox"] {
     📂 utils</code></pre>
 </div>
 </div>
-<div id="quarto-navigation-envelope" class="hidden">
-<p><span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLWludC1zaWRlYmFyLXRpdGxl"><span class="chapter-title">Architecture &amp; I/O</span></span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLWludC1uYXZiYXItdGl0bGU="><span class="chapter-title">Architecture &amp; I/O</span></span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLWludC1uZXh0"><span class="chapter-number">4</span>  <span class="chapter-title">Rawdata Quality Control</span></span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLWludC1wcmV2"><span class="chapter-number">2</span>  <span class="chapter-title">User Manual</span></span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLWludC1zaWRlYmFyOi9pbmRleC5odG1sPHNwYW4tY2xhc3M9J2NoYXB0ZXItbnVtYmVyJz4xPC9zcGFuPi0tPHNwYW4tY2xhc3M9J2NoYXB0ZXItdGl0bGUnPkludHJvZHVjdGlvbjwvc3Bhbj4="><span class="chapter-number">1</span>  <span class="chapter-title">Introduction</span></span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLWludC1zaWRlYmFyOi8wMV9tYW51YWwuaHRtbDxzcGFuLWNsYXNzPSdjaGFwdGVyLW51bWJlcic+Mjwvc3Bhbj4tLTxzcGFuLWNsYXNzPSdjaGFwdGVyLXRpdGxlJz5Vc2VyLU1hbnVhbDwvc3Bhbj4="><span class="chapter-number">2</span>  <span class="chapter-title">User Manual</span></span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLWludC1zaWRlYmFyOi8wMl9hcmNoaXRlY3R1cmUuaHRtbDxzcGFuLWNsYXNzPSdjaGFwdGVyLW51bWJlcic+Mzwvc3Bhbj4tLTxzcGFuLWNsYXNzPSdjaGFwdGVyLXRpdGxlJz5BcmNoaXRlY3R1cmUtJi1JL088L3NwYW4+"><span class="chapter-number">3</span>  <span class="chapter-title">Architecture &amp; I/O</span></span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLWludC1zaWRlYmFyOnF1YXJ0by1zaWRlYmFyLXNlY3Rpb24tMQ==">1. Pre-processing</span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLWludC1zaWRlYmFyOi8wM193b3JrZmxvd19mYXN0cWMuaHRtbDxzcGFuLWNsYXNzPSdjaGFwdGVyLW51bWJlcic+NDwvc3Bhbj4tLTxzcGFuLWNsYXNzPSdjaGFwdGVyLXRpdGxlJz5SYXdkYXRhLVF1YWxpdHktQ29udHJvbDwvc3Bhbj4="><span class="chapter-number">4</span>  <span class="chapter-title">Rawdata Quality Control</span></span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLWludC1zaWRlYmFyOi8wNF93b3JrZmxvd19mYXN0cC5odG1sPHNwYW4tY2xhc3M9J2NoYXB0ZXItbnVtYmVyJz41PC9zcGFuPi0tPHNwYW4tY2xhc3M9J2NoYXB0ZXItdGl0bGUnPlRyaW0tYWRwYXRlci1hbmQtcmVtb3ZlLWxvdy1xdWFsLXJlYWRzPC9zcGFuPg=="><span class="chapter-number">5</span>  <span class="chapter-title">Trim adpater and remove low qual reads</span></span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLWludC1zaWRlYmFyOnF1YXJ0by1zaWRlYmFyLXNlY3Rpb24tMg==">2. Alignment &amp; BAM Processing</span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLWludC1zaWRlYmFyOi8wNV93b3JrZmxvd19id2FfcGljYXJkX2FsaWduX21lcmdlLmh0bWw8c3Bhbi1jbGFzcz0nY2hhcHRlci1udW1iZXInPjY8L3NwYW4+LS08c3Bhbi1jbGFzcz0nY2hhcHRlci10aXRsZSc+TWFwcGluZzwvc3Bhbj4="><span class="chapter-number">6</span>  <span class="chapter-title">Mapping</span></span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLWludC1zaWRlYmFyOi8wNl93b3JrZmxvd19zb3J0X2FuZF9pbmRleC5odG1sPHNwYW4tY2xhc3M9J2NoYXB0ZXItbnVtYmVyJz43PC9zcGFuPi0tPHNwYW4tY2xhc3M9J2NoYXB0ZXItdGl0bGUnPlNvcnQtYW5kLWluZGV4PC9zcGFuPg=="><span class="chapter-number">7</span>  <span class="chapter-title">Sort and index</span></span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLWludC1zaWRlYmFyOi8wN193b3JrZmxvd19kZWR1cC5odG1sPHNwYW4tY2xhc3M9J2NoYXB0ZXItbnVtYmVyJz44PC9zcGFuPi0tPHNwYW4tY2xhc3M9J2NoYXB0ZXItdGl0bGUnPlJlbW92ZS1kdXBsaWNhdGVzPC9zcGFuPg=="><span class="chapter-number">8</span>  <span class="chapter-title">Remove duplicates</span></span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLWludC1zaWRlYmFyOi8wOF93b3JrZmxvd19yZWFsaWduLmh0bWw8c3Bhbi1jbGFzcz0nY2hhcHRlci1udW1iZXInPjk8L3NwYW4+LS08c3Bhbi1jbGFzcz0nY2hhcHRlci10aXRsZSc+UmVhbGlnbjwvc3Bhbj4="><span class="chapter-number">9</span>  <span class="chapter-title">Realign</span></span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLWludC1zaWRlYmFyOi8wOV93b3JrZmxvd19icXNyLmh0bWw8c3Bhbi1jbGFzcz0nY2hhcHRlci1udW1iZXInPjEwPC9zcGFuPi0tPHNwYW4tY2xhc3M9J2NoYXB0ZXItdGl0bGUnPkJhc2UtUXVhbGl0eS1TY29yZS1SZWNhbGlicmF0aW9uPC9zcGFuPg=="><span class="chapter-number">10</span>  <span class="chapter-title">Base Quality Score Recalibration</span></span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLWludC1zaWRlYmFyOi8xMF93b3JrZmxvd19yZW1vdmVfbG93X3F1YWxpdHlfcmVhZC5odG1sPHNwYW4tY2xhc3M9J2NoYXB0ZXItbnVtYmVyJz4xMTwvc3Bhbj4tLTxzcGFuLWNsYXNzPSdjaGFwdGVyLXRpdGxlJz5SZW1vdmUtbG93LXF1YWx0aXktcmVhZDwvc3Bhbj4="><span class="chapter-number">11</span>  <span class="chapter-title">Remove low qualtiy read</span></span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLWludC1zaWRlYmFyOnF1YXJ0by1zaWRlYmFyLXNlY3Rpb24tMw==">3. Analysis</span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLWludC1zaWRlYmFyOi8xMV93b3JrZmxvd19jb3B5a2l0Lmh0bWw8c3Bhbi1jbGFzcz0nY2hhcHRlci1udW1iZXInPjEyPC9zcGFuPi0tPHNwYW4tY2xhc3M9J2NoYXB0ZXItdGl0bGUnPkNhbGN1bGF0ZS1DTlY8L3NwYW4+"><span class="chapter-number">12</span>  <span class="chapter-title">Calculate CNV</span></span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLWludC1zaWRlYmFyOnF1YXJ0by1zaWRlYmFyLXNlY3Rpb24tNA==">4. QC</span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLWludC1zaWRlYmFyOi8xMl93b3JrZmxvd19xY19hcnRpZmFjdHMuaHRtbDxzcGFuLWNsYXNzPSdjaGFwdGVyLW51bWJlcic+MTM8L3NwYW4+LS08c3Bhbi1jbGFzcz0nY2hhcHRlci10aXRsZSc+QXJ0aWZhY3RzPC9zcGFuPg=="><span class="chapter-number">13</span>  <span class="chapter-title">Artifacts</span></span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLWludC1zaWRlYmFyOi8xM193b3JrZmxvd19pbnNlcnRfc2l6ZS5odG1sPHNwYW4tY2xhc3M9J2NoYXB0ZXItbnVtYmVyJz4xNDwvc3Bhbj4tLTxzcGFuLWNsYXNzPSdjaGFwdGVyLXRpdGxlJz5JbnNlcnQtU2l6ZTwvc3Bhbj4="><span class="chapter-number">14</span>  <span class="chapter-title">Insert Size</span></span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLWludC1zaWRlYmFyOi8xNF93b3JrZmxvd19hbGlnbm1lbnRfc3VtbWFyeS5odG1sPHNwYW4tY2xhc3M9J2NoYXB0ZXItbnVtYmVyJz4xNTwvc3Bhbj4tLTxzcGFuLWNsYXNzPSdjaGFwdGVyLXRpdGxlJz5BbGlnbm1lbnQtU3VtbWFyeTwvc3Bhbj4="><span class="chapter-number">15</span>  <span class="chapter-title">Alignment Summary</span></span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLWludC1zaWRlYmFyOi8xNV93b3JrZmxvd19xY193Z3NfbWV0cmljcy5odG1sPHNwYW4tY2xhc3M9J2NoYXB0ZXItbnVtYmVyJz4xNjwvc3Bhbj4tLTxzcGFuLWNsYXNzPSdjaGFwdGVyLXRpdGxlJz5XR1MtTWV0cmljczwvc3Bhbj4="><span class="chapter-number">16</span>  <span class="chapter-title">WGS Metrics</span></span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLWludC1zaWRlYmFyOi8xNl93b3JrZmxvd19jb3ZlcmFnZS5odG1sPHNwYW4tY2xhc3M9J2NoYXB0ZXItbnVtYmVyJz4xNzwvc3Bhbj4tLTxzcGFuLWNsYXNzPSdjaGFwdGVyLXRpdGxlJz5Db3ZlcmFnZTwvc3Bhbj4="><span class="chapter-number">17</span>  <span class="chapter-title">Coverage</span></span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLWJyZWFkY3J1bWJzLTxzcGFuLWNsYXNzPSdjaGFwdGVyLW51bWJlcic+Mzwvc3Bhbj4tLTxzcGFuLWNsYXNzPSdjaGFwdGVyLXRpdGxlJz5BcmNoaXRlY3R1cmUtJi1JL088L3NwYW4+"><span class="chapter-number">3</span>  <span class="chapter-title">Architecture &amp; I/O</span></span></p>
-</div>
-<div id="quarto-meta-markdown" class="hidden">
-<p><span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLW1ldGF0aXRsZQ=="><span class="chapter-title">Architecture &amp; I/O</span></span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLXR3aXR0ZXJjYXJkdGl0bGU="><span class="chapter-title">Architecture &amp; I/O</span></span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLW9nY2FyZHRpdGxl"><span class="chapter-title">Architecture &amp; I/O</span></span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLXR3aXR0ZXJjYXJkZGVzYw=="></span> <span class="hidden quarto-markdown-envelope-contents" data-render-id="cXVhcnRvLW9nY2FyZGRkZXNj"></span></p>
-</div>
+
+
 </section>
 
 </main> <!-- /main -->
-<script id = "quarto-html-after-body" type="application/javascript">
+<script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
     const icon = "";
     const anchorJS = new window.AnchorJS();
@@ -825,18 +870,19 @@ ul.task-list li input[type="checkbox"] {
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a  href="/01_manual.html" class="pagination-link" aria-label="User Manual">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class='chapter-number'>2</span>  <span class='chapter-title'>User Manual</span></span>
+      <a href="./01_manual.html" class="pagination-link" aria-label="User Manual">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">User Manual</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a  href="/03_workflow_fastqc.html" class="pagination-link" aria-label="Rawdata Quality Control">
-        <span class="nav-page-text"><span class='chapter-number'>4</span>  <span class='chapter-title'>Rawdata Quality Control</span></span> <i class="bi bi-arrow-right-short"></i>
+      <a href="./03_workflow_fastqc.html" class="pagination-link" aria-label="Rawdata Quality Control">
+        <span class="nav-page-text"><span class="chapter-title">Rawdata Quality Control</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>
 </div> <!-- /content -->
 
-</body>
 
-</html>
+
+
+</body></html>

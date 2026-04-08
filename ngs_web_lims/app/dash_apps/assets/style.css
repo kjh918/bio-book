@@ -1,0 +1,9 @@
+/* 창 너비에 따라 글자 크기가 최소 1.2rem에서 최대 2rem 사이로 유동적으로 변함 */
+h2 {
+    font-size: clamp(1.2rem, 2.5vw, 2rem) !important; 
+}
+
+.dash-spreadsheet-container .dash-spreadsheet-inner td.fixed-column {
+    z-index: 100 !important;
+    background-color: white !important;
+}

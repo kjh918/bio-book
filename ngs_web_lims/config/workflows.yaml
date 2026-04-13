@@ -1,0 +1,46 @@
+# app/core/workflows.yaml
+
+# 1. Whole Genome Sequencing (WGS) 파이프라인
+WGS:
+  - id: step_01
+    name: "접수 및 QC"
+    type: registration
+  - id: step_02
+    name: "DNA 추출"
+    type: wet_lab
+  - id: step_03
+    name: "Library Prep (WGS)"
+    type: wet_lab
+  - id: step_04
+    name: "Sequencing"
+    type: wet_lab
+  - id: step_05
+    name: "1차 Data QC"
+    type: dry_lab
+
+# 2. Whole Exome Sequencing (WES) 파이프라인 (Target Capture 포함)
+WES:
+  - id: step_01
+    name: "접수 및 QC"
+    type: registration
+  - id: step_02
+    name: "DNA 추출"
+    type: wet_lab
+  - id: step_02_5  # WES에만 있는 고유 단계
+    name: "Target Capture"
+    type: wet_lab
+  - id: step_03
+    name: "Library Prep (WES)"
+    type: wet_lab
+  - id: step_04
+    name: "Sequencing"
+    type: wet_lab
+
+# 3. 기본(Default) 파이프라인 (알 수 없는 분석일 경우 대비)
+DEFAULT:
+  - id: step_01
+    name: "접수 및 QC"
+    type: registration
+  - id: step_09
+    name: "기타 수동 처리"
+    type: manual

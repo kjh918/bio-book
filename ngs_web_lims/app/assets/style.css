@@ -1,0 +1,57 @@
+/* 창 너비에 따라 글자 크기가 최소 1.2rem에서 최대 2rem 사이로 유동적으로 변함 */
+h2 {
+    font-size: clamp(1.2rem, 2.5vw, 2rem) !important; 
+}
+
+.dash-spreadsheet-container .dash-spreadsheet-inner td.fixed-column {
+    z-index: 100 !important;
+    background-color: white !important;
+}
+/* 1. 웹 폰트 불러오기 (반드시 파일 맨 첫 줄에 있어야 합니다!) */
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css");
+
+/* 2. 부트스트랩 전역 폰트 변수 강제 교체 */
+:root {
+    --bs-font-sans-serif: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif !important;
+    --bs-body-font-family: var(--bs-font-sans-serif) !important;
+}
+
+body {
+    font-family: var(--bs-font-sans-serif) !important;
+    background-color: #F4F6F8 !important;
+}
+
+/* ... 기존의 TOP_NAVBAR_STYLE 등 나머지 코드는 그대로 유지 ... */
+
+/* 2. Top Navbar 고정 */
+.top-navbar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    z-index: 1030; /* 다른 요소들보다 항상 위에 있도록 설정 */
+}
+
+/* 3. Sidebar 고정 (상단바 60px 아래부터 시작) */
+.side-navbar {
+    position: fixed;
+    top: 60px; 
+    left: 0;
+    bottom: 0;
+    width: 16rem;
+    padding: 2rem 1rem;
+    background-color: #2C3E50;
+    color: white;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    z-index: 1020;
+    overflow-y: auto; /* 메뉴가 길어지면 내부 스크롤 생성 */
+}
+
+/* 4. 메인 컨텐츠 영역 (상단바와 사이드바를 피해서 배치) */
+.main-content {
+    margin-left: 16rem; /* 사이드바 너비만큼 밀어줌 */
+    padding-top: 60px;  /* 상단바 높이만큼 내려줌 */
+    min-height: 100vh;
+    padding-bottom: 3rem;
+}

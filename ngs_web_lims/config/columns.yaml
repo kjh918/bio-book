@@ -1,0 +1,106 @@
+
+# 2. 메인 트래킹 시트 컬럼 구성
+tracking_columns:
+  Registration ID:         # [자동생성] 시스템 접수 번호 (ACC-YYMMDD-NNN)
+    type: "text"
+    required: true
+  GMC/GCX:
+    type: "text"
+    options: ["GMC", "GCX"]
+  Order Facility:          # [매핑참조] 위 facility_mapping의 Key값(C01 등) 사용
+    type: "text"
+    options: ["C01", "C02", "C03", "C04", "C11", "C12", "C13", "C14", "C15", "C16", "C17", "C18", "C20", "C21"]
+  Reception Date:
+    type: "datetime"
+    required: true
+  Order ID:
+    type: "text"
+    required: true
+  Order No:
+    type: "text"
+  Sample Name:
+    type: "text"
+    required: true
+  Sample ID:               # [자동생성] 생물학적 동일 시료 번호 (Order_Sample)
+    type: "text"
+    required: true
+  Cancer Type:
+    type: "text"
+  Specimen:
+    type: "text"
+  추출 진행:
+    type: "text"
+    options: ["O", "X", "-"]
+  Sample Type:
+    type: "text"
+    options: ["DNA", "RNA", "Library", "Pool"]
+  Analysis Type:
+    type: "text"
+  Depth/Output:
+    type: "text"
+  Conc.(ng/uL):
+    type: "numeric"
+  Sample QC:
+    type: "text"
+    options: ["PASS", "FAIL", "PENDING", "RE-RUN", "CANCELED"]
+  검사진행 여부:
+    type: "text"
+    options: ["O", "X", "-"]
+  특이사항:
+    type: "text"
+  SEQ ID:                  # [자동생성] 최종 분석 런 번호 (Registration_R1)
+    type: "text"
+    required: true
+  Outside ID 1:
+    type: "text"
+  Outside ID 2:
+    type: "text"
+  진행사항:
+    type: "text"
+  매출:
+    type: "text"
+    options: ["Y", "N", "-"]
+  의뢰사:                  # [자동완성 가능] Facility 명칭
+    type: "text"
+  의뢰인:                  # [자동완성 가능] Team 명칭
+    type: "text"
+  sample QC report date:
+    type: "datetime"
+  seq QC report date:
+    type: "datetime"
+  Quotation ID:
+    type: "text"
+  매출 단가:
+    type: "numeric"
+  견적서 발행:
+    type: "text"
+    options: ["Y", "N", "-"]
+  Dead Line:
+    type: "datetime"
+  standard report date 01:
+    type: "datetime"
+  standard report date 02:
+    type: "datetime"
+  advanced report date 01:
+    type: "datetime"
+  advanced report date 02:
+    type: "datetime"
+  거래명세서 발행일:
+    type: "datetime"
+  문서번호:
+    type: "text"
+  세금계산서 발행일:
+    type: "datetime"
+  매입:
+    type: "text"
+    options: ["Y", "N", "-"]
+  매입 단가:
+    type: "numeric"
+  품의서(지출) 작성일:
+    type: "datetime"
+  품의 문서번호:
+    type: "text"
+  거래명세서/세금계산서 발행일:
+    type: "datetime"
+  지출결의 문서번호:
+    type: "text"

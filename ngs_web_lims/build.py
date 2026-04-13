@@ -6,7 +6,7 @@ from pathlib import Path
 
 # 프로젝트 루트 경로 계산
 BASE_DIR = Path(__file__).resolve().parent
-CONFIG_PATH = BASE_DIR / "app" / "dash_apps" / "config" / "columns.yaml"
+CONFIG_PATH = BASE_DIR / "app" / "core" / "config" / "columns.yaml"
 
 # 환경변수 설정 (없을 경우 기본값)
 if not os.getenv("LIMS_DATABASE_URL"):

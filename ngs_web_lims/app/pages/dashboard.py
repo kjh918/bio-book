@@ -1,4 +1,4 @@
-from dash import html, dcc, Input, Output, dash_table
+from dash import html, dcc, Input, Output, State, dash_table
 import dash_bootstrap_components as dbc
 import plotly.express as px
 import pandas as pd
@@ -6,218 +6,203 @@ from datetime import datetime
 
 from app.core.database import SessionLocal
 from app.models.schema import NGSTracking
-
-# [경로 주의] 다이어트된 구조에 맞게 임포트 (app.ui.base 또는 app.pages.base 등 실제 위치에 맞게 수정)
 from app.pages.base import LimsDashApp 
 
 def create_dashboard_layout():
-    """요청하신 4가지 지표에 집중한 대시보드 레이아웃"""
     return html.Div([
-        html.H2("📊 NGS LIMS 통합 대시보드", className="text-center mb-4 fw-bold text-secondary"),
+        html.H2("📊 NGS LIMS 통합 분석 대시보드", className="text-center mb-4 fw-bold text-secondary"),
         
-        # --- [1] 상단 요약 카드 (진행 중인 프로젝트 수 추가) ---
+        # --- [1] 상단 검색 필터 바 (년도, 의뢰사, 의뢰항목) ---
+        dbc.Card([
+            dbc.CardBody([
+                dbc.Row([
+                    dbc.Col([
+                        html.Label("📅 접수 년도", className="fw-bold small"),
+                        dcc.Dropdown(id="filter-year", placeholder="전체 년도", clearable=True)
+                    ], width=3),
+                    dbc.Col([
+                        html.Label("🏢 의뢰 기관 (의뢰사)", className="fw-bold small"),
+                        dcc.Dropdown(id="filter-org", placeholder="전체 기관", clearable=True)
+                    ], width=4),
+                    dbc.Col([
+                        html.Label("🧬 의뢰 항목 (Analysis Type)", className="fw-bold small"),
+                        dcc.Dropdown(id="filter-item", placeholder="전체 항목", clearable=True)
+                    ], width=3),
+                    dbc.Col([
+                        html.Label(" ", className="d-block"),
+                        dbc.Button("🔄 초기화", id="btn-reset-filter", color="secondary", outline=True, className="w-100")
+                    ], width=2),
+                ])
+            ])
+        ], className="shadow-sm border-0 rounded-4 mb-4"),
+
+        # --- [2] 요약 지표 카드 ---
         dbc.Row([
             dbc.Col(dbc.Card(dbc.CardBody([
-                html.H6("총 의뢰 시료", className="card-title text-muted fw-bold"),
-                html.H3(id="total-count", className="fw-bold text-primary mb-0")
-            ]), className="text-center shadow-sm border-0 rounded-4"), width=3),
-            
+                html.H6("필터된 총 시료", className="text-muted small"),
+                html.H3(id="card-total", className="fw-bold text-primary mb-0")
+            ]), className="text-center shadow-sm border-0 rounded-4"), width=4),
             dbc.Col(dbc.Card(dbc.CardBody([
-                html.H6("올해 접수 시료", className="card-title text-muted fw-bold"),
-                html.H3(id="year-count", className="fw-bold text-success mb-0")
-            ]), className="text-center shadow-sm border-0 rounded-4"), width=3),
-            
+                html.H6("진행 중인 프로젝트", className="text-muted small"),
+                html.H3(id="card-ongoing", className="fw-bold text-danger mb-0")
+            ]), className="text-center shadow-sm border-0 rounded-4"), width=4),
             dbc.Col(dbc.Card(dbc.CardBody([
-                html.H6("이번 달 접수 시료", className="card-title text-muted fw-bold"),
-                html.H3(id="month-count", className="fw-bold text-info mb-0")
-            ]), className="text-center shadow-sm border-0 rounded-4"), width=3),
-            
-            dbc.Col(dbc.Card(dbc.CardBody([
-                html.H6("🚀 현재 진행 중인 프로젝트", className="card-title text-muted fw-bold"),
-                html.H3(id="ongoing-project-count", className="fw-bold text-danger mb-0")
-            ]), className="text-center shadow-sm border-0 rounded-4"), width=3),
+                html.H6("평균 분석 소요(예상)", className="text-muted small"),
+                html.H3(id="card-avg", className="fw-bold text-success mb-0", children="14일")
+            ]), className="text-center shadow-sm border-0 rounded-4"), width=4),
         ], className="mb-4"),
 
-        # --- [2] 중앙 영역: 진행 현황(파이) + 현재 진행 중인 프로젝트(테이블) ---
+        # --- [3] 메인 그래프 영역 ---
         dbc.Row([
+            # 좌측: 분석 항목별 비중
             dbc.Col([
                 html.Div([
-                    html.H5("🧪 전체 시료 진행 현황", className="fw-bold mb-3"),
-                    dcc.Graph(id="status-pie-graph")
+                    html.H5("🧬 의뢰 항목별 분포", className="fw-bold mb-3"),
+                    dcc.Graph(id="graph-item-pie")
                 ], className="p-3 bg-white border-0 rounded-4 shadow-sm h-100")
             ], width=4),
             
+            # 우측: 의뢰 기관별 상위 순위
             dbc.Col([
                 html.Div([
-                    html.H5("🚀 현재 진행 중인 프로젝트 (최근 접수순)", className="fw-bold mb-3"),
-                    html.Div(id="ongoing-projects-table-container") # 콜백에서 테이블 렌더링
+                    html.H5("🏢 주요 의뢰 기관 (TOP 10)", className="fw-bold mb-3"),
+                    dcc.Graph(id="graph-org-bar")
                 ], className="p-3 bg-white border-0 rounded-4 shadow-sm h-100")
             ], width=8),
         ], className="mb-4"),
 
-        # --- [3] 하단 영역: 연도별 현황(선) + 월별 진행 현황(누적 막대) ---
+        # --- [4] 하단 추이 영역 ---
         dbc.Row([
             dbc.Col([
                 html.Div([
-                    html.H5("📅 연도별 의뢰 현황", className="fw-bold mb-3"),
-                    dcc.Graph(id="year-trend-graph")
+                    html.H5("📅 월별 접수 및 진행 추이", className="fw-bold mb-3"),
+                    dcc.Graph(id="graph-trend-line")
                 ], className="p-3 bg-white border-0 rounded-4 shadow-sm")
-            ], width=5),
-            
-            dbc.Col([
-                html.Div([
-                    html.H5("📊 올해 월별 진행 현황", className="fw-bold mb-3"),
-                    dcc.Graph(id="month-stacked-bar")
-                ], className="p-3 bg-white border-0 rounded-4 shadow-sm")
-            ], width=7),
+            ], width=12),
         ]),
         
-        dcc.Interval(id='interval-component', interval=60*1000, n_intervals=0)
-    ])
-
+        dcc.Interval(id='dash-refresh', interval=300*1000, n_intervals=0) # 5분마다 갱신
+    ], className="p-4")
 
 def register_dashboard_callbacks(dash_app):
-    """대시보드의 데이터 연산 및 그래프 생성 콜백"""
+    
+    # -----------------------------------------------------
+    # 1. 필터 옵션 동적 생성 (DB 데이터 기준)
+    # -----------------------------------------------------
     @dash_app.callback(
-        [Output("total-count", "children"), 
-         Output("year-count", "children"), 
-         Output("month-count", "children"),
-         Output("ongoing-project-count", "children"),
-         Output("status-pie-graph", "figure"), 
-         Output("ongoing-projects-table-container", "children"),
-         Output("year-trend-graph", "figure"), 
-         Output("month-stacked-bar", "figure")],
-        [Input("interval-component", "n_intervals")]
+        [Output("filter-year", "options"),
+         Output("filter-org", "options"),
+         Output("filter-item", "options")],
+        [Input("dash-refresh", "n_intervals")]
     )
-    def update_dashboard(n):
+    def update_filter_options(n):
         db = SessionLocal()
         try:
             query = db.query(NGSTracking).all()
-            
-            def empty_fig(title="데이터 없음"):
-                return px.scatter(title=title, template='plotly_white')
-
-            if not query:
-                return "0건", "0건", "0건", "0건", empty_fig(), html.Div("진행 중인 프로젝트가 없습니다."), empty_fig(), empty_fig()
-
+            if not query: return [], [], []
             df = pd.DataFrame([q.excel_data for q in query])
             
-            # --- 1. 날짜 전처리 ---
-            def parse_date(val):
-                if not val or pd.isna(val): return pd.NaT
-                val = str(val).strip()
-                try:
-                    if len(val) == 6 and val.isdigit(): return datetime.strptime(val, '%y%m%d')
-                    return pd.to_datetime(val)
-                except: return pd.NaT
-
-            df['date'] = df['Reception Date'].apply(parse_date)
-            # 날짜 없는 데이터는 오늘 날짜로 임시 대체 (에러 방지)
-            df['date'] = df['date'].fillna(pd.Timestamp.today())
+            # 날짜 파싱
+            clean_dates = df['Reception Date'].astype(str).str.split('.').str[0].str.strip()
             
-            df['year'] = df['date'].dt.year
-            df['month'] = df['date'].dt.month
-            df['month_name'] = df['month'].apply(lambda x: f"{x}월")
-            df['진행사항'] = df.get('진행사항', pd.Series(['접수 대기']*len(df))).fillna('접수 대기')
-
-            now = datetime.now()
-            this_year, this_month = now.year, now.month
-
-            # --- 2. 카드 요약 지표 ---
-            total_cnt = len(df)
-            y_cnt = len(df[df['year'] == this_year])
-            m_cnt = len(df[(df['year'] == this_year) & (df['month'] == this_month)])
-
-            # "완료"라는 단어가 포함되지 않은 항목을 '진행 중'으로 간주
-            ongoing_df = df[~df['진행사항'].str.contains('완료', na=False)]
-            ongoing_prj_cnt = ongoing_df['Order ID'].nunique() if 'Order ID' in df.columns else 0
-
-            # --- 3. [지표 1] 진행 현황 (Pie Chart) ---
-            status_counts = df['진행사항'].value_counts().reset_index(name='count')
-            fig_pie = px.pie(
-                status_counts, values='count', names='진행사항',
-                hole=0.45, template='plotly_white',
-                color_discrete_sequence=px.colors.qualitative.Pastel
+            # 2. 'YYMMDD' 형식(%y%m%d)으로 먼저 해석 시도하고, 실패하면 일반 날짜 형식으로 2차 시도
+            df['dt'] = pd.to_datetime(clean_dates, format='%y%m%d', errors='coerce').fillna(
+                pd.to_datetime(clean_dates, errors='coerce')
             )
-            fig_pie.update_traces(textposition='inside', textinfo='percent+label')
-            fig_pie.update_layout(showlegend=False, margin=dict(t=20, b=20, l=20, r=20))
-
-            # --- 4. [지표 2] 현재 진행 중인 프로젝트 (DataTable) ---
-            if ongoing_df.empty:
-                ongoing_table = html.Div("🎉 현재 밀린(진행 중인) 프로젝트가 없습니다!", className="text-center text-success mt-5 fw-bold")
-            else:
-                # 프로젝트별로 그룹화하여 요약
-                prj_summary = ongoing_df.groupby(['Reception Date', 'Order ID', '의뢰사']).agg(
-                    시료수=('Sample Name', 'count'),
-                    현재상태=('진행사항', lambda x: x.mode()[0] if not x.empty else '알 수 없음') # 가장 많이 차지하는 상태 표시
-                ).reset_index()
-                prj_summary = prj_summary.sort_values(by='Reception Date', ascending=False).head(8) # 최근 8개만 표시
-
-                # [수정됨] 대시보드 카드 영역에 맞게 표 찌그러짐을 방지하고 너비를 100%로 폅니다.
-                ongoing_table = LimsDashApp.create_standard_table(
-                    id="ongoing-table",
-                    columns=[{"name": c, "id": c} for c in prj_summary.columns],
-                    data=prj_summary.to_dict('records'),
-                    
-                    # 1. 좁은 공간에서 표가 엇나가는 주범인 '틀 고정(fixed_columns)' 해제
-                    fixed_columns={'headers': True, 'data': 0}, 
-                    
-                    # 2. 표 전체 너비를 100%로 꽉 채우고 불필요한 가로 스크롤 제거
-                    style_table={
-                        'height': '350px', 
-                        'overflowY': 'auto', 
-                        'overflowX': 'hidden', 
-                        'width': '100%', 
-                        'minWidth': '100%'
-                    },
-                    
-                    # 3. 각 칸의 150px 강제 고정을 풀고 내용에 맞게 유동적으로 배분 (auto)
-                    style_cell={
-                        'fontSize': '14px', 
-                        'padding': '12px', 
-                        'textAlign': 'center',
-                        'minWidth': '50px',
-                        'width': 'auto',
-                        'maxWidth': 'none',
-                        'whiteSpace': 'normal', # 글자가 길면 예쁘게 줄바꿈
-                        'backgroundColor': 'white'
-                    },
-                    
-                    # 4. 헤더 여백 및 글꼴 크기 조정
-                    style_header={
-                        'backgroundColor': '#2C3E50',
-                        'color': 'white',
-                        'fontWeight': 'bold',
-                        'fontSize': '14px',
-                        'padding': '12px'
-                    }
-                )
-            # --- 5. [지표 3] 연도별 의뢰 현황 (Line Chart) ---
-            year_df = df.groupby('year').size().reset_index(name='count')
-            fig_year = px.line(
-                year_df, x='year', y='count', markers=True, 
-                labels={'year': '연도', 'count': '시료 수'}, template='plotly_white'
-            )
-            fig_year.update_layout(xaxis=dict(tickmode='linear', dtick=1), margin=dict(t=20, b=20))
-
-            # --- 6. [지표 4] 월별 진행 현황 (Stacked Bar Chart) ---
-            curr_year_df = df[df['year'] == this_year]
-            month_group = curr_year_df.groupby(['month_name', '진행사항']).size().reset_index(name='count')
-            fig_month = px.bar(
-                month_group, x='month_name', y='count', color='진행사항',
-                category_orders={"month_name": [f"{i}월" for i in range(1, 13)]},
-                labels={'month_name': '월', 'count': '시료 수'}, template='plotly_white', barmode='stack'
-            )
-            fig_month.update_layout(margin=dict(t=20, b=20), legend_title_text='상태')
-
-            return (
-                f"{total_cnt:,}건", f"{y_cnt:,}건", f"{m_cnt:,}건", f"{ongoing_prj_cnt:,}건",
-                fig_pie, ongoing_table, fig_year, fig_month
-            )
-
+            
+            df['year'] = df['dt'].dt.year
+            years = sorted([y for y in df['year'].unique() if y > 0], reverse=True)
+            orgs = sorted([str(o) for o in df['의뢰사'].unique() if pd.notna(o)])
+            items = sorted([str(i) for i in df['Analysis Type'].unique() if pd.notna(i)])
+            
+            return [{"label": f"{y}년", "value": y} for y in years], \
+                   [{"label": o, "value": o} for o in orgs], \
+                   [{"label": i, "value": i} for i in items]
         finally:
             db.close()
 
+    # -----------------------------------------------------
+    # 2. 필터 초기화 버튼
+    # -----------------------------------------------------
+    @dash_app.callback(
+        [Output("filter-year", "value"),
+         Output("filter-org", "value"),
+         Output("filter-item", "value")],
+        [Input("btn-reset-filter", "n_clicks")],
+        prevent_initial_call=True
+    )
+    def reset_filters(n):
+        return None, None, None
+
+    # -----------------------------------------------------
+    # 3. 데이터 연산 및 그래프 업데이트 (메인 콜백)
+    # -----------------------------------------------------
+    @dash_app.callback(
+        [Output("card-total", "children"),
+         Output("card-ongoing", "children"),
+         Output("graph-item-pie", "figure"),
+         Output("graph-org-bar", "figure"),
+         Output("graph-trend-line", "figure")],
+        [Input("filter-year", "value"),
+         Input("filter-org", "value"),
+         Input("filter-item", "value"),
+         Input("dash-refresh", "n_intervals")]
+    )
+    def update_graphs(year, org, item, n):
+        db = SessionLocal()
+        try:
+            query = db.query(NGSTracking).all()
+            if not query: return "0건", "0건", {}, {}, {}
+            
+            df = pd.DataFrame([q.excel_data for q in query]) 
+            clean_dates = df['Reception Date'].astype(str).str.split('.').str[0].str.strip()
+            
+            # 2. 'YYMMDD' 형식(%y%m%d)으로 먼저 해석 시도하고, 실패하면 일반 날짜 형식으로 2차 시도
+            df['dt'] = pd.to_datetime(clean_dates, format='%y%m%d', errors='coerce').fillna(
+                pd.to_datetime(clean_dates, errors='coerce')
+            )
+            
+            df['year'] = df['dt'].dt.year
+            df['month_name'] = df['dt'].dt.strftime('%m월')
+            print(df['year'])
+            # 디버깅용 출력 (이제 NaN이 아니라 2026-04-03 등으로 예쁘게 찍힐 겁니다!)
+            # print(df[['Reception Date', 'dt', 'year', 'month_name']])
+
+            # --- 필터 적용 ---
+            if year: df = df[df['year'] == year]
+            if org: df = df[df['의뢰사'] == org]
+            if item: df = df[df['Analysis Type'] == item]
+
+            # 1. 카드 지표
+            total_cnt = f"{len(df):,}"
+            ongoing_cnt = f"{len(df[~df['진행사항'].str.contains('완료', na=False)]):,}"
+
+            # 2. 의뢰 항목별 분포 (Pie)
+            item_counts = df['Analysis Type'].value_counts().reset_index(name='count')
+            fig_pie = px.pie(item_counts, values='count', names='Analysis Type', 
+                             hole=0.5, template='plotly_white',
+                             color_discrete_sequence=px.colors.qualitative.Safe)
+            fig_pie.update_layout(margin=dict(t=0, b=0, l=0, r=0))
+
+            # 3. 주요 의뢰 기관 순위 (Bar)
+            org_counts = df['의뢰사'].value_counts().reset_index(name='count').head(10)
+            fig_bar = px.bar(org_counts, x='count', y='의뢰사', orientation='h',
+                             text='count', template='plotly_white',
+                             color='count', color_continuous_scale='Blues')
+            fig_bar.update_layout(yaxis={'categoryorder':'total ascending'}, margin=dict(t=20))
+
+            # 4. 월별 추이 (Line)
+            trend_df = df.groupby(df['dt'].dt.strftime('%y-%m')).size().reset_index(name='count')
+            trend_df = trend_df.sort_values('dt')
+            fig_line = px.area(trend_df, x='dt', y='count', 
+                               labels={'dt': '접수월', 'count': '시료수'},
+                               template='plotly_white', line_shape='spline')
+            fig_line.update_traces(line_color='#3498db', fillcolor='rgba(52, 152, 219, 0.2)')
+            
+            return total_cnt, ongoing_cnt, fig_pie, fig_bar, fig_line
+
+        finally:
+            db.close()
 
 def create_summary_dashboard(requests_pathname_prefix: str):
     lims = LimsDashApp(__name__, requests_pathname_prefix)

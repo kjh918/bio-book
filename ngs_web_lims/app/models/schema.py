@@ -24,21 +24,60 @@ class Sample(Base):
         # metrics가 None으로 들어오면 빈 딕셔너리로 초기화 (에러 방지)
         self.metrics = metrics if metrics is not None else {}
 
-# 3. 신규 모델: Master Tracking Sheet (Excel Tracker 용)
+## 3. 신규 모델: Master Tracking Sheet (Excel Tracker 용)
+#class NGSTracking(Base):
+#    __tablename__ = "ngs_tracking"
+#    id = Column(Integer, primary_key=True, autoincrement=True)
+    
+#    # 주요 식별자들을 컬럼으로 추출 (검색 및 필터링 속도 향상)
+#    registration_id = Column(String, nullable=True) # 시스템 생성 접수 ID
+#    order_id = Column(String, nullable=False)        # 의뢰 ID
+#    sample_name = Column(String, nullable=False)     # 샘플명
+#    seq_id = Column(String, nullable=False, unique=True) # 최종 분석 ID (Unique)
+    
+#    # 엑셀의 모든 데이터를 JSON으로 보관
+#    excel_data = Column(JSON, nullable=False)
+
+#    def __init__(self, order_id: str, sample_name: str, seq_id: str, excel_data: dict, registration_id: str = None):
+#        if not order_id: raise ValueError("Order ID는 필수입니다.")
+#        if not sample_name: raise ValueError("Sample Name은 필수입니다.")
+#        if not seq_id: raise ValueError("SEQ ID는 필수입니다.")
+#        if not excel_data or not isinstance(excel_data, dict):
+#            raise ValueError("excel_data(dict)는 필수입니다.")
+            
+#        self.registration_id = registration_id
+#        self.order_id = order_id
+#        self.sample_name = sample_name
+#        self.seq_id = seq_id
+#        self.excel_data = excel_data
+
 class NGSTracking(Base):
     __tablename__ = "ngs_tracking"
     id = Column(Integer, primary_key=True, autoincrement=True)
     
-    # 주요 식별자들을 컬럼으로 추출 (검색 및 필터링 속도 향상)
-    registration_id = Column(String, nullable=True) # 시스템 생성 접수 ID
-    order_id = Column(String, nullable=False)        # 의뢰 ID
-    sample_name = Column(String, nullable=False)     # 샘플명
-    seq_id = Column(String, nullable=False, unique=True) # 최종 분석 ID (Unique)
+    registration_id = Column(String, nullable=True)
+    order_id = Column(String, nullable=False)
+    sample_name = Column(String, nullable=False)
+    seq_id = Column(String, nullable=False, unique=True)
     
-    # 엑셀의 모든 데이터를 JSON으로 보관
     excel_data = Column(JSON, nullable=False)
 
-    def __init__(self, order_id: str, sample_name: str, seq_id: str, excel_data: dict, registration_id: str = None):
+    # 🚀 [수정됨] Date -> String 으로 변경! (Dash/Plotly 충돌 방지)
+    reception_date = Column(String, index=True, nullable=True)   # YYYY-MM-DD (String)
+    reception_year = Column(Integer, index=True, nullable=True)  # 2026 (Integer)
+    reception_month = Column(Integer, nullable=True)             # 4 (Integer)
+    order_facility = Column(String, index=True, nullable=True)   
+    analysis_type = Column(String, index=True, nullable=True)    
+    sales_revenue = Column(Integer, default=0, nullable=False)   
+    purchase_cost = Column(Integer, default=0, nullable=False)   
+
+    def __init__(
+        self, order_id: str, sample_name: str, seq_id: str, excel_data: dict, 
+        registration_id: str = None, reception_date: str = None, # 🚀 타입 힌트도 str로 변경
+        reception_year: int = None, reception_month: int = None,
+        order_facility: str = None, analysis_type: str = None,
+        sales_revenue: int = 0, purchase_cost: int = 0
+    ):
         if not order_id: raise ValueError("Order ID는 필수입니다.")
         if not sample_name: raise ValueError("Sample Name은 필수입니다.")
         if not seq_id: raise ValueError("SEQ ID는 필수입니다.")
@@ -47,6 +86,14 @@ class NGSTracking(Base):
             
         self.registration_id = registration_id
         self.order_id = order_id
-        self.sample_name = sample_name
+        self.sample_name = sample_name 
         self.seq_id = seq_id
         self.excel_data = excel_data
+        
+        self.reception_date = reception_date
+        self.reception_year = reception_year
+        self.reception_month = reception_month
+        self.order_facility = order_facility
+        self.analysis_type = analysis_type
+        self.sales_revenue = sales_revenue
+        self.purchase_cost = purchase_cost

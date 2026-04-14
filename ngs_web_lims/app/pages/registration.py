@@ -31,11 +31,10 @@ def create_registration_layout():
     
     empty_data = [{c["name"]: None for c in reg_columns} for _ in range(15)]
 
-    # --- 2. 탭 1 컨텐츠 ---
     # --- 2. 탭 1 컨텐츠 (다운로드 및 원본 백업 UI 적용) ---
     tab1_content = dbc.CardBody([
         
-        # 🚀 [추가/수정] 1단계: 양식 선택 및 다운로드 영역
+        # 1단계: 양식 선택 및 다운로드 영역
         html.H5("1. 검사 의뢰서 양식 선택", className="fw-bold text-primary mb-3"),
         dbc.Row([
             dbc.Col([
@@ -47,7 +46,7 @@ def create_registration_layout():
                         {"label": "RNA", "value": "rna_request"},
                         {"label": "TSO", "value": "tso_resquest"}
                     ],
-                    value="standard",
+                    value="wgs_request",
                     clearable=False,
                     className="shadow-sm"
                 )
@@ -59,7 +58,7 @@ def create_registration_layout():
             ], width=4)
         ], className="mb-3 p-3 bg-light rounded border-top border-start border-end border-bottom-0"),
         
-        # 🚀 [신규] 선택된 양식 엑셀 미리보기 화면 (뼈대 보여주기)
+        # 선택된 양식 PDF 미리보기 화면 (뼈대 보여주기)
         html.Div(
             id="template-preview-container", 
             className="mb-4 p-3 bg-white border border-info rounded shadow-sm", 
@@ -68,7 +67,7 @@ def create_registration_layout():
 
         html.Hr(className="my-4 border-secondary"),
 
-        # 🚀 2단계: 작성된 엑셀 업로드 영역
+        # 2단계: 작성된 엑셀 업로드 영역
         html.H5("2. 작성된 의뢰서 업로드", className="fw-bold text-primary mb-3"),
         dcc.Upload(
             id='upload-excel-data',
@@ -85,26 +84,27 @@ def create_registration_layout():
             multiple=False
         ),
         
-        # 업로드된 파일 이름 표시
+        # 🚀 파일 이름 표시 영역
         html.Div(id="upload-filename-display", className="text-success fw-bold mb-3 small ms-1"),
 
-        # 🚀 3단계: 데이터 미리보기 테이블 (기존 동일)
-        #LimsDashApp.create_standard_table(
-        #    id="new-registration-table", 
-        #    columns=new_table_cols, 
-        #    data=empty_data,
-        #    dropdown=dropdown_config,
-        #    css=[
-        #        {"selector": ".dash-spreadsheet td", "rule": "overflow: visible !important;"},
-        #        {"selector": ".Select-menu-outer", "rule": "display: block !important; z-index: 9999 !important;"}
-        #    ],
-        #    style_table={'overflowX': 'auto', 'minWidth': '100%', 'minHeight': '450px'}
-        #),
+        # 🚀 3단계: 데이터 미리보기 테이블 (주석 해제 완료!)
+        LimsDashApp.create_standard_table(
+            id="new-registration-table", 
+            columns=new_table_cols, 
+            data=empty_data,
+            dropdown=dropdown_config,
+            css=[
+                {"selector": ".dash-spreadsheet td", "rule": "overflow: visible !important;"},
+                {"selector": ".Select-menu-outer", "rule": "display: block !important; z-index: 9999 !important;"}
+            ],
+            style_table={'overflowX': 'auto', 'minWidth': '100%', 'minHeight': '450px'}
+        ),
         
         # 저장 버튼
         dbc.Button("📥 신규 데이터 저장 및 원본 의뢰서 백업", id="btn-save-new", color="primary", className="w-100 mt-4 fw-bold py-2 shadow-sm"),
         html.Div(id="save-new-message", className="mt-3")
     ])
+
     # --- 3. 탭 2 컨텐츠 ---
     tab2_content = dbc.CardBody([
         html.P("1. 기존 프로젝트(Order ID)를 불러와 실험, 분석, 정산 결과를 덮어씁니다.", className="text-muted"),
@@ -124,7 +124,7 @@ def create_registration_layout():
             dbc.Tab(label="📦 정산/행정", tab_id="billing"),
         ], id="update-stage-select", active_tab="wet_lab", className="mb-3"),
         
-        # 🚀 일괄 채우기 툴바
+        # 일괄 채우기 툴바
         html.Div([
             html.Span("⚡ 일괄 채우기: ", className="fw-bold text-warning me-3"),
             dcc.Dropdown(id="bulk-col-select", placeholder="컬럼 선택 (클릭)", style={"width": "230px"}, className="me-2"),
@@ -155,7 +155,71 @@ def create_registration_layout():
 def register_registration_callbacks(dash_app):
     
     # -----------------------------------------------------
-    # (탭 1) 엑셀 업로드 자동 채우기
+    # 🚀 (신규) 1. 선택한 양식에 따라 PDF 미리보기 Iframe 띄우기
+    # -----------------------------------------------------
+    @dash_app.callback(
+        Output("template-preview-container", "children"),
+        Input("template-type-select", "value")
+    )
+    def update_template_preview(template_type):
+        if template_type == "wgs_request":
+            preview_title = "📄 [WES/WGS 검사 의뢰서] 실제 양식 미리보기"
+            pdf_path = "/assets/wgs_request.pdf" 
+        elif template_type == "rna_request":
+            preview_title = "📄 [RNA 검사 의뢰서] 실제 양식 미리보기"
+            pdf_path = "/assets/rna_request.pdf"
+        elif template_type == "tso_resquest":
+            preview_title = "📄 [TSO 검사 의뢰서] 실제 양식 미리보기"
+            pdf_path = "/assets/tso_request.pdf"
+        else:
+            return html.Div()
+
+        return html.Div([
+            html.H6(preview_title, className="fw-bold text-info mb-2"),
+            html.P("※ 다운로드 버튼을 누르면 이 양식의 엑셀(.xlsx) 원본 파일이 다운로드 됩니다.", className="text-muted small mb-2"),
+            html.Iframe(
+                src=pdf_path,
+                style={"width": "100%", "height": "500px", "border": "1px solid #dee2e6", "borderRadius": "5px"}
+            )
+        ])
+
+    # -----------------------------------------------------
+    # 🚀 (신규) 2. 양식 파일 다운로드 버튼 로직
+    # -----------------------------------------------------
+    @dash_app.callback(
+        Output("download-template-file", "data"),
+        Input("btn-download-template", "n_clicks"),
+        State("template-type-select", "value"),
+        prevent_initial_call=True
+    )
+    def download_excel_template(n_clicks, template_type):
+        # 임시 엑셀 생성 다운로드 (차후 dcc.send_file 로 실제 서버 엑셀 다운로드를 연결하시면 됩니다)
+        if template_type == "wgs_request":
+            df_dummy = pd.DataFrame({"Patient ID/ Sample ID": [], "Tumor Type": []})
+            filename = "WES_WGS_의뢰서_양식.xlsx"
+        elif template_type == "rna_request":
+            df_dummy = pd.DataFrame({"Sample ID": [], "Cancer Type": []})
+            filename = "RNA_의뢰서_양식.xlsx"
+        else:
+            df_dummy = pd.DataFrame({"Sample ID": [], "Specimen": []})
+            filename = "TSO_의뢰서_양식.xlsx"
+            
+        return dcc.send_data_frame(df_dummy.to_excel, filename, index=False)
+
+    # -----------------------------------------------------
+    # 🚀 (신규) 3. 업로드된 파일명 화면에 표시
+    # -----------------------------------------------------
+    @dash_app.callback(
+        Output("upload-filename-display", "children"),
+        Input("upload-excel-data", "filename")
+    )
+    def display_uploaded_filename(filename):
+        if filename:
+            return f"✅ 정상적으로 파일이 업로드 되었습니다 : {filename}"
+        return ""
+
+    # -----------------------------------------------------
+    # 🚀 (수정) 4. 엑셀 파서 (빈칸 제거 및 헤더 탐색)
     # -----------------------------------------------------
     @dash_app.callback(
         Output("new-registration-table", "data"),
@@ -165,28 +229,61 @@ def register_registration_callbacks(dash_app):
         prevent_initial_call=True
     )
     def update_table_from_excel(contents, filename, current_data):
-        if contents:
-            content_type, content_string = contents.split(',')
-            decoded = base64.b64decode(content_string)
-            try:
-                if 'xls' in filename:
-                    df = pd.read_excel(io.BytesIO(decoded))
-                elif 'csv' in filename:
-                    df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
-                else:
-                    return current_data
+        if not contents: return no_update
+        
+        content_type, content_string = contents.split(',')
+        decoded = base64.b64decode(content_string)
+        
+        try:
+            if 'xls' in filename:
+                # 1. 헤더 없이 임시로 읽어서 표가 시작되는 줄(행)을 찾습니다.
+                df_raw = pd.read_excel(io.BytesIO(decoded), header=None)
+                header_idx = 0
+                
+                for r in range(min(20, len(df_raw))):
+                    row_vals = df_raw.iloc[r].astype(str).tolist()
+                    # 'Tumor Type' 이나 'Sample ID' 가 있는 행을 헤더(표의 시작)로 인식
+                    if any("Tumor Type" in val or "Sample ID" in val for val in row_vals):
+                        header_idx = r
+                        break
+                
+                # 2. 찾은 헤더 위치부터 엑셀을 제대로 다시 읽습니다.
+                df = pd.read_excel(io.BytesIO(decoded), skiprows=header_idx)
+                
+                # 3. 예시 데이터('ex') 행과 완전히 빈 행을 삭제합니다.
+                if '번호' in df.columns:
+                    df = df[df['번호'].astype(str).str.lower() != 'ex']
                 df = df.dropna(how='all')
-                for col in df.select_dtypes(include=['datetime64', 'datetimetz']).columns:
-                    df[col] = df[col].dt.strftime('%Y-%m-%d')
+                
+                # 🚀 4. 고객 엑셀 컬럼 이름을 DB 컬럼 이름으로 번역!
+                rename_map = {
+                    "Patient ID/ Sample ID": "Sample Name",
+                    "Patient ID/Sample ID": "Sample Name",
+                    "Tumor Type": "Cancer Type",
+                    "Specimen Type": "Specimen",
+                    "Extraction 필요 유무": "추출 진행"
+                }
+                df = df.rename(columns=rename_map)
 
-                return df.to_dict('records')
-            except Exception as e:
-                print(f"엑셀 읽기 오류: {e}")
+            elif 'csv' in filename:
+                df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
+                df = df.dropna(how='all')
+            else:
                 return current_data
-        return no_update
+
+            # 5. 날짜 형식 깔끔하게 변환
+            for col in df.select_dtypes(include=['datetime64', 'datetimetz']).columns:
+                df[col] = df[col].dt.strftime('%Y-%m-%d')
+
+            return df.to_dict('records')
+            
+        except Exception as e:
+            print(f"엑셀 읽기 오류: {e}")
+            return current_data
+
 
     # -----------------------------------------------------
-    # (탭 1) 신규 시료 저장 로직
+    # (탭 1) 신규 시료 저장 로직 (기존 유지)
     # -----------------------------------------------------
     @dash_app.callback(
         Output("save-new-message", "children"),
@@ -234,7 +331,6 @@ def register_registration_callbacks(dash_app):
                 sample_name = merged_data.get('Sample Name')
                 facility = merged_data.get('Order Facility', '')
                 
-                # 내부 연구용(C01) 하드코딩 필터 적용
                 if facility == "C01":
                     existing_note = str(merged_data.get('특이사항', '')).replace('None', '').strip()
                     merged_data['특이사항'] = f"[내부연구용] {existing_note}".strip()
@@ -284,7 +380,7 @@ def register_registration_callbacks(dash_app):
             db.close()
 
     # -----------------------------------------------------
-    # 🚀 (신규) 탭 변경 시 일괄 채우기 목록 자동 동기화
+    # (탭 2) - 2: 탭 변경 시 일괄 채우기 목록 자동 동기화
     # -----------------------------------------------------
     @dash_app.callback(
         [Output("bulk-col-select", "options"),
@@ -297,7 +393,7 @@ def register_registration_callbacks(dash_app):
         return options, None
 
     # -----------------------------------------------------
-    # (탭 2) - 2: 단계별 테이블 렌더링
+    # (탭 2) - 3: 단계별 테이블 렌더링
     # -----------------------------------------------------
     @dash_app.callback(
         Output("update-table-container", "children"),
@@ -324,7 +420,6 @@ def register_registration_callbacks(dash_app):
                     "options": [{"label": str(opt), "value": str(opt)} for opt in col.get("options", [])],
                     "clearable": True
                 }
-            # 🚀 [추가됨] 날짜 컬럼일 경우 Dash DataTable 달력/정렬 기능 활성화
             elif col.get("type") == "datetime":
                 fmt["type"] = "datetime"
                 
@@ -335,14 +430,12 @@ def register_registration_callbacks(dash_app):
             query = db.query(NGSTracking).filter(NGSTracking.order_id == order_id).all()
             if not query: return html.Div("데이터가 없습니다.")
             
-            # 🚀 [추가됨] yaml에서 datetime 타입으로 선언된 컬럼들의 이름만 리스트로 뽑아냅니다.
             datetime_cols = [c["name"] for c in target_columns if c.get("type") == "datetime"]
             
             db_data = []
             for q in query:
                 row_data = q.excel_data.copy() if q.excel_data else {}
                 
-                # 🚀 [추가됨] DB 데이터를 표에 띄우기 전에, 날짜 컬럼의 문자열을 앞 10자리(YYYY-MM-DD)만 남깁니다.
                 for d_col in datetime_cols:
                     val = row_data.get(d_col)
                     if val and str(val).strip() not in ["None", "NaT", ""]:
@@ -367,7 +460,7 @@ def register_registration_callbacks(dash_app):
             db.close()
 
     # -----------------------------------------------------
-    # 🚀 (신규) ⚡ 일괄 채우기 적용 버튼 동작 로직
+    # (탭 2) - 4: 일괄 채우기 적용 버튼
     # -----------------------------------------------------
     @dash_app.callback(
         Output("stage-update-table", "data"),
@@ -378,21 +471,15 @@ def register_registration_callbacks(dash_app):
         prevent_initial_call=True
     )
     def apply_bulk_fill(n_clicks, target_col, target_val, current_data):
-        # 입력값 누락 시 아무 작업도 하지 않음
         if not n_clicks or not target_col or not current_data:
             return no_update
-        
-        # 입력값이 없으면 빈칸을 채움
         fill_val = target_val if target_val else ""
-        
-        # 현재 화면에 띄워진 표의 모든 행을 순회하며 덮어쓰기
         for row in current_data:
             row[target_col] = fill_val
-            
         return current_data
 
     # -----------------------------------------------------
-    # (탭 2) - 3: 결과 덮어쓰기 저장 (DB 업데이트)
+    # (탭 2) - 5: 결과 덮어쓰기 저장
     # -----------------------------------------------------
     @dash_app.callback(
         Output("save-update-message", "children"),

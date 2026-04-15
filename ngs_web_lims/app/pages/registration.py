@@ -10,6 +10,13 @@ from app.core.config import PAGES_CONFIG
 from app.core.database import SessionLocal
 from app.models.schema import NGSTracking
 
+import weasyprint
+from jinja2 import Environment, FileSystemLoader
+from datetime import datetime
+import os
+import base64
+from app.core.config import BASE_DIR
+
 # ==========================================
 # [1] 화면 레이아웃
 # ==========================================
@@ -157,32 +164,55 @@ def register_registration_callbacks(dash_app):
     # -----------------------------------------------------
     # 🚀 (신규) 1. 선택한 양식에 따라 PDF 미리보기 Iframe 띄우기
     # -----------------------------------------------------
-    @dash_app.callback(
-        Output("template-preview-container", "children"),
-        Input("template-type-select", "value")
-    )
     def update_template_preview(template_type):
+        report_dir = "/storage/home/jhkim/scripts/bio-book/ngs_web_lims/app/report"
+        
+        # 1. 선택된 양식에 따라 '이미지' 파일명 매핑
         if template_type == "wgs_request":
-            preview_title = "📄 [WES/WGS 검사 의뢰서] 실제 양식 미리보기"
-            pdf_path = "/assets/wgs_request.pdf" 
+            preview_title = "📄 [WES/WGS 검사 의뢰서] 양식 미리보기"
+            file_name = "wgs_request.png"  # 확장자를 .png로 변경
         elif template_type == "rna_request":
-            preview_title = "📄 [RNA 검사 의뢰서] 실제 양식 미리보기"
-            pdf_path = "/assets/rna_request.pdf"
+            preview_title = "📄 [RNA 검사 의뢰서] 양식 미리보기"
+            file_name = "rna_request.png"
         elif template_type == "tso_resquest":
-            preview_title = "📄 [TSO 검사 의뢰서] 실제 양식 미리보기"
-            pdf_path = "/assets/tso_request.pdf"
+            preview_title = "📄 [TSO 검사 의뢰서] 양식 미리보기"
+            file_name = "tso_request.png"
         else:
             return html.Div()
 
+        # 🚀 2. 이미지 파일을 읽어서 Base64 문자열로 인코딩
+        img_file_path = os.path.join(report_dir, file_name)
+        img_data_uri = ""
+        
+        try:
+            with open(img_file_path, "rb") as img_file:
+                img_b64 = base64.b64encode(img_file.read()).decode('utf-8')
+                # 데이터 타입을 image/png 로 명시해줍니다.
+                img_data_uri = f"data:image/png;base64,{img_b64}"
+                
+        except Exception as err:
+            print(f"⚠️ 미리보기 이미지를 불러오지 못했습니다: {err}")
+            return html.Div([
+                html.H6(f"⚠️ 미리보기 이미지를 찾을 수 없습니다 ({file_name})", className="fw-bold text-danger"),
+                html.P(f"서버 경로에 .png 파일이 있는지 확인해 주세요: {img_file_path}", className="small text-muted")
+            ], className="p-3 bg-light border border-danger rounded")
+
+        # 3. 정상적으로 데이터가 읽혔을 때 렌더링 (Iframe 대신 html.Img 사용!)
         return html.Div([
             html.H6(preview_title, className="fw-bold text-info mb-2"),
             html.P("※ 다운로드 버튼을 누르면 이 양식의 엑셀(.xlsx) 원본 파일이 다운로드 됩니다.", className="text-muted small mb-2"),
-            html.Iframe(
-                src=pdf_path,
-                style={"width": "100%", "height": "500px", "border": "1px solid #dee2e6", "borderRadius": "5px"}
+            
+            # 🚀 html.Iframe 대신 html.Img 를 사용하여 이미지를 띄웁니다.
+            html.Img(
+                src=img_data_uri,
+                style={
+                    "width": "100%", 
+                    "border": "1px solid #dee2e6", 
+                    "borderRadius": "5px",
+                    "boxShadow": "0 4px 6px rgba(0,0,0,0.1)" # 약간의 그림자를 주어 더 예쁘게 만듭니다
+                }
             )
         ])
-
     # -----------------------------------------------------
     # 🚀 (신규) 2. 양식 파일 다운로드 버튼 로직
     # -----------------------------------------------------

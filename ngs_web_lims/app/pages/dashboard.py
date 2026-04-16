@@ -1,4 +1,4 @@
-from dash import html, dcc, Input, Output, State
+from dash import html, dcc, Input, Output, State, dash_table
 import dash_bootstrap_components as dbc
 import plotly.express as px
 import pandas as pd
@@ -18,13 +18,14 @@ def load_facility_mapping():
     try:
         with open(yaml_path, 'r', encoding='utf-8') as file:
             config = yaml.safe_load(file)
-            # yaml 파일 구조에 맞게 수정해주세요. (예: {'C01': '젠큐릭스', 'H01': '서울대병원'})
-            # 만약 리스트 형태라면 딕셔너리로 변환하는 로직이 필요합니다.
-            return config if isinstance(config, dict) else {}
+            if not isinstance(config, dict): return {}
+            
+            # 최상단에 'facility_mapping' 키가 있다면 그 안쪽 데이터를 반환
+            return config.get('facility_mapping', config) 
     except Exception as e:
         print(f"⚠️ Facility 매핑 파일을 읽을 수 없습니다: {e}")
         return {}
-
+    
 def create_dashboard_layout():
     return html.Div([
         html.H2("📊 NGS LIMS 통합 분석 대시보드", className="text-center mb-4 fw-bold text-secondary"),
@@ -71,6 +72,32 @@ def create_dashboard_layout():
 
         # --- [3] 메인 그래프 영역 ---
         dbc.Row([
+            dbc.Col([
+                html.Div([
+                    html.H5("⏳ 현재 진행 중인 프로젝트 (접수일 기준)", className="fw-bold mb-3 text-danger"),
+                    dash_table.DataTable(
+                        id="table-ongoing-projects",
+                        columns=[
+                            {"name": "접수일", "id": "date"},
+                            {"name": "Order ID", "id": "order_id"},
+                            {"name": "의뢰 기관", "id": "facility_name"},
+                            {"name": "분석 항목", "id": "item"},
+                            {"name": "샘플 수", "id": "sample_count"}, # 🚀 샘플 이름 대신 수량으로 변경!
+                            {"name": "진행 상태", "id": "status"},
+                        ],
+                        style_table={'overflowX': 'auto', 'maxHeight': '300px', 'overflowY': 'auto'},
+                        style_cell={'textAlign': 'center', 'padding': '10px', 'fontSize': '14px'},
+                        style_header={'fontWeight': 'bold', 'backgroundColor': '#f8f9fa'},
+                        style_data_conditional=[
+                            {'if': {'row_index': 'odd'}, 'backgroundColor': '#fcfcfc'}
+                        ],
+                        sort_action="native", 
+                        page_size=10 # 프로젝트 단위로 묶였으니 10개씩만 보여줘도 충분합니다.
+                    )
+                ], className="p-3 bg-white border-0 rounded-4 shadow-sm mb-4")
+            ], width=12),
+        ]),
+        dbc.Row([
             # 좌측: 분석 항목별 비중
             dbc.Col([
                 html.Div([
@@ -104,9 +131,10 @@ def create_dashboard_layout():
 def register_dashboard_callbacks(dash_app):
     
     facility_map = load_facility_mapping()
+    print(facility_map)
 
     # -----------------------------------------------------
-    # 1. 필터 옵션 동적 생성 (🚀 DB 스키마 활용)
+    # 1. 필터 옵션 동적 생성 (🚀 100% DB 스키마 직결 - JSON 제거)
     # -----------------------------------------------------
     @dash_app.callback(
         [Output("filter-year", "options"),
@@ -117,19 +145,35 @@ def register_dashboard_callbacks(dash_app):
     def update_filter_options(n):
         db = SessionLocal()
         try:
-            # DB 컬럼을 직접 활용하므로 pandas 파싱이 필요 없어 매우 빠릅니다!
-            years = [r[0] for r in db.query(NGSTracking.reception_year).distinct().all() if r[0] is not None]
-            orgs_raw = [r[0] for r in db.query(NGSTracking.order_facility).distinct().all() if r[0] is not None]
-            items = [r[0] for r in db.query(NGSTracking.analysis_type).distinct().all() if r[0] is not None]
+            # DB 컬럼에서 고유값(distinct)만 순식간에 뽑아옵니다.
+            years = [int(r[0]) for r in db.query(NGSTracking.reception_year).distinct().all() if r[0] is not None]
+            orgs_raw = [str(r[0]) for r in db.query(NGSTracking.order_facility).distinct().all() if r[0] is not None]
+            items = [str(r[0]) for r in db.query(NGSTracking.analysis_type).distinct().all() if r[0] is not None]
             
             years.sort(reverse=True)
+            orgs_raw.sort()
             items.sort()
             
-            # 기관 코드(C01)를 yaml에 정의된 예쁜 이름(젠큐릭스)으로 번역하여 옵션에 담습니다.
+            # 기관 코드(C01) -> YAML 이름(젠큐릭스) 번역
             org_options = []
             for code in orgs_raw:
-                label_name = facility_map.get(code, code) # 매핑이 없으면 코드 그대로 표시
-                org_options.append({"label": f"{label_name} ({code})", "value": code})
+                info = facility_map.get(code)
+                
+                # yaml에 등록된 코드인 경우
+                if isinstance(info, dict):
+                    fac_name = info.get('facility', '')
+                    team_name = info.get('team', '')
+                    # 둘 다 있으면 "기관 - 팀", 하나만 있으면 하나만 표시
+                    if fac_name and team_name:
+                        label_name = f"{fac_name} - {team_name}"
+                    else:
+                        label_name = f"{fac_name}{team_name}"
+                    display_label = f"{label_name} ({code})"
+                # yaml에 없는 코드(예: C24)인 경우 코드 그대로 표시
+                else:
+                    display_label = code
+                    
+                org_options.append({"label": display_label, "value": code})
 
             return [{"label": f"{y}년", "value": y} for y in years], \
                    org_options, \
@@ -151,11 +195,12 @@ def register_dashboard_callbacks(dash_app):
         return None, None, None
 
     # -----------------------------------------------------
-    # 3. 데이터 연산 및 그래프 업데이트 (🚀 메모리 최적화 초고속 버전)
+    # 3. 데이터 연산 및 그래프 업데이트
     # -----------------------------------------------------
     @dash_app.callback(
         [Output("card-total", "children"),
          Output("card-ongoing", "children"),
+         Output("table-ongoing-projects", "data"), # 🚀 Output 추가!
          Output("graph-item-pie", "figure"),
          Output("graph-org-bar", "figure"),
          Output("graph-trend-line", "figure")],
@@ -167,67 +212,99 @@ def register_dashboard_callbacks(dash_app):
     def update_graphs(year, org, item, n):
         db = SessionLocal()
         try:
-            # 🚀 [핵심 튜닝] NGSTracking 덩어리 전체가 아니라, '필요한 컬럼 4개'만 깃털처럼 가볍게 가져옵니다!
-            # 무거운 excel_data(JSON)는 아예 건드리지도 않습니다.
+            # 🚀 테이블에 표시하기 위해 order_id와 sample_name도 같이 가져옵니다!
             query = db.query(
                 NGSTracking.reception_date.label("date"),
                 NGSTracking.order_facility.label("facility"),
                 NGSTracking.analysis_type.label("item"),
-                NGSTracking.status.label("status")
+                NGSTracking.order_id.label("order_id"),       # 추가
+                NGSTracking.sample_name.label("sample_name"), # 추가
+                NGSTracking.excel_data.label("excel_data")
             )
             
-            # 필터 조건 적용
             if year: query = query.filter(NGSTracking.reception_year == year)
             if org: query = query.filter(NGSTracking.order_facility == org)
             if item: query = query.filter(NGSTracking.analysis_type == item)
             
-            # DB에서 데이터를 List of Tuples 형태로 순식간에 가져옴
             results = query.all()
-            
             if not results: 
-                return "0건", "0건", {}, {}, {}
+                return "0건", "0건", [], {}, {}, {} # 빈 리스트 추가
             
-            # 🚀 for문 돌릴 필요 없이, 가져온 결과를 바로 Pandas DataFrame으로 꽂아 넣습니다!
-            df = pd.DataFrame(results)
+            data = []
+            for r in results:
+                status_val = r.excel_data.get('진행사항', '접수 대기') if r.excel_data else '접수 대기'
+                data.append({
+                    'date': r.date,
+                    'order_id': r.order_id,
+                    'sample_name': r.sample_name,
+                    'facility': r.facility,
+                    'item': r.item,
+                    'status': status_val
+                })
+                
+            df = pd.DataFrame(data)
 
-            # 1. 카드 지표
-            total_cnt = f"{len(df):,}"
-            
-            # 진행사항 컬럼에서 결측치를 안전하게 비우고, '완료'가 안 들어간 것을 진행 중으로 카운트
-            ongoing_cnt = f"{len(df[~df['status'].fillna('').str.contains('완료')]):,}"
-
-            # 2. 의뢰 항목별 분포 (Pie)
-            item_counts = df['item'].value_counts().reset_index(name='count')
-            fig_pie = px.pie(item_counts, values='count', names='item', 
-                             hole=0.5, template='plotly_white',
-                             color_discrete_sequence=px.colors.qualitative.Safe)
-            fig_pie.update_layout(margin=dict(t=0, b=0, l=0, r=0))
-
-            # 3. 주요 의뢰 기관 순위 (Bar) - YAML 번역 적용
-            org_counts = df['facility'].value_counts().reset_index(name='count').head(10)
+            # YAML 번역 함수 내장
             facility_map = load_facility_mapping()
-            org_counts['facility_name'] = org_counts['facility'].map(lambda x: facility_map.get(x, x))
-            
-            fig_bar = px.bar(org_counts, x='count', y='facility_name', orientation='h',
-                             text='count', template='plotly_white',
-                             color='count', color_continuous_scale='Blues')
-            fig_bar.update_layout(yaxis={'categoryorder':'total ascending'}, margin=dict(t=20))
+            def get_facility_label(code):
+                info = facility_map.get(code)
+                if isinstance(info, dict):
+                    fac = info.get('facility', '')
+                    team = info.get('team', '')
+                    return f"{fac} - {team}" if fac and team else f"{fac}{team}"
+                return code if code else "미분류"
 
-            # 4. 월별 추이 (Line)
+            df['facility_name'] = df['facility'].apply(get_facility_label)
+
+            # --- 1. 요약 지표 ---
+            total_cnt = f"{len(df):,}"
+            ongoing_cnt = f"{len(df[~df['status'].str.contains('완료', na=False)]):,}"
+
+            # --- 🚀 2. 진행 중인 프로젝트 데이터 추출 (새로 추가됨) ---
+            ongoing_df = df[~df['status'].str.contains('완료', na=False)].copy()
+            
+            if not ongoing_df.empty:
+                # Order ID를 기준으로 데이터를 하나로 뭉칩니다.
+                project_df = ongoing_df.groupby('order_id').agg({
+                    'date': 'first',                # 접수일은 첫 번째 값
+                    'facility_name': 'first',       # 기관명도 첫 번째 값
+                    'item': 'first',                # 분석 항목(Sequencing type)
+                    'sample_name': 'count',         # 🚀 샘플 이름들을 세어서 '수량'으로 변환!
+                    'status': lambda x: ' / '.join(sorted(set(x))) # 상태가 섞여있을 경우 합쳐서 표시
+                }).reset_index()
+
+                # 컬럼 이름을 데이터테이블에 맞게 변경
+                project_df.rename(columns={'sample_name': 'sample_count'}, inplace=True)
+
+                # 접수일(date) 기준 오름차순(오래된 것부터) 정렬
+                project_df = project_df.sort_values(by='date', ascending=True, na_position='last')
+                
+                # 테이블용 데이터로 변환
+                table_data = project_df[['date', 'order_id', 'facility_name', 'item', 'sample_count', 'status']].to_dict('records')
+            else:
+                table_data = []
+
+            # --- 3. 기존 그래프 생성 (Pie, Bar, Line) ---
+            item_counts = df['item'].value_counts().reset_index(name='count')
+            fig_pie = px.pie(item_counts, values='count', names='item', hole=0.5, template='plotly_white', color_discrete_sequence=px.colors.qualitative.Safe) if not item_counts.empty else {}
+            
+            org_counts = df['facility_name'].value_counts().reset_index(name='count').head(10)
+            fig_bar = px.bar(org_counts, x='count', y='facility_name', orientation='h', text='count', template='plotly_white', color='count', color_continuous_scale='Blues') if not org_counts.empty else {}
+            if fig_bar: fig_bar.update_layout(yaxis={'categoryorder':'total ascending'}, margin=dict(t=20))
+
             df['year_month'] = pd.to_datetime(df['date'], errors='coerce').dt.strftime('%Y-%m')
             trend_df = df.groupby('year_month').size().reset_index(name='count').dropna().sort_values('year_month')
+            fig_line = px.area(trend_df, x='year_month', y='count', labels={'year_month': '접수월', 'count': '시료수'}, template='plotly_white', line_shape='spline') if not trend_df.empty else {}
+            if fig_line: 
+                fig_line.update_traces(line_color='#3498db', fillcolor='rgba(52, 152, 219, 0.2)', mode='lines+markers')
+                fig_line.update_layout(xaxis=dict(tickangle=-45))
             
-            fig_line = px.area(trend_df, x='year_month', y='count', 
-                               labels={'year_month': '접수월', 'count': '시료수'},
-                               template='plotly_white', line_shape='spline')
-            fig_line.update_traces(line_color='#3498db', fillcolor='rgba(52, 152, 219, 0.2)', mode='lines+markers')
-            fig_line.update_layout(xaxis=dict(tickangle=-45))
-            
-            return total_cnt, ongoing_cnt, fig_pie, fig_bar, fig_line
+            # 리턴 값에 table_data 추가!
+            return total_cnt, ongoing_cnt, table_data, fig_pie, fig_bar, fig_line
 
         finally:
             db.close()
-
+            
 def create_summary_dashboard(requests_pathname_prefix: str):
     lims = LimsDashApp(__name__, requests_pathname_prefix)
     lims.set_content(create_dashboard_layout)

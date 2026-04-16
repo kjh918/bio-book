@@ -43,13 +43,14 @@ class NGSTracking(Base):
     analysis_type = Column(String, index=True, nullable=True)    
     sales_revenue = Column(Integer, default=0, nullable=False)   
     purchase_cost = Column(Integer, default=0, nullable=False)   
+    
 
     def __init__(
         self, order_id: str, sample_name: str, seq_id: str, excel_data: dict, 
         registration_id: str = None, reception_date: str = None, # 🚀 타입 힌트도 str로 변경
         reception_year: int = None, reception_month: int = None,
         order_facility: str = None, analysis_type: str = None,
-        sales_revenue: int = 0, purchase_cost: int = 0
+        sales_revenue: int = 0, purchase_cost: int = 0,
     ):
         if not order_id: raise ValueError("Order ID는 필수입니다.")
         if not sample_name: raise ValueError("Sample Name은 필수입니다.")

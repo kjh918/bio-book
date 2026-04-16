@@ -313,7 +313,7 @@ def register_registration_callbacks(dash_app):
 
 
     # -----------------------------------------------------
-    # (탭 1) 신규 시료 저장 로직 (기존 유지)
+    # (탭 1) 신규 시료 저장 로직 (🚀 DB 스키마 완벽 연동 버전)
     # -----------------------------------------------------
     @dash_app.callback(
         Output("save-new-message", "children"),
@@ -342,7 +342,8 @@ def register_registration_callbacks(dash_app):
             "Quotation ID", "매출 단가", "견적서 발행", "Dead Line", "standard report date 01", 
             "standard report date 02", "advanced report date 01", "advanced report date 02", 
             "거래명세서 발행일", "문서번호", "세금계산서 발행일", "매입", "매입 단가", 
-            "품의서(지출) 작성일", "품의 문서번호", "거래명세서/세금계산서 발행일", "지출결의 문서번호"
+            "품의서(지출) 작성일", "품의 문서번호", "거래명세서/세금계산서 발행일", "지출결의 문서번호",
+            "Panel" # 🚀 옛날 양식 호환을 위해 추가
         ]
         
         db = SessionLocal()
@@ -361,6 +362,7 @@ def register_registration_callbacks(dash_app):
                 sample_name = merged_data.get('Sample Name')
                 facility = merged_data.get('Order Facility', '')
                 
+                # 내부연구용 처리 로직
                 if facility == "C01":
                     existing_note = str(merged_data.get('특이사항', '')).replace('None', '').strip()
                     merged_data['특이사항'] = f"[내부연구용] {existing_note}".strip()
@@ -368,6 +370,7 @@ def register_registration_callbacks(dash_app):
                     merged_data['매입'] = "-"
                     merged_data['견적서 발행'] = "-"
 
+                # ID 생성 로직
                 new_seq_num = today_existing_count + idx + 1
                 reg_id = f"ACC-{today_str}-{str(new_seq_num).zfill(3)}"
                 sample_id = f"{order_id}_{sample_name}"
@@ -376,18 +379,53 @@ def register_registration_callbacks(dash_app):
                 merged_data["Registration ID"] = reg_id
                 merged_data["Sample ID"] = sample_id
                 merged_data["SEQ ID"] = seq_id
-                
                 if not merged_data.get("진행사항"): merged_data["진행사항"] = "접수 대기"
                 
+                # =========================================================
+                # 🚀 핵심! DB 스키마 전용 데이터 파싱 (날짜, 항목, 금액 추출)
+                # =========================================================
+                # 1. 날짜 파싱
+                raw_date = str(merged_data.get('Reception Date', '')).split('.')[0].strip()
+                try: p_date = pd.to_datetime(raw_date, format='%y%m%d')
+                except:
+                    try: p_date = pd.to_datetime(raw_date)
+                    except: p_date = pd.NaT
+                
+                r_date_str = p_date.strftime('%Y-%m-%d') if pd.notna(p_date) else None
+                r_year = int(p_date.year) if pd.notna(p_date) else None
+                r_month = int(p_date.month) if pd.notna(p_date) else None
+                
+                # 2. 항목(Analysis Type / Panel) 파싱
+                analysis_val = merged_data.get('Analysis Type')
+                if not analysis_val or pd.isna(analysis_val):
+                    analysis_val = merged_data.get('Panel')
+                
+                # 3. 금액 파싱
+                rev = pd.to_numeric(merged_data.get('매출 단가', 0), errors='coerce')
+                cost = pd.to_numeric(merged_data.get('매입 단가', 0), errors='coerce')
+
+                # =========================================================
+                # 🚀 파싱한 데이터를 DB 객체에 완벽하게 꽂아 넣습니다!
+                # =========================================================
                 new_entry = NGSTracking(
-                    registration_id=reg_id, order_id=order_id, sample_name=sample_name,
-                    seq_id=seq_id, excel_data=merged_data
+                    registration_id=reg_id, 
+                    order_id=order_id, 
+                    sample_name=sample_name,
+                    seq_id=seq_id, 
+                    excel_data=merged_data,
+                    reception_date=r_date_str,
+                    reception_year=r_year,
+                    reception_month=r_month,
+                    order_facility=facility,
+                    analysis_type=analysis_val,
+                    sales_revenue=int(rev) if pd.notna(rev) else 0,
+                    purchase_cost=int(cost) if pd.notna(cost) else 0
                 )
                 db.add(new_entry)
                 saved_count += 1
                 
             db.commit()
-            return dbc.Alert(f"✅ {saved_count}건 신규 접수 완료!", color="success")
+            return dbc.Alert(f"✅ {saved_count}건 신규 접수 완료! (대시보드 통계 반영됨)", color="success")
         except Exception as e:
             db.rollback()
             return dbc.Alert(f"데이터베이스 저장 오류: {e}", color="danger")

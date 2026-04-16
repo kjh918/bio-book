@@ -15,3 +15,6 @@ facility_mapping:
   C18: { facility: "제노스케이프", team: "(CEO)" }
   C20: { facility: "지니너스", team: "오믹스사업팀" }
   C21: { facility: "국립암센터", team: "병리과" }
+  C22: { facility: "랩지노믹스", team: "마케팅" }
+  C23: { facility: "한림대산학협력단", team: "신호승교수" }
+  C24: { facility: "삼성서울병원", team: "유방외과" }

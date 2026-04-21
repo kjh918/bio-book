@@ -1,586 +1,242 @@
-from dash import html, dcc, Input, Output, State, no_update
+from dash import html, dcc, Input, Output, State, no_update, ctx, dash_table
 import dash_bootstrap_components as dbc
 import pandas as pd
 from datetime import datetime
 import base64
 import io
+import os
+import traceback
+from pathlib import Path
 
 from app.pages.base import LimsDashApp  
-from app.core.config import PAGES_CONFIG 
 from app.core.database import SessionLocal
-from app.models.schema import NGSTracking
+from app.models._schema import Order, Sample
+from app.core.mapping import FACILITY_MAPPING, get_full_mapping_for_panel
 
-import weasyprint
-from jinja2 import Environment, FileSystemLoader
-from datetime import datetime
-import os
-import base64
-from app.core.config import BASE_DIR
+# 🚀 검사 선택값에 따른 엑셀 양식 파일명 매핑 사전
+TEMPLATE_MAP = {
+    "WGS": "wgs_request",
+    "WES": "wes_request",
+    "WTS": "wts_request",
+    "TSO500": "tso_request",
+    "dPCR": "dPCR_request"
+}
 
 # ==========================================
 # [1] 화면 레이아웃
 # ==========================================
 def create_registration_layout():
-    # --- 1. [신규 접수용] 테이블 구조 세팅 ---
-    reg_columns = PAGES_CONFIG.get("registration", {}).get("columns", [])
-    new_table_cols = []
-    dropdown_config = {}
-    
-    for col in reg_columns:
-        fmt = {"name": col["name"], "id": col["name"], "editable": True}
-        if col.get("type") == "select": 
-            fmt["presentation"] = "dropdown"
-            dropdown_config[col["name"]] = {
-                "options": [{"label": str(opt), "value": str(opt)} for opt in col.get("options", [])],
-                "clearable": True
-            }
-        new_table_cols.append(fmt)
-    
-    empty_data = [{c["name"]: None for c in reg_columns} for _ in range(15)]
+    facility_opts = [{"label": f"[{code}] {data['facility']} ({data['team']})", "value": code} for code, data in FACILITY_MAPPING.items()]
 
-    # --- 2. 탭 1 컨텐츠 (다운로드 및 원본 백업 UI 적용) ---
-    tab1_content = dbc.CardBody([
-        
-        # 1단계: 양식 선택 및 다운로드 영역
-        html.H5("1. 검사 의뢰서 양식 선택", className="fw-bold text-primary mb-3"),
-        dbc.Row([
-            dbc.Col([
-                html.Label("진행할 검사의 종류를 선택하세요", className="fw-bold text-secondary small"),
-                dcc.Dropdown(
-                    id="template-type-select",
-                    options=[
-                        {"label": "WES/WGS", "value": "wgs_request"},
-                        {"label": "RNA", "value": "rna_request"},
-                        {"label": "TSO", "value": "tso_resquest"}
-                    ],
-                    value="wgs_request",
-                    clearable=False,
-                    className="shadow-sm"
-                )
-            ], width=8),
-            dbc.Col([
-                html.Label("양식 다운로드", className="fw-bold text-white small"), # 줄맞춤용 투명 라벨
-                dbc.Button("📥 선택한 양식 다운로드", id="btn-download-template", color="info", outline=True, className="w-100 fw-bold shadow-sm"),
-                dcc.Download(id="download-template-file")
-            ], width=4)
-        ], className="mb-3 p-3 bg-light rounded border-top border-start border-end border-bottom-0"),
-        
-        # 선택된 양식 PDF 미리보기 화면 (뼈대 보여주기)
-        html.Div(
-            id="template-preview-container", 
-            className="mb-4 p-3 bg-white border border-info rounded shadow-sm", 
-            style={"minHeight": "150px", "borderWidth": "2px !important"}
-        ),
-
-        html.Hr(className="my-4 border-secondary"),
-
-        # 2단계: 작성된 엑셀 업로드 영역
-        html.H5("2. 작성된 의뢰서 업로드", className="fw-bold text-primary mb-3"),
-        dcc.Upload(
-            id='upload-excel-data',
-            children=html.Div([
-                '📂 다운로드하여 작성한 의뢰서(Excel)를 여기에 ', html.B('드래그 앤 드롭', className="text-primary"), ' 하거나 ',
-                html.A('클릭하여 선택하세요.', className="text-decoration-underline text-primary fw-bold", style={'cursor': 'pointer'})
-            ]),
-            style={
-                'width': '100%', 'height': '60px', 'lineHeight': '60px',
-                'borderWidth': '2px', 'borderStyle': 'dashed', 'borderColor': '#18BC9C',
-                'borderRadius': '10px', 'textAlign': 'center', 'marginBottom': '10px',
-                'backgroundColor': '#f8fffb'
-            },
-            multiple=False
-        ),
-        
-        # 🚀 파일 이름 표시 영역
-        html.Div(id="upload-filename-display", className="text-success fw-bold mb-3 small ms-1"),
-
-        # 🚀 3단계: 데이터 미리보기 테이블 (주석 해제 완료!)
-        LimsDashApp.create_standard_table(
-            id="new-registration-table", 
-            columns=new_table_cols, 
-            data=empty_data,
-            dropdown=dropdown_config,
-            css=[
-                {"selector": ".dash-spreadsheet td", "rule": "overflow: visible !important;"},
-                {"selector": ".Select-menu-outer", "rule": "display: block !important; z-index: 9999 !important;"}
-            ],
-            style_table={'overflowX': 'auto', 'minWidth': '100%', 'minHeight': '450px'}
-        ),
-        
-        # 저장 버튼
-        dbc.Button("📥 신규 데이터 저장 및 원본 의뢰서 백업", id="btn-save-new", color="primary", className="w-100 mt-4 fw-bold py-2 shadow-sm"),
-        html.Div(id="save-new-message", className="mt-3")
-    ])
-
-    # --- 3. 탭 2 컨텐츠 ---
-    tab2_content = dbc.CardBody([
-        html.P("1. 기존 프로젝트(Order ID)를 불러와 실험, 분석, 정산 결과를 덮어씁니다.", className="text-muted"),
-        
-        dbc.Row([
-            dbc.Col([
-                html.Label("대상 프로젝트 선택", className="fw-bold text-primary"),
-                dcc.Dropdown(id="update-order-select", placeholder="Order ID 선택 (클릭)")
-            ], width=6)
-        ], className="mb-4 bg-light p-3 rounded border"),
-        
-        html.Label("2. 업데이트할 단계", className="fw-bold text-primary mb-2"),
-        dbc.Tabs([
-            dbc.Tab(label="📝 기본 정보", tab_id="registration"),
-            dbc.Tab(label="🧪 실험/QC 결과", tab_id="wet_lab"),
-            dbc.Tab(label="💻 분석/레포트", tab_id="dry_lab"),
-            dbc.Tab(label="📦 정산/행정", tab_id="billing"),
-        ], id="update-stage-select", active_tab="wet_lab", className="mb-3"),
-        
-        # 일괄 채우기 툴바
-        html.Div([
-            html.Span("⚡ 일괄 채우기: ", className="fw-bold text-warning me-3"),
-            dcc.Dropdown(id="bulk-col-select", placeholder="컬럼 선택 (클릭)", style={"width": "230px"}, className="me-2"),
-            dcc.Input(id="bulk-val-input", type="text", placeholder="값 입력 (예: O, X)", className="form-control me-2", style={"width": "200px"}),
-            dbc.Button("적용", id="btn-bulk-fill", color="warning", className="fw-bold shadow-sm")
-        ], className="mb-3 p-2 bg-light border rounded d-flex align-items-center"),
-        
-        html.Div(id="update-table-container", className="border-start border-end border-bottom p-3 bg-white"),
-        
-        dbc.Button("🔄 현재 단계 결과 저장 (덮어쓰기)", id="btn-save-update", color="success", className="w-100 mt-4 fw-bold py-2 shadow-sm"),
-        html.Div(id="save-update-message", className="mt-3")
-    ])
-
-    # --- 4. 최종 레이아웃 ---
     return html.Div([
-        html.H3("📥 데이터 등록 및 업데이트", className="fw-bold mb-4 text-secondary"),
-        dbc.Tabs([
-            dbc.Tab(dbc.Card(tab1_content, className="border-top-0 rounded-bottom-4 shadow-sm"), label="🆕 신규 시료 접수", tab_id="tab-new"),
-            dbc.Tab(dbc.Card(tab2_content, className="border-top-0 rounded-bottom-4 shadow-sm"), label="🔄 단계별 결과 업데이트", tab_id="tab-update"),
-        ], id="registration-tabs", active_tab="tab-new"),
-        html.Div(id="dummy-trigger-reg", style={'display': 'none'})
-    ])
+        html.H3("📥 검사 의뢰서 신규 접수", className="fw-bold mb-4 text-secondary"),
+        html.P("의뢰 기관과 검사 종류를 지정한 후 엑셀 의뢰서를 업로드해 주세요.", className="text-muted"),
+        
+        dbc.Card([
+            dbc.CardBody([
+                html.H5("1. 접수 기본 정보 설정 및 양식 다운로드", className="fw-bold text-primary mb-3"),
+                dbc.Row([
+                    dbc.Col([
+                        html.Label("1-1. 의뢰 기관 (필수)", className="fw-bold text-danger small"),
+                        dcc.Dropdown(id="reg-facility-select", options=facility_opts, placeholder="기관 코드 선택...", className="shadow-sm mb-2")
+                    ], width=6),
+                    dbc.Col([
+                        html.Label("1-2. 검사 종류 (필수)", className="fw-bold text-danger small"),
+                        dcc.Dropdown(id="reg-panel-select", options=[
+                            {"label": "WGS", "value": "WGS"},
+                            {"label": "WES", "value": "WES"},
+                            {"label": "WTS", "value": "WTS"},
+                            {"label": "TSO500", "value": "TSO500"},
+                            {"label": "dPCR", "value": "dPCR"}
+                        ], placeholder="검사 종류를 선택하면 아래에 양식이 나타납니다...", className="shadow-sm mb-2")
+                    ], width=6)
+                ]),
+                dbc.Row([
+                    dbc.Col([
+                        dbc.Button("📥 선택한 검사의 빈 양식 다운로드", id="btn-download-template", color="info", outline=True, className="w-100 fw-bold shadow-sm"),
+                        dcc.Download(id="download-template-file")
+                    ], width=12)
+                ], className="mb-3 p-3 bg-light rounded border"),
+                
+                html.Div(id="template-preview-container", className="mb-4 p-3 bg-white border border-info rounded shadow-sm"),
+                html.Hr(className="my-4 border-secondary"),
 
+                html.H5("2. 작성된 의뢰서 업로드", className="fw-bold text-primary mb-3"),
+                dcc.Upload(
+                    id='upload-excel-data',
+                    children=html.Div([
+                        '📂 작성 완료된 의뢰서(Excel)를 여기에 ', html.B('드래그 앤 드롭', className="text-primary"), ' 하거나 ',
+                        html.A('클릭하여 선택하세요.', className="text-decoration-underline text-primary fw-bold", style={'cursor': 'pointer'})
+                    ]),
+                    style={'width': '100%', 'height': '80px', 'lineHeight': '80px', 'borderWidth': '2px', 'borderStyle': 'dashed', 'borderColor': '#18BC9C', 'borderRadius': '10px', 'textAlign': 'center', 'marginBottom': '10px', 'backgroundColor': '#f8fffb'},
+                    multiple=False
+                ),
+                html.Div(id="upload-filename-display", className="text-success fw-bold mb-3 small ms-1"),
+
+                html.Div(id="parsed-data-container", style={"display": "none"}, children=[
+                    html.H5("3. 추출된 데이터 확인", className="fw-bold text-primary mb-3 mt-4"),
+                    dcc.Store(id="parsed-order-store"),
+                    dbc.Alert(id="order-info-alert", color="success", className="shadow-sm py-2"),
+                    dash_table.DataTable(
+                        id="parsed-sample-table", columns=[], data=[],
+                        style_table={'overflowX': 'auto', 'border': '1px solid #dee2e6'},
+                        style_cell={'textAlign': 'center', 'padding': '10px', 'fontFamily': 'sans-serif', 'minWidth': '100px', 'whiteSpace': 'normal'},
+                        style_header={'backgroundColor': '#f8f9fa', 'fontWeight': 'bold'},
+                        page_size=10
+                    ),
+                    dbc.Button("🚀 추출된 데이터 LIMS에 최종 등록 (접수 대기)", id="btn-save-new", color="primary", size="lg", className="w-100 mt-4 fw-bold shadow-sm")
+                ]),
+                
+                html.Div(id="save-new-message", className="mt-3")
+            ])
+        ], className="border-0 shadow-sm rounded-4")
+    ])
 
 # ==========================================
-# [2] 콜백 로직 (Backend)
+# [2] 콜백 로직
 # ==========================================
 def register_registration_callbacks(dash_app):
     
-    # -----------------------------------------------------
-    # 🚀 (신규) 1. 선택한 양식에 따라 PDF 미리보기 Iframe 띄우기
-    # -----------------------------------------------------
-    def update_template_preview(template_type):
-        report_dir = "/storage/home/jhkim/scripts/bio-book/ngs_web_lims/app/report"
-        
-        # 1. 선택된 양식에 따라 '이미지' 파일명 매핑
-        if template_type == "wgs_request":
-            preview_title = "📄 [WES/WGS 검사 의뢰서] 양식 미리보기"
-            file_name = "wgs_request.png"  # 확장자를 .png로 변경
-        elif template_type == "rna_request":
-            preview_title = "📄 [RNA 검사 의뢰서] 양식 미리보기"
-            file_name = "rna_request.png"
-        elif template_type == "tso_resquest":
-            preview_title = "📄 [TSO 검사 의뢰서] 양식 미리보기"
-            file_name = "tso_request.png"
-        else:
-            return html.Div()
-
-        # 🚀 2. 이미지 파일을 읽어서 Base64 문자열로 인코딩
-        img_file_path = os.path.join(report_dir, file_name)
-        img_data_uri = ""
-        
+    @dash_app.callback(Output("template-preview-container", "children"), Input("reg-panel-select", "value"))
+    def update_template_preview(panel_type):
+        if not panel_type: return html.Div("👆 검사 종류(1-2)를 선택하시면 의뢰서 미리보기가 나타납니다.", className="text-muted small text-center py-2")
+        template_name = TEMPLATE_MAP.get(panel_type, "wgs_request")
+        excel_file_path = os.path.join(Path(__file__).parent.parent / "templates" / "requests", f"{template_name}.xlsx")
+        if not os.path.exists(excel_file_path): return html.Div(f"⚠️ 양식 파일 없음: {template_name}.xlsx", className="text-danger small")
         try:
-            with open(img_file_path, "rb") as img_file:
-                img_b64 = base64.b64encode(img_file.read()).decode('utf-8')
-                # 데이터 타입을 image/png 로 명시해줍니다.
-                img_data_uri = f"data:image/png;base64,{img_b64}"
-                
-        except Exception as err:
-            print(f"⚠️ 미리보기 이미지를 불러오지 못했습니다: {err}")
-            return html.Div([
-                html.H6(f"⚠️ 미리보기 이미지를 찾을 수 없습니다 ({file_name})", className="fw-bold text-danger"),
-                html.P(f"서버 경로에 .png 파일이 있는지 확인해 주세요: {img_file_path}", className="small text-muted")
-            ], className="p-3 bg-light border border-danger rounded")
+            df_raw = pd.read_excel(excel_file_path, header=None)
+            header_idx = next((r for r in range(min(25, len(df_raw))) if "patientid" in "".join(df_raw.iloc[r].astype(str).tolist()).replace(" ", "").lower()), 15)
+            df_preview = pd.read_excel(excel_file_path, header=header_idx).dropna(axis=1, how='all').head(5)
+            df_preview.columns = [str(c) if not str(c).startswith('Unnamed') else '' for c in df_preview.columns]
+            return html.Div([html.H6(f"[{panel_type}] 양식 미리보기", className="fw-bold text-primary mb-2"), dash_table.DataTable(columns=[{"name": str(i), "id": str(i)} for i in df_preview.columns if str(i)], data=df_preview.to_dict('records'), style_table={'overflowX': 'auto', 'border': '1px solid #dee2e6'}, style_cell={'textAlign': 'center', 'padding': '10px', 'fontSize': '12px'}, style_header={'backgroundColor': '#e9ecef', 'fontWeight': 'bold'})])
+        except Exception as e: return html.Div(f"⚠️ 미리보기 오류: {e}", className="text-danger small")
 
-        # 3. 정상적으로 데이터가 읽혔을 때 렌더링 (Iframe 대신 html.Img 사용!)
-        return html.Div([
-            html.H6(preview_title, className="fw-bold text-info mb-2"),
-            html.P("※ 다운로드 버튼을 누르면 이 양식의 엑셀(.xlsx) 원본 파일이 다운로드 됩니다.", className="text-muted small mb-2"),
-            
-            # 🚀 html.Iframe 대신 html.Img 를 사용하여 이미지를 띄웁니다.
-            html.Img(
-                src=img_data_uri,
-                style={
-                    "width": "100%", 
-                    "border": "1px solid #dee2e6", 
-                    "borderRadius": "5px",
-                    "boxShadow": "0 4px 6px rgba(0,0,0,0.1)" # 약간의 그림자를 주어 더 예쁘게 만듭니다
-                }
-            )
-        ])
-    # -----------------------------------------------------
-    # 🚀 (신규) 2. 양식 파일 다운로드 버튼 로직
-    # -----------------------------------------------------
     @dash_app.callback(
-        Output("download-template-file", "data"),
-        Input("btn-download-template", "n_clicks"),
-        State("template-type-select", "value"),
-        prevent_initial_call=True
+        Output("download-template-file", "data"), Input("btn-download-template", "n_clicks"), State("reg-panel-select", "value"), prevent_initial_call=True
     )
-    def download_excel_template(n_clicks, template_type):
-        # 임시 엑셀 생성 다운로드 (차후 dcc.send_file 로 실제 서버 엑셀 다운로드를 연결하시면 됩니다)
-        if template_type == "wgs_request":
-            df_dummy = pd.DataFrame({"Patient ID/ Sample ID": [], "Tumor Type": []})
-            filename = "WES_WGS_의뢰서_양식.xlsx"
-        elif template_type == "rna_request":
-            df_dummy = pd.DataFrame({"Sample ID": [], "Cancer Type": []})
-            filename = "RNA_의뢰서_양식.xlsx"
-        else:
-            df_dummy = pd.DataFrame({"Sample ID": [], "Specimen": []})
-            filename = "TSO_의뢰서_양식.xlsx"
-            
-        return dcc.send_data_frame(df_dummy.to_excel, filename, index=False)
+    def download_excel_template(n_clicks, panel_type):
+        if not panel_type: return no_update
+        file_name = f"{TEMPLATE_MAP.get(panel_type, 'wgs_request')}.xlsx"
+        excel_file_path = os.path.join(Path(__file__).parent.parent / "templates" / "requests", file_name)
+        return dcc.send_file(excel_file_path) if os.path.exists(excel_file_path) else dcc.send_data_frame(pd.DataFrame().to_excel, file_name, index=False)
+    
+    @dash_app.callback(
+        [Output("parsed-data-container", "style"), Output("upload-filename-display", "children"), Output("order-info-alert", "children"), Output("parsed-sample-table", "columns"), Output("parsed-sample-table", "data")],
+        Input("upload-excel-data", "contents"), [State("upload-excel-data", "filename"), State("reg-facility-select", "value"), State("reg-panel-select", "value")], prevent_initial_call=True
+    )
+    def parse_and_preview_excel(contents, filename, facility_code, panel_code):
+        if not contents: return {"display": "none"}, "", "", [], []
+        if not facility_code or not panel_code: return {"display": "none"}, dbc.Alert("🚨 업로드 전 1-1(기관)과 1-2(검사 종류)를 선택해주세요.", color="danger", className="py-2 mb-0"), "", [], []
 
-    # -----------------------------------------------------
-    # 🚀 (신규) 3. 업로드된 파일명 화면에 표시
-    # -----------------------------------------------------
-    @dash_app.callback(
-        Output("upload-filename-display", "children"),
-        Input("upload-excel-data", "filename")
-    )
-    def display_uploaded_filename(filename):
-        if filename:
-            return f"✅ 정상적으로 파일이 업로드 되었습니다 : {filename}"
-        return ""
-
-    # -----------------------------------------------------
-    # 🚀 (수정) 4. 엑셀 파서 (빈칸 제거 및 헤더 탐색)
-    # -----------------------------------------------------
-    @dash_app.callback(
-        Output("new-registration-table", "data"),
-        Input("upload-excel-data", "contents"),
-        State("upload-excel-data", "filename"),
-        State("new-registration-table", "data"),
-        prevent_initial_call=True
-    )
-    def update_table_from_excel(contents, filename, current_data):
-        if not contents: return no_update
-        
-        content_type, content_string = contents.split(',')
-        decoded = base64.b64decode(content_string)
-        
         try:
-            if 'xls' in filename:
-                # 1. 헤더 없이 임시로 읽어서 표가 시작되는 줄(행)을 찾습니다.
-                df_raw = pd.read_excel(io.BytesIO(decoded), header=None)
-                header_idx = 0
-                
-                for r in range(min(20, len(df_raw))):
-                    row_vals = df_raw.iloc[r].astype(str).tolist()
-                    # 'Tumor Type' 이나 'Sample ID' 가 있는 행을 헤더(표의 시작)로 인식
-                    if any("Tumor Type" in val or "Sample ID" in val for val in row_vals):
-                        header_idx = r
-                        break
-                
-                # 2. 찾은 헤더 위치부터 엑셀을 제대로 다시 읽습니다.
-                df = pd.read_excel(io.BytesIO(decoded), skiprows=header_idx)
-                
-                # 3. 예시 데이터('ex') 행과 완전히 빈 행을 삭제합니다.
-                if '번호' in df.columns:
-                    df = df[df['번호'].astype(str).str.lower() != 'ex']
-                df = df.dropna(how='all')
-                
-                # 🚀 4. 고객 엑셀 컬럼 이름을 DB 컬럼 이름으로 번역!
-                rename_map = {
-                    "Patient ID/ Sample ID": "Sample Name",
-                    "Patient ID/Sample ID": "Sample Name",
-                    "Tumor Type": "Cancer Type",
-                    "Specimen Type": "Specimen",
-                    "Extraction 필요 유무": "추출 진행"
-                }
-                df = df.rename(columns=rename_map)
-
-            elif 'csv' in filename:
-                df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
-                df = df.dropna(how='all')
-            else:
-                return current_data
-
-            # 5. 날짜 형식 깔끔하게 변환
-            for col in df.select_dtypes(include=['datetime64', 'datetimetz']).columns:
-                df[col] = df[col].dt.strftime('%Y-%m-%d')
-
-            return df.to_dict('records')
+            content_type, content_string = contents.split(',')
+            decoded = base64.b64decode(content_string)
+            fac_info = FACILITY_MAPPING.get(facility_code, {"facility": "Unknown", "team": "Unknown"})
+            
+            df_raw = pd.read_excel(io.BytesIO(decoded), header=None)
+            header_idx = next((r for r in range(5, min(25, len(df_raw))) if "patientid" in "".join(df_raw.iloc[r].astype(str).tolist()).replace(" ", "").lower()), 15)
+            
+            df_samples = pd.read_excel(io.BytesIO(decoded), header=header_idx).dropna(axis=1, how='all')
+            df_samples.columns = [str(c) if not str(c).startswith('Unnamed') else f"col_{i}" for i, c in enumerate(df_samples.columns)]
+            
+            pid_col = next((col for col in df_samples.columns if "patient id" in col.lower() or "번호" in col.lower()), None)
+            if pid_col:
+                df_samples = df_samples.dropna(subset=[pid_col])
+                df_samples = df_samples[df_samples[pid_col].astype(str).str.lower() != 'ex']
+            
+            # 🚀 [핵심 에러 픽스] 결측치(NaN)를 빈 문자열로 치환하여 JSON 통신 에러 방지
+            df_samples = df_samples.fillna("")
+            
+            dynamic_cols = [{"name": c, "id": c} for c in df_samples.columns if "col_" not in c]
+            table_data = df_samples.to_dict('records')
+            
+            alert_ui = html.Div([
+                html.Strong("📂 타겟: "), html.Span(f"[{facility_code}] {fac_info['facility']} ({fac_info['team']}) / {panel_code}", className="me-3 text-primary"),
+                html.Strong("📊 추출: "), html.Span(f"{len(table_data)}건")
+            ])
+            return {"display": "block"}, f"✅ {filename} 파싱 성공!", alert_ui, dynamic_cols, table_data
             
         except Exception as e:
-            print(f"엑셀 읽기 오류: {e}")
-            return current_data
+            print(traceback.format_exc())
+            return {"display": "none"}, dbc.Alert(f"🚨 파싱 오류: {e}", color="danger", className="py-2 mb-0"), "", [], []
 
-
-    # -----------------------------------------------------
-    # (탭 1) 신규 시료 저장 로직 (🚀 DB 스키마 완벽 연동 버전)
-    # -----------------------------------------------------
+    # 🚀 진짜 DB 저장 및 객체 생성 로직 (버튼 동작의 심장)
     @dash_app.callback(
         Output("save-new-message", "children"),
         Input("btn-save-new", "n_clicks"),
-        State("new-registration-table", "data"),
+        [State("parsed-sample-table", "data"), State("reg-facility-select", "value"), State("reg-panel-select", "value")],
         prevent_initial_call=True
     )
-    def save_new_samples(n_clicks, table_data):
-        if not n_clicks or not table_data: return ""
-        df = pd.DataFrame(table_data)
+    def save_final_data_to_db(n_clicks, sample_data, facility_code, panel_code):
+        if not n_clicks: return no_update
+        if not sample_data or not facility_code or not panel_code: 
+            return dbc.Alert("⚠️ 필수 정보 누락 또는 파싱된 데이터가 없습니다.", color="warning")
         
-        required_fields = ['Order ID', 'Sample Name']
-        for field in required_fields:
-            if field not in df.columns or df[field].astype(str).str.strip().eq("").all():
-                return dbc.Alert(f"❌ 접수 실패: 필수 항목인 [{field}] 컬럼이 비어 있습니다.", color="danger")
-                
-        df = df[df['Sample Name'].astype(str).str.strip() != ""]
-        if df.empty: return dbc.Alert("저장할 데이터가 없습니다.", color="warning")
+        # 🚀 엑셀 헤더 유연성 엔진 (Fuzzy Match)
+        def get_fuzzy_val(raw_dict, target_key):
+            if target_key in raw_dict: return raw_dict[target_key]
+            clean_target = str(target_key).lower().replace(" ", "").replace("\n", "")
+            for k, v in raw_dict.items():
+                if clean_target in str(k).lower().replace(" ", "").replace("\n", ""):
+                    return v
+            return None
 
-        all_columns = [
-            "Registration ID", "GMC/GCX", "Order Facility", "Reception Date", "Order ID", 
-            "Order No", "Sample Name", "Sample ID", "Cancer Type", "Specimen", "추출 진행", 
-            "Sample Type", "Analysis Type", "Depth/Output", "Conc.(ng/uL)", "Sample QC", 
-            "검사진행 여부", "특이사항", "SEQ ID", "Outside ID 1", "Outside ID 2", "진행사항", 
-            "매출", "의뢰사", "의뢰인", "sample QC report date", "seq QC report date", 
-            "Quotation ID", "매출 단가", "견적서 발행", "Dead Line", "standard report date 01", 
-            "standard report date 02", "advanced report date 01", "advanced report date 02", 
-            "거래명세서 발행일", "문서번호", "세금계산서 발행일", "매입", "매입 단가", 
-            "품의서(지출) 작성일", "품의 문서번호", "거래명세서/세금계산서 발행일", "지출결의 문서번호",
-            "Panel" # 🚀 옛날 양식 호환을 위해 추가
-        ]
-        
         db = SessionLocal()
         try:
-            saved_count = 0
             today_str = datetime.now().strftime("%y%m%d")
-            today_existing_count = db.query(NGSTracking).filter(
-                NGSTracking.registration_id.like(f"ACC-{today_str}-%")
-            ).count()
+            fac_info = FACILITY_MAPPING.get(facility_code, {"facility": "Unknown", "team": "Unknown"})
             
-            for idx, row in df.iterrows():
-                merged_data = {col: None for col in all_columns}
-                merged_data.update(row.dropna().to_dict())
-                
-                order_id = merged_data.get('Order ID')
-                sample_name = merged_data.get('Sample Name')
-                facility = merged_data.get('Order Facility', '')
-                
-                # 내부연구용 처리 로직
-                if facility == "C01":
-                    existing_note = str(merged_data.get('특이사항', '')).replace('None', '').strip()
-                    merged_data['특이사항'] = f"[내부연구용] {existing_note}".strip()
-                    merged_data['매출'] = "-"
-                    merged_data['매입'] = "-"
-                    merged_data['견적서 발행'] = "-"
-
-                # ID 생성 로직
-                new_seq_num = today_existing_count + idx + 1
-                reg_id = f"ACC-{today_str}-{str(new_seq_num).zfill(3)}"
-                sample_id = f"{order_id}_{sample_name}"
-                seq_id = f"{reg_id}_R1"
-                
-                merged_data["Registration ID"] = reg_id
-                merged_data["Sample ID"] = sample_id
-                merged_data["SEQ ID"] = seq_id
-                if not merged_data.get("진행사항"): merged_data["진행사항"] = "접수 대기"
-                
-                # =========================================================
-                # 🚀 핵심! DB 스키마 전용 데이터 파싱 (날짜, 항목, 금액 추출)
-                # =========================================================
-                # 1. 날짜 파싱
-                raw_date = str(merged_data.get('Reception Date', '')).split('.')[0].strip()
-                try: p_date = pd.to_datetime(raw_date, format='%y%m%d')
-                except:
-                    try: p_date = pd.to_datetime(raw_date)
-                    except: p_date = pd.NaT
-                
-                r_date_str = p_date.strftime('%Y-%m-%d') if pd.notna(p_date) else None
-                r_year = int(p_date.year) if pd.notna(p_date) else None
-                r_month = int(p_date.month) if pd.notna(p_date) else None
-                
-                # 2. 항목(Analysis Type / Panel) 파싱
-                analysis_val = merged_data.get('Analysis Type')
-                if not analysis_val or pd.isna(analysis_val):
-                    analysis_val = merged_data.get('Panel')
-                
-                # 3. 금액 파싱
-                rev = pd.to_numeric(merged_data.get('매출 단가', 0), errors='coerce')
-                cost = pd.to_numeric(merged_data.get('매입 단가', 0), errors='coerce')
-
-                # =========================================================
-                # 🚀 파싱한 데이터를 DB 객체에 완벽하게 꽂아 넣습니다!
-                # =========================================================
-                new_entry = NGSTracking(
-                    registration_id=reg_id, 
-                    order_id=order_id, 
-                    sample_name=sample_name,
-                    seq_id=seq_id, 
-                    excel_data=merged_data,
-                    reception_date=r_date_str,
-                    reception_year=r_year,
-                    reception_month=r_month,
-                    order_facility=facility,
-                    analysis_type=analysis_val,
-                    sales_revenue=int(rev) if pd.notna(rev) else 0,
-                    purchase_cost=int(cost) if pd.notna(cost) else 0
-                )
-                db.add(new_entry)
-                saved_count += 1
-                
-            db.commit()
-            return dbc.Alert(f"✅ {saved_count}건 신규 접수 완료! (대시보드 통계 반영됨)", color="success")
-        except Exception as e:
-            db.rollback()
-            return dbc.Alert(f"데이터베이스 저장 오류: {e}", color="danger")
-        finally:
-            db.close()
-
-    # -----------------------------------------------------
-    # (탭 2) - 1: Order ID 드롭다운 목록
-    # -----------------------------------------------------
-    @dash_app.callback(
-        Output("update-order-select", "options"),
-        Input("dummy-trigger-reg", "id")
-    )
-    def load_order_ids(_):
-        db = SessionLocal()
-        try:
-            orders = db.query(NGSTracking.order_id).distinct().all()
-            return [{"label": o[0], "value": o[0]} for o in orders if o[0]]
-        finally:
-            db.close()
-
-    # -----------------------------------------------------
-    # (탭 2) - 2: 탭 변경 시 일괄 채우기 목록 자동 동기화
-    # -----------------------------------------------------
-    @dash_app.callback(
-        [Output("bulk-col-select", "options"),
-         Output("bulk-col-select", "value")],
-        Input("update-stage-select", "active_tab")
-    )
-    def update_bulk_dropdown(stage):
-        target_columns = PAGES_CONFIG.get(stage, {}).get("columns", [])
-        options = [{"label": col["name"], "value": col["name"]} for col in target_columns]
-        return options, None
-
-    # -----------------------------------------------------
-    # (탭 2) - 3: 단계별 테이블 렌더링
-    # -----------------------------------------------------
-    @dash_app.callback(
-        Output("update-table-container", "children"),
-        [Input("update-order-select", "value"), Input("update-stage-select", "active_tab")]
-    )
-    def render_update_table(order_id, stage):
-        if not order_id: 
-            return html.Div("👆 업데이트할 프로젝트(Order ID)를 선택해주세요.", className="text-muted mt-3 text-center")
-        
-        target_columns = PAGES_CONFIG.get(stage, {}).get("columns", [])
-        
-        if not target_columns:
-            return dbc.Alert(f"⚠️ '{stage}' 단계 설정이 pages.yaml에 없습니다.", color="danger", className="mt-3")
-
-        display_cols = [{"name": "Sample Name", "id": "Sample Name", "editable": False}]
-        dropdown_config = {}
-
-        for col in target_columns:
-            fmt = {"name": col["name"], "id": col["name"], "editable": True}
+            # 1. Order 생성
+            daily_order_count = db.query(Order).filter(Order.order_id.like(f"{facility_code}-{today_str}-%")).count()
+            new_order_id = f"{facility_code}-{today_str}-{str(daily_order_count + 1).zfill(2)}"
             
-            if col.get("type") == "select":
-                fmt["presentation"] = "dropdown"
-                dropdown_config[col["name"]] = {
-                    "options": [{"label": str(opt), "value": str(opt)} for opt in col.get("options", [])],
-                    "clearable": True
-                }
-            elif col.get("type") == "datetime":
-                fmt["type"] = "datetime"
-                
-            display_cols.append(fmt)
-
-        db = SessionLocal()
-        try:
-            query = db.query(NGSTracking).filter(NGSTracking.order_id == order_id).all()
-            if not query: return html.Div("데이터가 없습니다.")
-            
-            datetime_cols = [c["name"] for c in target_columns if c.get("type") == "datetime"]
-            
-            db_data = []
-            for q in query:
-                row_data = q.excel_data.copy() if q.excel_data else {}
-                
-                for d_col in datetime_cols:
-                    val = row_data.get(d_col)
-                    if val and str(val).strip() not in ["None", "NaT", ""]:
-                        row_data[d_col] = str(val)[:10] 
-                        
-                db_data.append(row_data)
-            
-            return LimsDashApp.create_standard_table(
-                id="stage-update-table", 
-                columns=display_cols, 
-                data=db_data,
-                dropdown=dropdown_config,
-                fixed_columns={'headers': True, 'data': 1},
-                css=[
-                    {"selector": ".dash-spreadsheet td", "rule": "overflow: visible !important;"},
-                    {"selector": ".Select-menu-outer", "rule": "display: block !important; z-index: 9999 !important;"}
-                ],
-                style_table={'minWidth': '100%', 'overflowX': 'auto', 'minHeight': '400px', 'overflowY': 'auto'},
-                style_cell={'minWidth': '130px', 'textAlign': 'center', 'padding': '10px'}
+            new_order = Order(
+                order_id=new_order_id, facility=fac_info["facility"], client_team=fac_info["team"],
+                reception_date=datetime.utcnow().date(), sales_unit_price=0
             )
-        finally:
-            db.close()
-
-    # -----------------------------------------------------
-    # (탭 2) - 4: 일괄 채우기 적용 버튼
-    # -----------------------------------------------------
-    @dash_app.callback(
-        Output("stage-update-table", "data"),
-        Input("btn-bulk-fill", "n_clicks"),
-        State("bulk-col-select", "value"),
-        State("bulk-val-input", "value"),
-        State("stage-update-table", "data"),
-        prevent_initial_call=True
-    )
-    def apply_bulk_fill(n_clicks, target_col, target_val, current_data):
-        if not n_clicks or not target_col or not current_data:
-            return no_update
-        fill_val = target_val if target_val else ""
-        for row in current_data:
-            row[target_col] = fill_val
-        return current_data
-
-    # -----------------------------------------------------
-    # (탭 2) - 5: 결과 덮어쓰기 저장
-    # -----------------------------------------------------
-    @dash_app.callback(
-        Output("save-update-message", "children"),
-        Input("btn-save-update", "n_clicks"),
-        State("update-order-select", "value"),
-        State("stage-update-table", "data"),
-        prevent_initial_call=True
-    )
-    def save_updated_samples(n_clicks, order_id, table_data):
-        if not n_clicks or not order_id or not table_data: return ""
-        db = SessionLocal()
-        try:
-            updated_count = 0
-            for row in table_data:
-                sample_name = row.get("Sample Name")
-                if not sample_name: continue
-                record = db.query(NGSTracking).filter(
-                    NGSTracking.order_id == order_id, NGSTracking.sample_name == sample_name
-                ).first()
+            db.add(new_order)
+            db.flush()
+            
+            # 2. Sample 매핑 및 순차 번호 발급
+            mapping_rule = get_full_mapping_for_panel(panel_code)
+            daily_sample_count = db.query(Sample).filter(Sample.sample_id.like(f"ACC-{today_str}-%")).count()
+            success_count = 0
+            
+            for raw_row in sample_data:
+                base_data, extra_metadata = {}, {}
                 
-                if record:
-                    current_data = record.excel_data.copy() if record.excel_data else {}
-                    current_data.update(row)
-                    record.excel_data = current_data
-                    updated_count += 1
-                    
-            db.commit()
-            return dbc.Alert(f"✅ {updated_count}건 성공적으로 덮어쓰기 되었습니다!", color="success")
+                for excel_col, map_info in mapping_rule.items():
+                    val = get_fuzzy_val(raw_row, excel_col) # 🚀 퍼지 매치 적용
+                    clean_val = str(val).strip() if val is not None and str(val).strip() not in ["nan", "NaT", ""] else None
+                    if map_info["is_extra"]: extra_metadata[map_info["db_col"]] = clean_val
+                    else: base_data[map_info["db_col"]] = clean_val
+
+                # 환자 ID가 없으면 스킵
+                if not base_data.get("sample_name"): continue
+                
+                internal_sample_id = f"ACC-{today_str}-{str(daily_sample_count + success_count + 1).zfill(3)}"
+                new_sample = Sample(
+                    order_id=new_order.id, sample_id=internal_sample_id, target_panel=panel_code, current_status="접수 대기",
+                    sample_name=base_data["sample_name"], cancer_type=base_data.get("cancer_type"), specimen=base_data.get("specimen"),
+                    sample_group=base_data.get("sample_group"), pairing_info=base_data.get("pairing_info"), outside_id_1=base_data.get("outside_id_1"),
+                    issue_comment=base_data.get("issue_comment"), panel_metadata=extra_metadata
+                )
+                db.add(new_sample)
+                success_count += 1
+                
+            # 🚀 만약 0건이 매핑되었다면 (양식 오류 등)
+            if success_count == 0:
+                db.rollback()
+                return dbc.Alert("🚨 엑셀에서 유효한 검체 정보(Patient ID)를 찾지 못했습니다. 매핑 양식을 확인해 주세요.", color="danger")
+
+            db.commit() # 🚀 DB 영구 저장
+            return dbc.Alert(f"🎉 성공! [{new_order_id}]로 총 {success_count}건 등록 완료. (칸반 보드를 확인하세요)", color="success")
+            
         except Exception as e:
             db.rollback()
-            return dbc.Alert(f"업데이트 오류: {e}", color="danger")
-        finally:
-            db.close()
+            print(traceback.format_exc())
+            return dbc.Alert(f"🚨 DB 저장 오류: {e}", color="danger")
+        finally: db.close()
 
 def create_registration_app(requests_pathname_prefix: str):
     lims = LimsDashApp(__name__, requests_pathname_prefix)

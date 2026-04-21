@@ -1,0 +1,128 @@
+# 1. 신규 접수 및 기본 정보 (영업/접수팀)
+registration:
+  columns:
+    - name: GMC/GCX
+      type: select
+      options: ["GMC", "GCX"]
+    - name: Order Facility
+      type: select
+      options: ["C01", "C02", "C03", "C04", "C11", "C12", "C13", "C14", "C15", "C16", "C17", "C18", "C20", "C21"]
+    - name: Reception Date
+      type: text
+    - name: Order ID
+      type: text
+    - name: Order No
+      type: text
+    - name: Sample Name
+      type: text
+    - name: Cancer Type
+      type: text
+    - name: Specimen
+      type: text
+    - name: Sample Type
+      type: select
+      options: ["DNA", "RNA", "Library", "Pool"]
+    - name: Analysis Type
+      type: text
+    - name: Outside ID 1
+      type: text
+    - name: Outside ID 2
+      type: text
+    - name: 의뢰사
+      type: text
+    - name: 의뢰인
+      type: text
+    - name: Dead Line
+      type: "datetime"
+# 2. 실험 및 QC 결과 (Wet-Lab 팀)
+wet_lab:
+  columns:
+    - name: 추출 진행
+      type: select
+      options: ["O", "X", "-"]
+    - name: Sample QC
+      type: select
+      options: ["PASS", "FAIL", "PENDING", "RE-RUN", "CANCELED"]
+    - name: Qubit Conc.(ng/uL)
+      type: float
+    - name: Purity (A260/A280)
+      type: float
+    - name: Volumne (µL)
+      type: float
+    - name: Total Amount (µg)
+      type: float
+    - name: DIN 
+      type: float
+    - name: RIN
+      type: float
+    - name: 28s/18s
+      type: float
+
+    - name: QC report date
+      type: "datetime"
+    
+    - name: 검사진행 여부
+      type: select
+      options: ["O", "X", "-"]
+    - name: Sample 특이사항
+      type: text
+    
+    - name: Library Conc.(ng/uL)
+      type: float
+    - name: Library size (bp)
+      type: int
+    - name: Seq QC report date
+      type: "datetime"
+    
+# 3. 분석 및 레포트 (Dry-Lab 팀)
+dry_lab:
+  columns:
+    - name: Data QC
+      type: text
+    - name: Depth/Output
+      type: text
+    - name: 생산량
+      type: text
+    - name: standard report date 01
+      type: text
+    - name: standard report date 02
+      type: text
+    - name: advanced report date 01
+      type: text
+    - name: advanced report date 02
+      type: text
+    - name: 진행사항
+      type: text
+
+# 4. 정산 및 행정 (관리/영업팀)
+billing:
+  columns:
+    - name: 매출
+      type: select
+      options: ["Y", "N", "-"]
+    - name: 매출 단가
+      type: numeric
+    - name: 매입
+      type: select
+      options: ["Y", "N", "-"]
+    - name: 매입 단가
+      type: numeric
+    - name: Quotation ID
+      type: text
+    - name: 견적서 발행
+      type: select
+      options: ["Y", "N", "-"]
+    - name: 거래명세서 발행일
+      type: text
+    - name: 문서번호
+      type: text
+    - name: 세금계산서 발행일
+      type: text
+    - name: 품의서(지출) 작성일
+      type: text
+    - name: 품의 문서번호
+      type: text
+    - name: 거래명세서/세금계산서 발행일
+      type: text
+    - name: 지출결의 문서번호
+      type: text

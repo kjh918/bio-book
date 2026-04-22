@@ -1,5 +1,7 @@
 # app/pages/base.py
+import os
 from dash import Dash, dash_table
+import dash_ag_grid as dag
 import dash_bootstrap_components as dbc
 
 # [수정됨] 우리가 이전에 만든 세련된 통합 레이아웃을 불러옵니다.
@@ -13,7 +15,14 @@ class LimsDashApp:
             requests_pathname_prefix=pathname_prefix, 
             external_stylesheets=[dbc.themes.FLATLY]
         )
-        
+        #assets_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets')
+        #self.app = Dash(
+        #    name, 
+        #    requests_pathname_prefix=pathname_prefix,
+        #    assets_folder=assets_path,  # 🚀 이 옵션을 꼭 추가해야 합니다!, 
+        #    external_stylesheets=[dbc.themes.FLATLY]
+        #)
+
     def set_content(self, content_layout_func):
         """
         각 페이지별 고유 컨텐츠를 받아 
@@ -89,3 +98,28 @@ class LimsDashApp:
         return dash_table.DataTable(
             id=id, columns=columns, data=data, **default_kwargs
         )
+    
+    @staticmethod
+    def create_standard_aggrid(id: str, height: str = "400px"):
+        return dag.AgGrid(
+            id=id,
+            rowData=[], 
+            columnDefs=[],
+            defaultColDef={
+                "resizable": True, 
+                "sortable": True, 
+                "filter": True,
+                "editable": True, # 기본 편집 가능
+            },
+            dashGridOptions={
+                "rowHeight": 45,
+                "singleClickEdit": True,
+                "stopEditingWhenCellsLoseFocus": True,
+                "undoRedoCellEditing": True, # [실행 취소] Ctrl+Z 탑재
+                "undoRedoCellEditingLimit": 50,
+                "enterNavigatesVertically": True
+            },
+            style={"height": height, "width": "100%"},
+            className="ag-theme-alpine"
+        )
+    

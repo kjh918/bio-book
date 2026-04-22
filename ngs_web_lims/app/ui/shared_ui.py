@@ -1,9 +1,11 @@
 import dash_bootstrap_components as dbc
 from dash import html
 from dash_iconify import DashIconify
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 # --- 레이아웃 스타일 설정 (중복 선언 제거 및 깔끔한 정리) ---
+KST = timezone(timedelta(hours=9))
+
 SIDEBAR_STYLE = {
     "position": "fixed",
     "top": 0,
@@ -24,6 +26,11 @@ CONTENT_STYLE = {
     "backgroundColor": "#F8F9FA",
     "minHeight": "100vh"
 }
+
+def get_korea_time(utc_dt):
+    if not utc_dt: return ""
+    # 1. UTC임을 명시하고 2. KST로 변환
+    return utc_dt.replace(tzinfo=timezone.utc).astimezone(KST).strftime('%Y-%m-%d %H:%M:%S')
 
 # [1] 좌측 사이드바 (계층형 메뉴 적용)
 def create_sidebar():

@@ -2,7 +2,7 @@
 
 from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, DateTime, JSON
 from sqlalchemy.orm import declarative_base, relationship
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 STAGE_SCHEMA_CONFIG = {
     "접수 대기": {
@@ -16,10 +16,13 @@ STAGE_SCHEMA_CONFIG = {
     "접수 완료": {
         "columns": [
             {"name": "초기 용량(uL)", "id": "initial_volume", "editable": True, "type": "numeric"},
+            {"name": "초기 용량(uL)", "id": "initial_volume", "editable": True, "type": "numeric"},
+            {"name": "초기 용량(uL)", "id": "initial_volume", "editable": True, "type": "numeric"},
         ]
     },
     "QC 진행": {
         "columns": [
+            {"name": "진행 기관", "id": "qc_institution", "editable": False, "required": False},
             {"name": "검체 종류", "id": "specimen", "editable": False, "required": False},
             {"name": "추출 상태", "id": "extraction_status", "editable": True, "required": False},
             {"name": "농도(ng/uL)", "id": "concentration", "editable": True, "type": "numeric", "required": False},
@@ -152,4 +155,4 @@ class ActionLog(Base):
     previous_state = Column(String)
     new_state = Column(String)
     details = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone(timedelta(hours=9))).replace(tzinfo=None))

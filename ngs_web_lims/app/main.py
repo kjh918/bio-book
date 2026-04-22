@@ -21,13 +21,12 @@ from app.models._schema import Base
 # 2. schema.py를 읽어서 아주 깨끗한 최신 상태로 새로 만듭니다.
 #Base.metadata.create_all(bind=engine)
 #print("✅ 구버전 DB 파괴 및 최신 스키마로 완벽 재생성 완료!")
-print("✅ DB 테이블 점검 및 생성 완료!")
 
 app = FastAPI()
 
 # 1. 상세 앱들을 먼저 마운트
-excel_app = create_excel_tracker_app(requests_pathname_prefix="/excel/")
-app.mount("/excel", WSGIMiddleware(excel_app.server))
+#excel_app = create_excel_tracker_app(requests_pathname_prefix="/excel/")
+#app.mount("/excel", WSGIMiddleware(excel_app.server))
 
 reg_app = create_registration_app(requests_pathname_prefix="/reg/")
 app.mount("/reg", WSGIMiddleware(reg_app.server))
@@ -35,15 +34,15 @@ app.mount("/reg", WSGIMiddleware(reg_app.server))
 pro_app = create_project_view_app(requests_pathname_prefix="/pro/")
 app.mount("/pro", WSGIMiddleware(pro_app.server))
 
-report_app = create_report_app(requests_pathname_prefix="/report/")
-app.mount("/report", WSGIMiddleware(report_app.server))
+#report_app = create_report_app(requests_pathname_prefix="/report/")
+#app.mount("/report", WSGIMiddleware(report_app.server))
 
-biling_app = create_billing_dashboard_app(requests_pathname_prefix="/biling/")
-app.mount("/biling", WSGIMiddleware(biling_app.server))
+#biling_app = create_billing_dashboard_app(requests_pathname_prefix="/biling/")
+#app.mount("/biling", WSGIMiddleware(biling_app.server))
 
 kanban_app = create_kanban_app(requests_pathname_prefix="/kanban/")
 app.mount("/kanban", WSGIMiddleware(kanban_app.server))
 
 # 2. 루트 대시보드 마운트
-main_dash = create_summary_dashboard(requests_pathname_prefix="/")
+main_dash = create_kanban_app(requests_pathname_prefix="/")
 app.mount("/", WSGIMiddleware(main_dash.server))

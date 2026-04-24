@@ -161,15 +161,20 @@ def register_registration_callbacks(dash_app):
             return {"display": "none"}, dbc.Alert(f"🚨 파싱 오류: {e}", color="danger", className="py-2 mb-0"), "", [], []
 
     # 🚀 진짜 DB 저장 및 객체 생성 로직 (버튼 동작의 심장)
+    # 🚀 진짜 DB 저장 및 객체 생성 로직 (버튼 동작의 심장)
     @dash_app.callback(
         Output("save-new-message", "children"),
         Input("btn-save-new", "n_clicks"),
-        [State("parsed-sample-table", "data"), State("reg-facility-select", "value"), State("reg-panel-select", "value")],
+        [State("parsed-sample-table", "data"), 
+         State("reg-facility-select", "value"), 
+         State("reg-panel-select", "value"),
+         # 🚀 추가: 엑셀 원본 데이터를 다시 가져와서 상단 의뢰자 정보를 읽습니다.
+         State("upload-excel-data", "contents")], 
         prevent_initial_call=True
     )
-    def save_final_data_to_db(n_clicks, sample_data, facility_code, panel_code):
+    def save_final_data_to_db(n_clicks, sample_data, facility_code, panel_code, excel_contents):
         if not n_clicks: return no_update
-        if not sample_data or not facility_code or not panel_code: 
+        if not sample_data or not facility_code or not panel_code or not excel_contents: 
             return dbc.Alert("⚠️ 필수 정보 누락 또는 파싱된 데이터가 없습니다.", color="warning")
         
         # 🚀 엑셀 헤더 유연성 엔진 (Fuzzy Match)
@@ -181,40 +186,98 @@ def register_registration_callbacks(dash_app):
                     return v
             return None
 
+        # =======================================================
+        # 🚀 [추가] 의뢰자 정보 스마트 추출 로직
+        # =======================================================
+        client_facility, client_name, client_phone, client_email = "-", "-", "-", "-"
+        try:
+            import io
+            import base64
+            content_type, content_string = excel_contents.split(',')
+            decoded = base64.b64decode(content_string)
+            df_raw = pd.read_excel(io.BytesIO(decoded), header=None)
+            
+            for r in range(2, 12): 
+                row_vals = df_raw.iloc[r].dropna().astype(str).str.strip().tolist()
+                row_nospace = [x.replace(" ", "").lower() for x in row_vals]
+                
+                # 기관명 추출
+                if "기관명" in row_nospace:
+                    idx = row_nospace.index("기관명")
+                    if idx + 1 < len(row_vals): client_facility = row_vals[idx + 1]
+                    
+                # 성명 & 연락처 추출
+                if "실무자 성명" in row_nospace:
+                    idx_name = row_nospace.index("실무자 성명")
+                    if idx_name + 1 < len(row_vals): client_name = row_vals[idx_name + 1]
+                    
+                    if "연락처" in row_nospace:
+                        idx_phone = row_nospace.index("연락처")
+                        if idx_phone + 1 < len(row_vals): client_phone = row_vals[idx_phone + 1]
+                        
+                    # e-mail 추출 (성명 바로 다음 줄 스캔)
+                    if r + 1 < len(df_raw):
+                        next_row_vals = df_raw.iloc[r+1].dropna().astype(str).str.strip().tolist()
+                        next_row_nospace = [x.replace(" ", "").lower() for x in next_row_vals]
+                        
+                        if "e-mail" in next_row_nospace or "email" in next_row_nospace:
+                            idx_email = next_row_nospace.index("e-mail") if "e-mail" in next_row_nospace else next_row_nospace.index("email")
+                            if idx_email + 1 < len(next_row_vals): client_email = next_row_vals[idx_email + 1]
+
+            # 결측치 방어
+            client_facility = client_facility if client_facility.lower() != 'nan' else "-"
+            client_name = client_name if client_name.lower() != 'nan' else "-"
+            client_phone = client_phone if client_phone.lower() != 'nan' else "-"
+            client_email = client_email if client_email.lower() != 'nan' else "-"
+        except Exception as e:
+            print(f"⚠️ 의뢰자 정보 추출 실패: {e}") # 에러가 나더라도 샘플 저장은 되도록 pass 처리
+
+        # =======================================================
+        # DB 저장 파트
+        # =======================================================
         db = SessionLocal()
         try:
             today_str = datetime.now().strftime("%y%m%d")
             fac_info = FACILITY_MAPPING.get(facility_code, {"facility": "Unknown", "team": "Unknown"})
             
-            # 1. Order 생성
-            daily_order_count = db.query(Order).filter(Order.order_id.like(f"{facility_code}-{today_str}-%")).count()
-            new_order_id = f"{facility_code}-{today_str}-{str(daily_order_count + 1).zfill(2)}"
+            # 엑셀에서 뽑은 기관명이 있으면 우선 적용, 없으면 기본 FACILITY_MAPPING 적용
+            final_facility = client_facility if client_facility != "-" else fac_info["facility"]
             
+            total_orders_today = db.query(Order).filter(Order.order_id.like(f"%{today_str}%")).count()
+            batch_seq = str(total_orders_today + 1).zfill(2) # "01", "02", "03"...
+
+            new_order_id = f"GCX-{facility_code}-{today_str}-{batch_seq}"
+            
+            # 🚀 추출한 의뢰자 정보 모두 포함하여 Order 생성!
             new_order = Order(
-                order_id=new_order_id, facility=fac_info["facility"], client_team=fac_info["team"],
-                reception_date=datetime.utcnow().date(), sales_unit_price=0
+                order_id=new_order_id, 
+                facility=final_facility, 
+                client_team=fac_info["team"],
+                client_name=client_name,      # ✨ 새롭게 추출한 데이터
+                client_email=client_email,    # ✨ 새롭게 추출한 데이터
+                client_phone=client_phone,    # ✨ 새롭게 추출한 데이터
+                reception_date=datetime.utcnow().date(), 
+                sales_unit_price=0
             )
             db.add(new_order)
             db.flush()
             
-            # 2. Sample 매핑 및 순차 번호 발급
+            # 3. Sample 매핑 및 순차 번호 발급
             mapping_rule = get_full_mapping_for_panel(panel_code)
-            daily_sample_count = db.query(Sample).filter(Sample.sample_id.like(f"ACC-{today_str}-%")).count()
-            success_count = 0
+            success_count = 0 
             
             for raw_row in sample_data:
                 base_data, extra_metadata = {}, {}
-                
                 for excel_col, map_info in mapping_rule.items():
-                    val = get_fuzzy_val(raw_row, excel_col) # 🚀 퍼지 매치 적용
+                    val = get_fuzzy_val(raw_row, excel_col) 
                     clean_val = str(val).strip() if val is not None and str(val).strip() not in ["nan", "NaT", ""] else None
                     if map_info["is_extra"]: extra_metadata[map_info["db_col"]] = clean_val
                     else: base_data[map_info["db_col"]] = clean_val
 
-                # 환자 ID가 없으면 스킵
                 if not base_data.get("sample_name"): continue
                 
-                internal_sample_id = f"ACC-{today_str}-{str(daily_sample_count + success_count + 1).zfill(3)}"
+                sample_seq = str(success_count + 1).zfill(3) 
+                internal_sample_id = f"ACC-{today_str}-{batch_seq}-{sample_seq}"
                 new_sample = Sample(
                     order_id=new_order.id, sample_id=internal_sample_id, target_panel=panel_code, current_status="접수 대기",
                     sample_name=base_data["sample_name"], cancer_type=base_data.get("cancer_type"), specimen=base_data.get("specimen"),
@@ -224,19 +287,19 @@ def register_registration_callbacks(dash_app):
                 db.add(new_sample)
                 success_count += 1
                 
-            # 🚀 만약 0건이 매핑되었다면 (양식 오류 등)
             if success_count == 0:
                 db.rollback()
                 return dbc.Alert("🚨 엑셀에서 유효한 검체 정보(Patient ID)를 찾지 못했습니다. 매핑 양식을 확인해 주세요.", color="danger")
 
-            db.commit() # 🚀 DB 영구 저장
-            return dbc.Alert(f"🎉 성공! [{new_order_id}]로 총 {success_count}건 등록 완료. (칸반 보드를 확인하세요)", color="success")
+            db.commit() 
+            return dbc.Alert(f"🎉 성공! 의뢰자[{client_name}]님의 샘플 총 {success_count}건 등록 완료. (칸반 보드를 확인하세요)", color="success")
             
         except Exception as e:
             db.rollback()
             print(traceback.format_exc())
             return dbc.Alert(f"🚨 DB 저장 오류: {e}", color="danger")
-        finally: db.close()
+        finally: 
+            db.close()
 
 def create_registration_app(requests_pathname_prefix: str):
     lims = LimsDashApp(__name__, requests_pathname_prefix)

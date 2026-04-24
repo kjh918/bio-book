@@ -14,39 +14,87 @@ STAGE_SCHEMA_CONFIG = {
         ]
     },
     "접수 완료": {
-        "columns": [
-            {"name": "초기 용량(uL)", "id": "initial_volume", "editable": True, "type": "numeric"},
-            {"name": "초기 용량(uL)", "id": "initial_volume", "editable": True, "type": "numeric"},
-            {"name": "초기 용량(uL)", "id": "initial_volume", "editable": True, "type": "numeric"},
-        ]
-    },
+            "columns": [
+                {"name": "초기 용량(uL)", "id": "volume", "editable": True, "type": "numeric"},
+                {"name": "검사진행 여부", "id": "test_progress", "editable": True, "presentation": "dropdown", "options": ["O", "X", "-"]},
+                {"name": "Dead Line", "id": "dead_line", "editable": True, "type": "date"},
+            ]
+        },    
     "QC 진행": {
         "columns": [
-            {"name": "진행 기관", "id": "qc_institution", "editable": False, "required": False},
-            {"name": "검체 종류", "id": "specimen", "editable": False, "required": False},
-            {"name": "추출 상태", "id": "extraction_status", "editable": True, "required": False},
-            {"name": "농도(ng/uL)", "id": "concentration", "editable": True, "type": "numeric", "required": False},
+            # 📌 공통 QC 항목
+            {"name": "QC 판정", "id": "sample_qc", "editable": True, "presentation": "dropdown", "options": ["PASS", "FAIL", "HOLD", "RE-RUN"]},
+            {"name": "농도(ng/uL)", "id": "concentration", "editable": True, "type": "numeric"},
+            {"name": "순도(A260/280)", "id": "purity", "editable": True, "type": "numeric"},
+            {"name": "현재 용량(uL)", "id": "volume", "editable": True, "type": "numeric"},
+            {"name": "총량(μg)", "id": "total_amount", "editable": True, "type": "numeric"},
+            
+            # 🧬 RNA 전용 항목
+            {"name": "RIN (RNA)", "id": "rin", "editable": True, "type": "numeric"},
+            {"name": "DV200 (%)", "id": "dv200", "editable": True, "type": "numeric"},
+            
+            # 🧬 DNA 전용 항목 (필요에 따라 추가)
+            {"name": "DIN (DNA)", "id": "din", "editable": True, "type": "numeric"},
         ]
     },
     "시퀀싱 진행": {
         "columns": [
-            {"name": "재실험 횟수", "id": "attempt_num", "editable": True, "type": "numeric", "required": False},
+            {"name": "SEQ ID", "id": "seq_id", "editable": True},
+            {"name": "Depth/Output", "id": "depth_output", "editable": True},
             {"name": "달성 Depth/Output", "id": "depth_output", "editable": True, "required": False},
+            {"name": "재실험 횟수", "id": "attempt_num", "editable": True, "type": "numeric", "required": False},
+            {"name": "Seq QC Report Date", "id": "seq_qc_report_date", "editable": True, "type": "date"},
         ]
     },
     "분석 진행": {
         "columns": [
-            {"name": "종양 비율(%)", "id": "tumor_purity", "editable": True, "type": "numeric", "required": False},
-            {"name": "매핑률(%)", "id": "mapped_reads_pct", "editable": True, "type": "numeric", "required": False},
+            {"name": "Std Report Date 01", "id": "standard_report_date_01", "editable": True, "type": "date"},
+            {"name": "Std Report Date 02", "id": "standard_report_date_02", "editable": True, "type": "date"},
+            {"name": "Adv Report Date 01", "id": "advanced_report_date_01", "editable": True, "type": "date"},
+            {"name": "Adv Report Date 02", "id": "advanced_report_date_02", "editable": True, "type": "date"},
         ]
     },
     "정산 대기": {
         "columns": [
-            {"name": "세금계산서 발행일", "id": "tax_invoice_date", "editable": True, "required": False},
+            # 매출 관련
+            {"name": "매출 여부", "id": "sales_yn", "editable": True, "presentation": "dropdown", "options": ["Y", "N", "-"]},
+            {"name": "매출 단가", "id": "sales_unit_price", "editable": True, "type": "numeric"},
+            {"name": "견적서 발행", "id": "quotation_yn", "editable": True, "presentation": "dropdown", "options": ["Y", "N", "-"]},
+            {"name": "Quotation ID", "id": "quotation_id", "editable": True},
+            {"name": "거래명세서 발행일", "id": "trading_statement_date", "editable": True, "type": "date"},
+            {"name": "세금계산서 발행일", "id": "tax_invoice_date", "editable": True, "type": "date"},
+            # 매입 및 지출 관련
+            {"name": "매입 여부", "id": "purchase_yn", "editable": True, "presentation": "dropdown", "options": ["Y", "N", "-"]},
+            {"name": "매입 단가", "id": "purchase_unit_price", "editable": True, "type": "numeric"},
+            {"name": "품의(지출) 작성일", "id": "expense_report_date", "editable": True, "type": "date"},
+            {"name": "품의 문서번호", "id": "expense_doc_num", "editable": True},
+            {"name": "지출결의 번호", "id": "expense_resolution_num", "editable": True},
         ]
     }
 }
-
+REPORT_SCHEMA_CONFIG = {
+    "QC Report": {
+        "description": "실험 및 시퀀싱 품질 검증을 위한 내부 보고서",
+        "columns": [
+            {"name": "QC 결과", "id": "sample_qc", "editable": True, "presentation": "dropdown", "options": ["PASS", "FAIL", "PENDING"]},
+            {"name": "QC 발행일", "id": "sample_qc_report_date", "editable": True, "type": "date"},
+            {"name": "달성 Depth", "id": "depth_output", "editable": False}, # 시퀀싱 단계에서 넘어온 데이터 (읽기 전용)
+            {"name": "추출 농도", "id": "concentration", "editable": False}, 
+            {"name": "검토자", "id": "qc_reviewer", "editable": True},
+        ]
+    },
+    "Clinical Report": {
+        "description": "최종 분석 결과를 바탕으로 고객/의료진에게 나가는 결과지",
+        "columns": [
+            {"name": "보고서 타입", "id": "report_type", "editable": True, "presentation": "dropdown", "options": ["Standard", "Advanced"]},
+            {"name": "최종 발행일", "id": "standard_report_date_01", "editable": True, "type": "date"},
+            {"name": "종양 비율(%)", "id": "tumor_purity", "editable": False}, # 분석 단계 데이터
+            {"name": "매핑률(%)", "id": "mapped_reads_pct", "editable": False},
+            {"name": "판독의", "id": "pathologist_name", "editable": True},
+            {"name": "특이사항", "id": "report_comment", "editable": True},
+        ]
+    }
+}
 Base = declarative_base()
 
 # ==========================================
@@ -59,6 +107,9 @@ class Order(Base):
     order_id = Column(String, unique=True, index=True, nullable=False) # C11-260421-01
     facility = Column(String, nullable=False)
     client_team = Column(String)
+    client_name = Column(String)    # 🚀 추가: 의뢰자 이름
+    client_email = Column(String)   # 🚀 추가: 의뢰자 이메일
+    client_phone = Column(String)   # 🚀 추가: 의뢰자 연락처
     reception_date = Column(Date, nullable=False)
     reception_type = Column(String, default="미정") # 🚀 접수 형태 (택배, 퀵 등)
     sales_unit_price = Column(Integer, default=0)

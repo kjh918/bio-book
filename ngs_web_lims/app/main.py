@@ -7,7 +7,7 @@ from app.pages.dashboard import create_summary_dashboard
 from app.pages.project_view import create_project_view_app
 from app.pages.registration import create_registration_app
 from app.pages.excel_tracker import create_excel_tracker_app
-from app.pages.report import create_report_app
+from app.pages.report import create_report_view_app
 from app.pages.biling_dashboard import create_billing_dashboard_app 
 from app.pages.kanban import create_kanban_app 
 
@@ -34,8 +34,8 @@ app.mount("/reg", WSGIMiddleware(reg_app.server))
 pro_app = create_project_view_app(requests_pathname_prefix="/pro/")
 app.mount("/pro", WSGIMiddleware(pro_app.server))
 
-#report_app = create_report_app(requests_pathname_prefix="/report/")
-#app.mount("/report", WSGIMiddleware(report_app.server))
+report_app = create_report_view_app(requests_pathname_prefix="/report/")
+app.mount("/report", WSGIMiddleware(report_app.server))
 
 #biling_app = create_billing_dashboard_app(requests_pathname_prefix="/biling/")
 #app.mount("/biling", WSGIMiddleware(biling_app.server))

@@ -20,18 +20,89 @@ SIDEBAR_STYLE = {
     "overflowY": "auto"
 }
 
+#CONTENT_STYLE = {
+#    "marginLeft": "16rem", # 사이드바 너비만큼 메인 컨텐츠 우측으로 밀기
+#    "padding": "2rem 2rem", 
+#    "backgroundColor": "#F8F9FA",
+#    "minHeight": "100vh"
+#}
 CONTENT_STYLE = {
-    "marginLeft": "16rem", # 사이드바 너비만큼 메인 컨텐츠 우측으로 밀기
-    "padding": "2rem 2rem", 
-    "backgroundColor": "#F8F9FA",
-    "minHeight": "100vh"
+    "marginLeft": "0",      # 🚀 0으로 변경하거나 아예 줄을 지우세요!
+    "marginRight": "0",
+    "padding": "2rem 1rem",
 }
+from dash import html
+import dash_bootstrap_components as dbc
+from dash_iconify import DashIconify
 
-def get_korea_time(utc_dt):
-    if not utc_dt: return ""
-    # 1. UTC임을 명시하고 2. KST로 변환
-    return utc_dt.replace(tzinfo=timezone.utc).astimezone(KST).strftime('%Y-%m-%d %H:%M:%S')
+def create_navbar():
+    return dbc.Navbar(
+        dbc.Container([
+            # 🚀 1. 왼쪽: 로고 및 타이틀
+            html.A(
+                dbc.Row([
+                    dbc.Col(DashIconify(icon="carbon:dna", width=35, color="#18BC9C")),
+                    dbc.Col(dbc.NavbarBrand("NGS LIMS", className="ms-2 fw-bold fs-4")),
+                ], align="center", className="g-0"),
+                href="/",
+                style={"textDecoration": "none"},
+            ),
+            
+            # 🚀 2. 오른쪽: 토글 버튼 (화면이 좁아질 때 나타남)
+            dbc.NavbarToggler(id="navbar-toggler", n_clicks=0),
+            
+            # 🚀 3. 메뉴 리스트 (드롭다운 방식)
+            dbc.Collapse(
+                dbc.Nav([
+                    # 📌 GROUP 1: OVERVIEW
+                    dbc.DropdownMenu(
+                        label="📊 OVERVIEW",
+                        children=[
+                            dbc.DropdownMenuItem([DashIconify(icon="carbon:dashboard", className="me-2"), "Dashboard"],active="exact", external_link=True,  href="/"),
+                            dbc.DropdownMenuItem([DashIconify(icon="carbon:data-table", className="me-2"), "Project View"], active="exact", external_link=True, href="/pro/"),
+                        ],
+                        nav=True, in_navbar=True, className="me-2 fw-bold"
+                    ),
+                    
+                    # 📌 GROUP 2: WORKFLOW
+                    dbc.DropdownMenu(
+                        label="🧪 WORKFLOW",
+                        children=[
+                            dbc.DropdownMenuItem([DashIconify(icon="carbon:document-add", className="me-2"), "Registration"],active="exact", external_link=True,  href="/reg/"),
+                            dbc.DropdownMenuItem([DashIconify(icon="carbon:finance", className="me-2"), "Workflow (Kanban)"], active="exact", external_link=True, href="/kanban/"),
+                            dbc.DropdownMenuItem([DashIconify(icon="carbon:report", className="me-2"), "QC Report"], active="exact", external_link=True, href="/report/"),
+                        ],
+                        nav=True, in_navbar=True, className="me-2 fw-bold"
+                    ),
 
+                    # 📌 GROUP 3: MANAGEMENT
+                    dbc.DropdownMenu(
+                        label="💼 MANAGEMENT",
+                        children=[
+                            dbc.DropdownMenuItem([DashIconify(icon="carbon:finance", className="me-2"), "매입/매출"], active="exact", external_link=True, href="/biling/"),
+                            dbc.DropdownMenuItem([DashIconify(icon="carbon:database", className="me-2"), "Raw DB Excel"], active="exact", external_link=True, href="/excel/"),
+                        ],
+                        nav=True, in_navbar=True, className="me-2 fw-bold"
+                    ),
+                    
+                    # 👤 유저 정보
+                    dbc.NavItem(
+                        html.Div([
+                            DashIconify(icon="carbon:user-avatar-filled-alt", width=25, className="me-2 text-light"),
+                            html.Span("Admin", className="text-light small")
+                        ], className="d-flex align-items-center ms-4 h-100")
+                    )
+                ], className="ms-auto", navbar=True), # ms-auto로 메뉴를 우측 정렬
+                id="navbar-collapse",
+                is_open=False,
+                navbar=True,
+            ),
+        ], fluid=True),
+        color="dark",      # 배경색 어둡게
+        dark=True,         # 글자색 밝게
+        className="mb-4 shadow-sm",
+        style={"padding": "10px 20px"}
+    )
 # [1] 좌측 사이드바 (계층형 메뉴 적용)
 def create_sidebar():
     return html.Div([
@@ -96,13 +167,6 @@ def create_sidebar():
         
     ], style=SIDEBAR_STYLE)
 
-# [2] 전체 레이아웃 래퍼
-def apply_modern_layout(page_content):
-    return html.Div([
-        create_sidebar(),
-        html.Div(page_content, style=CONTENT_STYLE)
-    ])
-
 def create_project_summary_card(order_obj, current_sample_count=None):
     sample_count = current_sample_count if current_sample_count is not None else len(order_obj.samples)
     revenue = (order_obj.sales_unit_price or 0) * sample_count
@@ -158,3 +222,11 @@ def create_project_summary_card(order_obj, current_sample_count=None):
             
         ], className="pb-3")
     ], className="mb-3 shadow-sm border-primary", style={"borderWidth": "2px"})
+
+
+# [2] 전체 레이아웃 래퍼
+def apply_modern_layout(page_content):
+    return html.Div([
+        create_navbar(),
+        html.Div(page_content, style=CONTENT_STYLE)
+    ])

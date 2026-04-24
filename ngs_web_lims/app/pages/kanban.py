@@ -46,12 +46,13 @@ def create_kanban_layout():
                     # 왼쪽: 기존 일괄 덮어쓰기 도우미
                     html.Div([
                         html.Strong("✨ 빠른 덮어쓰기:", className="text-success me-2"),
-                        dbc.Select(id="bulk-col-select", options=[
-                            {"label": "📦 입고 확인", "value": "sample_received"},
-                            {"label": "👁️ 실물 상태", "value": "visual_inspection"},
-                            {"label": "🔄 진행 상태", "value": "current_status"},
-                            {"label": "📝 특이사항/메모", "value": "issue_comment"}
-                        ], placeholder="변경할 기둥 선택...", style={"width": "180px"}, className="me-2 shadow-sm"),
+                        dbc.Select(
+                            id="bulk-col-select", 
+                            options=[], # 🚀 여기를 비웁니다!
+                            placeholder="변경할 항목 선택...", 
+                            style={"width": "180px"}, 
+                            className="me-2 shadow-sm"
+                        ),
                         dbc.Input(id="bulk-val-input", placeholder="입력값 (예: Pass...)", style={"width": "180px"}, className="me-2 shadow-sm"),
                         dbc.Button("적용", id="btn-bulk-apply", color="success", outline=True, size="sm", className="fw-bold shadow-sm"),
                     ], className="d-flex align-items-center"),
@@ -163,18 +164,28 @@ def register_kanban_callbacks(dash_app):
 
     # 모달 오픈 콜백 (AG Grid 용으로 columnDefs, rowData 반환)
     @dash_app.callback(
-        [Output("sample-detail-modal", "is_open"), Output("modal-detail-title", "children"), Output("modal-shared-card-container", "children"),
-         Output("modal-datatable", "rowData"), Output("modal-datatable", "columnDefs"), 
-         Output("current-modal-order-id", "data")],
-        [Input({"type": "btn-open-modal", "order_id": ALL, "stage": ALL}, "n_clicks"), Input("btn-save-modal", "n_clicks")],
-        [State("sample-detail-modal", "is_open"), State("current-modal-order-id", "data")],
+        [
+            Output("sample-detail-modal", "is_open"), 
+            Output("modal-detail-title", "children"), 
+            Output("modal-shared-card-container", "children"),
+            Output("modal-datatable", "rowData"), 
+            Output("modal-datatable", "columnDefs"), 
+            Output("current-modal-order-id", "data"),
+            Output("bulk-col-select", "options") # 🚀 7번째 Output
+        ],
+        [Input({"type": "btn-open-modal", "order_id": ALL, "stage": ALL}, "n_clicks"), 
+         Input("btn-save-modal", "n_clicks")],
+        [State("sample-detail-modal", "is_open"), 
+         State("current-modal-order-id", "data")],
         prevent_initial_call=True
     )
     def handle_modal(open_clicks, save_clicks, is_open, current_oid):
-        if not ctx.triggered: return [no_update] * 6
+        # 🚀 1. 예외 처리 반환값도 모두 7개로 맞춰야 합니다. (* 7 로 변경)
+        if not ctx.triggered: return [no_update] * 7
         tid = ctx.triggered[0]["prop_id"].split(".")[0]
 
-        if tid == "btn-save-modal": return False, no_update, no_update, no_update, no_update, no_update
+        # 🚀 2. 저장 버튼 클릭 시에도 7개를 반환해야 합니다.
+        if tid == "btn-save-modal": return False, no_update, no_update, no_update, no_update, no_update, no_update
 
         db = SessionLocal()
         try:
@@ -182,17 +193,19 @@ def register_kanban_callbacks(dash_app):
             stage = "접수 대기"
 
             if "btn-open-modal" in tid:
-                if all(c is None for c in open_clicks): return [no_update] * 6
+                # 🚀 3. 예외 처리 반환값 7개로 수정
+                if all(c is None for c in open_clicks): return [no_update] * 7
                 btn_data = json.loads(tid)
                 oid, stage = btn_data["order_id"], btn_data["stage"]
 
-            if not oid: return [no_update] * 6
+            # 🚀 4. 예외 처리 반환값 7개로 수정
+            if not oid: return [no_update] * 7
             order = db.query(Order).filter(Order.order_id == oid).first()
-            if not order: return [no_update] * 6
+            if not order: return [no_update] * 7
 
             samples = [s for s in order.samples if s.current_status == stage]
 
-            # 🚀 AG Grid 컬럼 설정
+            # AG Grid 컬럼 설정
             columns = [
                 {"headerName": "Regist ID", "field": "sample_id", "editable": False, "width": 150},
                 {"headerName": "Patient ID / Sample ID", "field": "sample_name", "editable": False, "width": 150},
@@ -200,19 +213,36 @@ def register_kanban_callbacks(dash_app):
             ]
 
             stage_config = STAGE_SCHEMA_CONFIG.get(stage, {"columns": []})
+            
+            # 동적 bulk_options 생성
+            bulk_options = [
+                {"label": col["name"], "value": col["id"]} 
+                for col in stage_config["columns"] 
+                if col.get("editable", True)
+            ]
+            
             for col in stage_config["columns"]:
                 ag_col = {"headerName": col["name"], "field": col["id"], "editable": col.get("editable", True)}
                 if col.get("presentation") == "dropdown": 
                     ag_col["cellEditor"] = "agSelectCellEditor"
-                    if col["id"] == "is_dropped": ag_col["cellEditorParams"] = {"values": ["유지", "제외"]}
-                    elif col["id"] == "visual_inspection": ag_col["cellEditorParams"] = {"values": ["Pass", "Fail", "대기중"]}
-                    elif col["id"] == "sample_received": ag_col["cellEditorParams"] = {"values": ["대기중", "입고 완료"]}
-                    elif col["id"] == "extraction_status": ag_col["cellEditorParams"] = {"values": ["O", "X", "-"]}
+                    # 이전에 알려드린 options 자동 연동 로직 적용 (스키마에 맞춤)
+                    if "options" in col:
+                        ag_col["cellEditorParams"] = {"values": col["options"]}
+                    else:
+                        # 하드코딩 백업
+                        if col["id"] == "is_dropped": ag_col["cellEditorParams"] = {"values": ["유지", "제외"]}
+                        elif col["id"] == "visual_inspection": ag_col["cellEditorParams"] = {"values": ["Pass", "Fail", "대기중"]}
+                        elif col["id"] == "sample_received": ag_col["cellEditorParams"] = {"values": ["대기중", "입고 완료"]}
+                        elif col["id"] == "extraction_status": ag_col["cellEditorParams"] = {"values": ["O", "X", "-"]}
                 columns.append(ag_col)
                 
+            bulk_options.extend([
+                {"label": "🔄 진행 상태", "value": "current_status"},
+                {"label": "📝 특이사항/메모", "value": "issue_comment"}
+            ])
+            
             columns.extend([
                 {"headerName": "진행 상태", "field": "current_status", "editable": True, "cellEditor": "agSelectCellEditor", "cellEditorParams": {"values": ["접수 대기", "접수 완료", "QC 진행", "시퀀싱 진행", "분석 진행", "정산 대기", "보류/실패","재실험"]}, "width": 120},
-                
                 {"headerName": "특이사항/메모", "field": "issue_comment", "editable": True, "cellEditor": "agLargeTextCellEditor", "cellEditorPopup": True, "cellEditorParams": {"maxLength": 1000, "rows": 6, "cols": 50}, "flex": 1, "minWidth": 250}
             ])
 
@@ -230,9 +260,11 @@ def register_kanban_callbacks(dash_app):
 
             shared_project_card = create_project_summary_card(order, len(samples))
             
-            return True, f"📋 프로젝트 상세 ({stage})", shared_project_card, table_data, columns, oid
+            # 🚀 5. 최종 반환값에 bulk_options 추가 (총 7개)
+            return True, f"📋 프로젝트 상세 ({stage})", shared_project_card, table_data, columns, oid, bulk_options
+            
         finally: db.close()
-
+        
     # 🚀 엑셀 다운로드 (AG Grid의 rowData 참조)
     @dash_app.callback(
         Output("download-modal-excel", "data"),

@@ -69,8 +69,9 @@ def create_navbar():
                         label="🧪 WORKFLOW",
                         children=[
                             dbc.DropdownMenuItem([DashIconify(icon="carbon:document-add", className="me-2"), "Registration"],active="exact", external_link=True,  href="/reg/"),
-                            dbc.DropdownMenuItem([DashIconify(icon="carbon:finance", className="me-2"), "Workflow (Kanban)"], active="exact", external_link=True, href="/kanban/"),
                             dbc.DropdownMenuItem([DashIconify(icon="carbon:report", className="me-2"), "QC Report"], active="exact", external_link=True, href="/report/"),
+                            dbc.DropdownMenuItem([DashIconify(icon="carbon:document-add", className="me-2"), "Data Registration"],active="exact", external_link=True,  href="/data_reg/"),
+                            dbc.DropdownMenuItem([DashIconify(icon="carbon:document-add", className="me-2"), "Analysis"],active="exact", external_link=True,  href="/analysis/"),
                         ],
                         nav=True, in_navbar=True, className="me-2 fw-bold"
                     ),
@@ -80,7 +81,6 @@ def create_navbar():
                         label="💼 MANAGEMENT",
                         children=[
                             dbc.DropdownMenuItem([DashIconify(icon="carbon:finance", className="me-2"), "매입/매출"], active="exact", external_link=True, href="/biling/"),
-                            dbc.DropdownMenuItem([DashIconify(icon="carbon:database", className="me-2"), "Raw DB Excel"], active="exact", external_link=True, href="/excel/"),
                         ],
                         nav=True, in_navbar=True, className="me-2 fw-bold"
                     ),
@@ -151,8 +151,6 @@ def create_sidebar():
             dbc.NavLink([DashIconify(icon="carbon:finance", width=20, className="me-2"), "매입/매출"], 
                         href="/biling/", active="exact", external_link=True, className="text-white mb-1 rounded hover-bg-primary ms-2"),
             
-            dbc.NavLink([DashIconify(icon="carbon:database", width=20, className="me-2"), "Raw DB Excel"], 
-                        href="/excel/", active="exact", external_link=True, className="text-white mb-3 rounded hover-bg-primary ms-2"),
             
         ], vertical=True, pills=True),
 
@@ -207,7 +205,7 @@ def create_project_summary_card(order_obj, current_sample_count=None):
     log_container = html.Div(log_items, style={"maxHeight": "140px", "overflowY": "auto", "backgroundColor": "#f8f9fa", "padding": "8px", "borderRadius": "5px", "border": "1px solid #dee2e6"})
 
     return dbc.Card([
-        dbc.CardHeader(html.H5(f"📂 프로젝트 요약 및 히스토리: {order_obj.order_id}", className="mb-0 fw-bold text-primary")),
+        dbc.CardHeader(html.H5(f"📂 Projcet : {order_obj.order_id}", className="mb-0 fw-bold text-primary")),
         dbc.CardBody([
             # 🚀 글씨가 겹치지 않도록 반응형(md=3, sm=6) 컬럼 적용
             dbc.Row([

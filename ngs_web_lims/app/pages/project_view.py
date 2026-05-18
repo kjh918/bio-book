@@ -14,7 +14,7 @@ from app.ui.shared_ui import create_project_summary_card # 기존 카드 생성 
 
 def create_project_view_layout():
     return html.Div([
-        html.H3("📂 프로젝트(의뢰) 상세 조회", className="fw-bold text-secondary mb-4"),
+        html.H3("📂 프로젝트 상세 조회", className="fw-bold text-secondary mb-4"),
         
         dbc.Row([
             # --- 좌측: 최신 주문 목록 (4칸) ---
@@ -40,7 +40,7 @@ def create_project_view_layout():
             # --- 우측: 상세 정보 뷰 (8칸 - 모달 스타일) ---
             dbc.Col([
                 html.Div(id='project-detail-container', children=[
-                    html.Div("👈 좌측에서 주문을 선택하면 상세 정보가 표시됩니다.", 
+                    html.Div("👈 좌측에서 프로젝트를 선택하면 상세 정보가 표시됩니다.", 
                              className="text-muted text-center mt-5 fs-5")
                 ], className="p-4 bg-white border-0 rounded-4 shadow-sm h-100", style={'minHeight': '650px'})
             ], width=8),
@@ -80,7 +80,7 @@ def register_project_callbacks(dash_app):
         print(f"DEBUG: 선택된 행 정보: {selected_rows}")
         
         if not selected_rows:
-            return html.Div("👈 좌측에서 주문을 선택하세요.", className="text-muted text-center mt-5 fs-5")
+            return html.Div("👈 좌측에서 프로젝트를 선택하세요.", className="text-muted text-center mt-5 fs-5")
 
         # 🚀 선택된 데이터 가져오기 (단일 선택이므로 첫 번째 행)
         selected_row = selected_rows[0]
@@ -106,7 +106,7 @@ def register_project_callbacks(dash_app):
             return html.Div([
                 create_project_summary_card(order, len(order.samples)),
                 html.Hr(className="my-4"),
-                html.H5("📋 해당 주문 시료 목록", className="fw-bold mb-3"),
+                html.H5("📋 해당 프로젝트 샘플 목록", className="fw-bold mb-3"),
                 detail_table
             ])
         finally:

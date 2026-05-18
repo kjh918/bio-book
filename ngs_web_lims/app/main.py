@@ -3,13 +3,13 @@ from fastapi import FastAPI
 from starlette.middleware.wsgi import WSGIMiddleware
 
 # 중간 폴더들이 사라져서 경로가 엄청 직관적입니다!
-from app.pages.dashboard import create_summary_dashboard
 from app.pages.project_view import create_project_view_app
 from app.pages.registration import create_registration_app
-from app.pages.excel_tracker import create_excel_tracker_app
+from app.pages.analysis import create_analysis_app
 from app.pages.report import create_report_view_app
 from app.pages.biling_dashboard import create_billing_dashboard_app 
 from app.pages.kanban import create_kanban_app 
+from app.pages.data_registration import create_data_registry_app 
 
 from app.core.database import engine
 from app.models._schema import Base
@@ -31,6 +31,9 @@ app = FastAPI()
 reg_app = create_registration_app(requests_pathname_prefix="/reg/")
 app.mount("/reg", WSGIMiddleware(reg_app.server))
 
+data_reg_app = create_data_registry_app(requests_pathname_prefix="/data_reg/")
+app.mount("/data_reg", WSGIMiddleware(data_reg_app.server))
+
 pro_app = create_project_view_app(requests_pathname_prefix="/pro/")
 app.mount("/pro", WSGIMiddleware(pro_app.server))
 
@@ -42,6 +45,9 @@ app.mount("/report", WSGIMiddleware(report_app.server))
 
 kanban_app = create_kanban_app(requests_pathname_prefix="/kanban/")
 app.mount("/kanban", WSGIMiddleware(kanban_app.server))
+
+analysis_app = create_analysis_app(requests_pathname_prefix="/analysis/")
+app.mount("/analysis", WSGIMiddleware(analysis_app.server))
 
 # 2. 루트 대시보드 마운트
 main_dash = create_kanban_app(requests_pathname_prefix="/")

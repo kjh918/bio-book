@@ -45,7 +45,7 @@ def create_kanban_layout():
                 html.Div([
                     # 왼쪽: 기존 일괄 덮어쓰기 도우미
                     html.Div([
-                        html.Strong("✨ 빠른 덮어쓰기:", className="text-success me-2"),
+                        html.Strong("✨ 덮어쓰기:", className="text-success me-2"),
                         dbc.Select(
                             id="bulk-col-select", 
                             options=[], # 🚀 여기를 비웁니다!

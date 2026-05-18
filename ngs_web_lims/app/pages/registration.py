@@ -37,11 +37,11 @@ def create_registration_layout():
                 html.H5("1. 접수 기본 정보 설정 및 양식 다운로드", className="fw-bold text-primary mb-3"),
                 dbc.Row([
                     dbc.Col([
-                        html.Label("1-1. 의뢰 기관 (필수)", className="fw-bold text-danger small"),
+                        html.Label("1-1. 의뢰 기관 (필수)", className="fw-bold text-danger small mb-2"),
                         dcc.Dropdown(id="reg-facility-select", options=facility_opts, placeholder="기관 코드 선택...", className="shadow-sm mb-2")
                     ], width=6),
                     dbc.Col([
-                        html.Label("1-2. 검사 종류 (필수)", className="fw-bold text-danger small"),
+                        html.Label("1-2. 검사 종류 (필수)", className="fw-bold text-danger small mb-2"),
                         dcc.Dropdown(id="reg-panel-select", options=[
                             {"label": "WGS", "value": "WGS"},
                             {"label": "WES", "value": "WES"},
@@ -53,7 +53,7 @@ def create_registration_layout():
                 ]),
                 dbc.Row([
                     dbc.Col([
-                        dbc.Button("📥 선택한 검사의 빈 양식 다운로드", id="btn-download-template", color="info", outline=True, className="w-100 fw-bold shadow-sm"),
+                        dbc.Button("📥 선택한 검사의 빈 양식 다운로드", id="btn-download-template", outline=True, className="w-100 fw-bold shadow-sm"),
                         dcc.Download(id="download-template-file")
                     ], width=12)
                 ], className="mb-3 p-3 bg-light rounded border"),

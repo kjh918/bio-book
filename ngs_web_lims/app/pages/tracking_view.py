@@ -41,8 +41,8 @@ def register_tracking_callbacks(dash_app):
         [Output("track-result-container", "style"),
          Output("track-result-container", "children")],
         [Input("btn-track-search", "n_clicks"),
-         Input("track-search-input", "n_submit"), # 엔터키 지원
-         Input({"type": "btn-quick-receive", "sample_id": "ALL"}, "n_clicks")], # 빠른 접수 버튼
+         Input("track-search-input", "n_submit"), 
+         Input({"type": "btn-quick-receive", "sample_id": "ALL"}, "n_clicks")], 
         [State("track-search-input", "value")],
         prevent_initial_call=True
     )
@@ -51,10 +51,9 @@ def register_tracking_callbacks(dash_app):
         
         db = SessionLocal()
         try:
-            # 트리거 확인 (접수 버튼을 눌렀는지, 검색을 눌렀는지)
             triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
             
-            # 🚀 샘플 조회 (Sample ID 또는 Patient ID로 유연하게 검색)
+            # 🚀 샘플 조회
             search_val = search_val.strip()
             sample = db.query(Sample).filter(
                 (Sample.sample_id == search_val) | (Sample.sample_name == search_val)
@@ -68,57 +67,86 @@ def register_tracking_callbacks(dash_app):
                 if sample.current_status == "접수 대기":
                     sample.current_status = "접수 완료"
                     db.commit()
-                    db.refresh(sample) # 업데이트된 상태 반영
+                    db.refresh(sample) 
 
-            # 의뢰(Order) 정보 가져오기
             order = sample.order
 
             # --------------------------------------------------------
-            # 🎨 UI 구성 1: 샘플 메타 정보 카드
+            # 🎨 UI 구성 1: 샘플 메타 정보 카드 (최신 스키마 적용 🚀)
             # --------------------------------------------------------
             meta_card = dbc.Card([
                 dbc.CardHeader(html.H5("📝 검체 상세 정보", className="fw-bold mb-0")),
                 dbc.CardBody([
                     html.Table([
                         html.Tbody([
-                            html.Tr([html.Th("Regist ID", style={"width": "30%", "color": "#666"}), html.Td(html.Strong(sample.sample_id, className="text-primary"))]),
-                            html.Tr([html.Th("Patient ID"), html.Td(sample.sample_name)]),
-                            html.Tr([html.Th("의뢰 기관"), html.Td(f"{order.facility} ({order.client_team})" if order else "-")]),
+                            # 📌 1. 접수 ID (Order ID)
+                            html.Tr([
+                                html.Th("접수 ID (Order ID)", style={"width": "40%", "color": "#666"}), 
+                                html.Td(html.Strong(sample.order_id, className="text-secondary"))
+                            ]),
+                            
+                            # 📌 2. 샘플 ID (ACC ID)
+                            html.Tr([
+                                html.Th("샘플 ID (ACC ID)"), 
+                                html.Td(html.Strong(sample.sample_id, className="text-primary"))
+                            ]),
+                            
+                            # 📌 3. 환자 ID (Patient ID)
+                            html.Tr([
+                                html.Th("환자 ID (Patient ID)"), 
+                                html.Td(sample.sample_name) # 받은 그대로의 ID
+                            ]),
+                            
+                            html.Tr([html.Th("Project 명"), html.Td(sample.project_name)]),
+                            html.Tr([html.Th("의뢰자 정보"), html.Td(f"{order.client_name} ({order.facility})" if order and order.client_name != "-" else (order.facility if order else "-"))]),
                             html.Tr([html.Th("분석 패널"), html.Td(dbc.Badge(sample.target_panel, color="info"))]),
                             html.Tr([html.Th("검체 종류"), html.Td(sample.specimen or "-")]),
-                            html.Tr([html.Th("현재 상태"), html.Td(dbc.Badge(sample.current_status, color="success", className="px-3 py-2 fs-6"))]),
+                            html.Tr([html.Th("현재 상태"), html.Td(dbc.Badge(sample.current_status, color="success" if sample.current_status not in ["보류/실패", "재실험"] else "danger", className="px-3 py-2 fs-6"))]),
                         ])
-                    ], className="table table-borderless mb-0")
+                    ], className="table table-borderless table-sm mb-0")
                 ])
             ], className="border-0 shadow-sm rounded-4 h-100")
-
             # --------------------------------------------------------
             # 🎨 UI 구성 2: 지하철 노선도 형태의 타임라인
             # --------------------------------------------------------
+            is_failed = sample.current_status in ["보류/실패", "재실험"]
             current_idx = PIPELINE_STAGES.index(sample.current_status) if sample.current_status in PIPELINE_STAGES else -1
             
             timeline_items = []
+            
+            # 실패/보류 시 타임라인 상단에 경고 메시지 표기
+            if is_failed:
+                timeline_items.append(
+                    html.Div([
+                        html.Div(DashIconify(icon="carbon:warning-filled", width=28, color="var(--bs-danger)"), style={"width": "40px", "textAlign": "center"}),
+                        html.Div([
+                            html.H6(f"🚨 {sample.current_status}", className="mb-1 text-danger fw-bold"),
+                            html.P(sample.issue_comment or "실험 및 분석이 중단되었습니다.", className="small text-muted mb-0")
+                        ], style={"flex": 1, "paddingBottom": "25px", "borderLeft": "2px dashed var(--bs-danger)", "paddingLeft": "15px", "marginLeft": "-20px"})
+                    ], style={"display": "flex", "alignItems": "flex-start"})
+                )
+
             for i, stage in enumerate(PIPELINE_STAGES):
-                # 상태 판별: 지나온 단계(과거), 현재 단계, 아직 안 온 단계(미래)
-                if i < current_idx:
+                if is_failed:
+                    # 에러 상태면 모든 일반 진행 타임라인은 회색 처리
+                    icon_color, text_color, icon_name = "secondary", "text-muted", "carbon:radio-button"
+                elif i < current_idx:
                     icon_color, text_color, icon_name = "success", "text-success", "carbon:checkmark-filled"
                 elif i == current_idx:
                     icon_color, text_color, icon_name = "primary", "text-primary fw-bold", "carbon:radio-button-checked"
                 else:
                     icon_color, text_color, icon_name = "secondary", "text-muted", "carbon:radio-button"
 
-                # 타임라인 아이템 UI
                 timeline_items.append(
                     html.Div([
                         html.Div(DashIconify(icon=icon_name, width=24, color=f"var(--bs-{icon_color})"), style={"width": "40px", "textAlign": "center"}),
                         html.Div([
                             html.H6(stage, className=f"mb-0 {text_color}"),
-                            # 현재 단계면 추가 정보나 버튼 표시
                             html.Div(
                                 dbc.Button("📦 실물 입고 확인 (Check-in)", id={"type": "btn-quick-receive", "sample_id": sample.sample_id}, size="sm", color="primary", className="mt-2 fw-bold shadow-sm")
                                 if i == current_idx and stage == "접수 대기" else "",
                             )
-                        ], style={"flex": 1, "paddingBottom": "25px", "borderLeft": f"2px solid {'var(--bs-success)' if i < current_idx else '#ddd'}", "paddingLeft": "15px", "marginLeft": "-20px"})
+                        ], style={"flex": 1, "paddingBottom": "25px", "borderLeft": f"2px solid {'var(--bs-success)' if (i < current_idx and not is_failed) else '#ddd'}", "paddingLeft": "15px", "marginLeft": "-20px"})
                     ], style={"display": "flex", "alignItems": "flex-start"})
                 )
 
@@ -127,7 +155,6 @@ def register_tracking_callbacks(dash_app):
                 dbc.CardBody(timeline_items, className="pt-4 px-4")
             ], className="border-0 shadow-sm rounded-4 h-100")
 
-            # 최종 레이아웃 조합
             result_ui = dbc.Row([
                 dbc.Col(meta_card, xs=12, lg=5, className="mb-4 mb-lg-0"),
                 dbc.Col(timeline_card, xs=12, lg=7)

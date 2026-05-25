@@ -5,7 +5,7 @@ from datetime import datetime
 
 from app.pages.base import LimsDashApp  
 from app.core.database import SessionLocal
-from app.models.schema import NGSTracking
+# from app.models._schema import NGSTracking
 
 # ==========================================
 # [1] 화면 레이아웃

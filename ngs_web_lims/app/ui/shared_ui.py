@@ -31,6 +31,7 @@ CONTENT_STYLE = {
     "marginRight": "0",
     "padding": "2rem 1rem",
 }
+
 from dash import html
 import dash_bootstrap_components as dbc
 from dash_iconify import DashIconify
@@ -42,67 +43,89 @@ def create_navbar():
             html.A(
                 dbc.Row([
                     dbc.Col(DashIconify(icon="carbon:dna", width=35, color="#18BC9C")),
-                    dbc.Col(dbc.NavbarBrand("NGS LIMS", className="ms-2 fw-bold fs-4")),
+                    dbc.Col(dbc.NavbarBrand("NGS LIMS", className="ms-2 fw-bold fs-4 text-dark")),
                 ], align="center", className="g-0"),
                 href="/",
                 style={"textDecoration": "none"},
             ),
             
-            # 🚀 2. 오른쪽: 토글 버튼 (화면이 좁아질 때 나타남)
+            # 🚀 2. 오른쪽: 토글 버튼
             dbc.NavbarToggler(id="navbar-toggler", n_clicks=0),
             
-            # 🚀 3. 메뉴 리스트 (드롭다운 방식)
+            # 🚀 3. 메뉴 리스트
             dbc.Collapse(
                 dbc.Nav([
-                    # 📌 GROUP 1: OVERVIEW
                     dbc.DropdownMenu(
                         label="📊 OVERVIEW",
+                        toggle_class_name="text-dark fw-bold",
                         children=[
-                            dbc.DropdownMenuItem([DashIconify(icon="carbon:dashboard", className="me-2"), "Dashboard"],active="exact", external_link=True,  href="/"),
-                            dbc.DropdownMenuItem([DashIconify(icon="carbon:data-table", className="me-2"), "Project View"], active="exact", external_link=True, href="/pro/"),
+                            # 🎨 하위 항목 통일: 아이콘과 텍스트 모두 text-secondary(다크그레이) 및 text-dark(블랙)로 통일
+                            dbc.DropdownMenuItem([
+                                DashIconify(icon="carbon:dashboard", className="me-2 text-secondary"), 
+                                html.Span("Dashboard", className="text-dark")
+                            ], active="exact", external_link=True, href="/", className="py-2"),
+                            dbc.DropdownMenuItem([
+                                DashIconify(icon="carbon:data-table", className="me-2 text-secondary"), 
+                                html.Span("Project View", className="text-dark")
+                            ], active="exact", external_link=True, href="/pro/", className="py-2"),
                         ],
-                        nav=True, in_navbar=True, className="me-2 fw-bold"
+                        nav=True, in_navbar=True, className="me-2"
                     ),
                     
-                    # 📌 GROUP 2: WORKFLOW
                     dbc.DropdownMenu(
                         label="🧪 WORKFLOW",
+                        toggle_class_name="text-dark fw-bold",
                         children=[
-                            dbc.DropdownMenuItem([DashIconify(icon="carbon:document-add", className="me-2"), "Registration"],active="exact", external_link=True,  href="/reg/"),
-                            dbc.DropdownMenuItem([DashIconify(icon="carbon:report", className="me-2"), "QC Report"], active="exact", external_link=True, href="/report/"),
-                            dbc.DropdownMenuItem([DashIconify(icon="carbon:document-add", className="me-2"), "Data Registration"],active="exact", external_link=True,  href="/data_reg/"),
-                            dbc.DropdownMenuItem([DashIconify(icon="carbon:document-add", className="me-2"), "Analysis"],active="exact", external_link=True,  href="/analysis/"),
+                            dbc.DropdownMenuItem([
+                                DashIconify(icon="carbon:document-add", className="me-2 text-secondary"), 
+                                html.Span("Registration", className="text-dark")
+                            ], active="exact", external_link=True, href="/reg/", className="py-2"),
+                            dbc.DropdownMenuItem([
+                                DashIconify(icon="carbon:report", className="me-2 text-secondary"), 
+                                html.Span("QC Report", className="text-dark")
+                            ], active="exact", external_link=True, href="/report/", className="py-2"),
+                            dbc.DropdownMenuItem([
+                                DashIconify(icon="carbon:document-add", className="me-2 text-secondary"), 
+                                html.Span("Data Registration", className="text-dark")
+                            ], active="exact", external_link=True, href="/data_reg/", className="py-2"),
+                            dbc.DropdownMenuItem([
+                                DashIconify(icon="carbon:analytics", className="me-2 text-secondary"), 
+                                html.Span("Analysis", className="text-dark")
+                            ], active="exact", external_link=True, href="/analysis/", className="py-2"),
                         ],
-                        nav=True, in_navbar=True, className="me-2 fw-bold"
+                        nav=True, in_navbar=True, className="me-2"
                     ),
 
-                    # 📌 GROUP 3: MANAGEMENT
                     dbc.DropdownMenu(
                         label="💼 MANAGEMENT",
+                        toggle_class_name="text-dark fw-bold",
                         children=[
-                            dbc.DropdownMenuItem([DashIconify(icon="carbon:finance", className="me-2"), "매입/매출"], active="exact", external_link=True, href="/biling/"),
+                            dbc.DropdownMenuItem([
+                                DashIconify(icon="carbon:finance", className="me-2 text-secondary"), 
+                                html.Span("매입/매출", className="text-dark")
+                            ], active="exact", external_link=True, href="/biling/", className="py-2"),
                         ],
-                        nav=True, in_navbar=True, className="me-2 fw-bold"
+                        nav=True, in_navbar=True, className="me-2"
                     ),
                     
-                    # 👤 유저 정보
                     dbc.NavItem(
                         html.Div([
-                            DashIconify(icon="carbon:user-avatar-filled-alt", width=25, className="me-2 text-light"),
-                            html.Span("Admin", className="text-light small")
+                            DashIconify(icon="carbon:user-avatar-filled-alt", width=25, className="me-2 text-secondary"),
+                            html.Span("Admin", className="text-dark fw-bold small")
                         ], className="d-flex align-items-center ms-4 h-100")
                     )
-                ], className="ms-auto", navbar=True), # ms-auto로 메뉴를 우측 정렬
+                ], className="ms-auto", navbar=True),
                 id="navbar-collapse",
                 is_open=False,
                 navbar=True,
             ),
         ], fluid=True),
-        color="dark",      # 배경색 어둡게
-        dark=True,         # 글자색 밝게
-        className="mb-4 shadow-sm",
+        
+        color="white",  
+        className="mb-4 shadow-sm border-bottom navbar-light",
         style={"padding": "10px 20px"}
     )
+
 # [1] 좌측 사이드바 (계층형 메뉴 적용)
 def create_sidebar():
     return html.Div([

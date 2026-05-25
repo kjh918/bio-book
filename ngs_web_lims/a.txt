@@ -1,0 +1,80 @@
+.
+├── a.txt
+├── app
+│   ├── assets
+│   │   ├── dashAgGridComponentFunctions.js
+│   │   └── style.css
+│   ├── config
+│   │   ├── columns.yaml
+│   │   ├── config.yaml
+│   │   ├── order_facility.yaml
+│   │   ├── pages.yaml
+│   │   └── workflows.yaml
+│   ├── core
+│   │   ├── __init__.py
+│   │   ├── config.py
+│   │   ├── database.py
+│   │   ├── mapping.py
+│   │   ├── registor.py
+│   │   ├── rules.py
+│   │   └── utils.py
+│   ├── main.py
+│   ├── models
+│   │   ├── __init__.py
+│   │   ├── _schema.py
+│   │   └── schema.py
+│   ├── pages
+│   │   ├── __init__.py
+│   │   ├── analysis.py
+│   │   ├── base.py
+│   │   ├── biling_dashboard.py
+│   │   ├── data_registration.py
+│   │   ├── kanban.py
+│   │   ├── project_view.py
+│   │   ├── registration.py
+│   │   ├── report.py
+│   │   └── tracking_view.py
+│   ├── templates
+│   │   ├── reports
+│   │   │   ├── logo.png
+│   │   │   ├── sample_qc_dna_report.html
+│   │   │   ├── sample_qc_rna_report.html
+│   │   │   └── sample_qc_wes_report.html
+│   │   └── requests
+│   │       ├── dPCR_request.xlsx
+│   │       ├── tso_request.xlsx
+│   │       ├── wes_request.xlsx
+│   │       ├── wgs_request.pdf
+│   │       ├── wgs_request.png
+│   │       ├── wgs_request.xlsx
+│   │       └── wts_request.xlsx
+│   ├── ui
+│   │   └── shared_ui.py
+│   └── utils
+│       ├── data_parser.py
+│       ├── id_generator.py
+│       └── utils.py
+├── backups
+│   ├── lims_test.db
+│   └── tracking
+│       ├── tracking_backup_20260410_134758.json
+│       ├── tracking_backup_20260410_145425.json
+│       ├── tracking_backup_20260414_134317.json
+│       ├── tracking_backup_20260414_153916.json
+│       ├── tracking_backup_20260415_161114.json
+│       ├── tracking_backup_20260416_081842.json
+│       ├── tracking_backup_20260416_081850.json
+│       └── tracking_backup_20260416_081938.json
+├── build.py
+├── config
+│   ├── columns.yaml
+│   ├── config.yaml
+│   ├── order_facility.yaml
+│   ├── pages.yaml
+│   └── workflows.yaml
+├── lims.db
+├── lims_test.db
+├── tso_request_test.xlsx
+└── wgs_request_test.xlsx
+
+21 directories, 88 files

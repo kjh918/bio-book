@@ -1,8 +1,7 @@
-# app/main.py (수정 후)
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from starlette.middleware.wsgi import WSGIMiddleware
 
-# 중간 폴더들이 사라져서 경로가 엄청 직관적입니다!
 from app.pages.project_view import create_project_view_app
 from app.pages.registration import create_registration_app
 from app.pages.analysis import create_analysis_app
@@ -14,20 +13,18 @@ from app.pages.data_registration import create_data_registry_app
 from app.core.database import engine
 from app.models._schema import Base
 
+# ❌ 무조건 다 날려버리는 코드는 영구 봉인! (절대 주석 해제 금지)
+# Base.metadata.drop_all(bind=engine)
 
-# 1. 기존에 있던 테이블들을 무조건 다 날려버립니다.
-#Base.metadata.drop_all(bind=engine)
+# 🟢 안전한 테이블 생성 코드 (기존 데이터 유지, 없는 테이블만 생성)
+Base.metadata.create_all(bind=engine)
+print("✅ DB 체크 완료: 누락된 테이블이 있다면 안전하게 생성되었습니다.")
 
-# 2. schema.py를 읽어서 아주 깨끗한 최신 상태로 새로 만듭니다.
-#Base.metadata.create_all(bind=engine)
-#print("✅ 구버전 DB 파괴 및 최신 스키마로 완벽 재생성 완료!")
+app = FastAPI(title="NGS LIMS System")
 
-app = FastAPI()
-
-# 1. 상세 앱들을 먼저 마운트
-#excel_app = create_excel_tracker_app(requests_pathname_prefix="/excel/")
-#app.mount("/excel", WSGIMiddleware(excel_app.server))
-
+# ==========================================
+# 1. 서브 Dash 앱 마운트
+# ==========================================
 reg_app = create_registration_app(requests_pathname_prefix="/reg/")
 app.mount("/reg", WSGIMiddleware(reg_app.server))
 
@@ -40,15 +37,17 @@ app.mount("/pro", WSGIMiddleware(pro_app.server))
 report_app = create_report_view_app(requests_pathname_prefix="/report/")
 app.mount("/report", WSGIMiddleware(report_app.server))
 
-#biling_app = create_billing_dashboard_app(requests_pathname_prefix="/biling/")
-#app.mount("/biling", WSGIMiddleware(biling_app.server))
-
 kanban_app = create_kanban_app(requests_pathname_prefix="/kanban/")
 app.mount("/kanban", WSGIMiddleware(kanban_app.server))
 
 analysis_app = create_analysis_app(requests_pathname_prefix="/analysis/")
 app.mount("/analysis", WSGIMiddleware(analysis_app.server))
 
-# 2. 루트 대시보드 마운트
-main_dash = create_kanban_app(requests_pathname_prefix="/")
-app.mount("/", WSGIMiddleware(main_dash.server))
+# ==========================================
+# 2. 루트 접속 시 자동 이동 (Redirect)
+# ==========================================
+@app.get("/")
+def read_root():
+    # 사용자가 localhost:8000 으로만 접속해도 알아서 칸반 보드로 넘겨줍니다.
+    # 앱을 메모리에 두 번 올리지 않아 성능이 훨씬 좋아집니다!
+    return RedirectResponse(url="/kanban")

@@ -4,9 +4,9 @@ from sqlalchemy.orm import sessionmaker
 # 🚀 중요: 모델 파일(Base)을 가져와야 테이블을 생성할 수 있습니다.
 from app.models._schema import Base 
 
-DATABASE_URL = os.getenv("LIMS_DATABASE_URL")
-if not DATABASE_URL:
-    raise ValueError("LIMS_DATABASE_URL 환경변수가 누락되었습니다. (예: sqlite:///./lims.db)")
+# 🟢 핵심 수정 포인트: 환경변수가 없으면 무조건 에러를 내는 대신,
+# 기본값으로 "sqlite:///./lims.db"를 사용하도록 융통성을 줍니다!
+DATABASE_URL = os.getenv("LIMS_DATABASE_URL", "sqlite:///./lims.db")
 
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 engine = create_engine(DATABASE_URL, connect_args=connect_args, pool_pre_ping=True)

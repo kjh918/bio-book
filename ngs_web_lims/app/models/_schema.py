@@ -4,15 +4,32 @@ from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, DateTim
 from sqlalchemy.orm import declarative_base, relationship
 from datetime import datetime, timezone, timedelta
 
+# 🚀 Rules 파일 불러오기!
+from app.core.rules import LimsRules
+
 STAGE_SCHEMA_CONFIG = {
     "접수 대기": {
         "columns": [
-            {"name": "입고 확인 📦", "id": "sample_received", "editable": True, "presentation": "dropdown", "required": True, "pass_value": "입고 완료"},
-            {"name": "입고 담당자 👤", "id": "receiver_name", "editable": True, "required": True},
-            {"name": "보관 위치 📍", "id": "storage_location", "editable": True},
-            {"name": "실물 상태 👁️", "id": "visual_inspection", "editable": True, "presentation": "dropdown"},
+            {
+                "name": "입고 확인 📦", "id": "sample_received", "editable": True, 
+                "presentation": "dropdown", "required": True, "pass_value": "입고 완료",
+                "options": ["대기중", "입고 완료"] # 👈 여기도 드롭다운 추가!
+            },
+            {
+                "name": "입고 담당자 👤", "id": "receiver_name", "editable": True, "required": True
+            },
+            {
+                "name": "보관 위치 📍", "id": "storage_location", "editable": True
+            },
+            {
+                "name": "실물 상태 👁️", "id": "visual_inspection", "editable": True, 
+                "presentation": "dropdown",
+                # 🚀 rules.py의 INSPECTION_OPTIONS에서 "value" 값들(Pass, Hold_Volume 등)만 추출해서 자동 연결!
+                "options": [opt["value"] for opt in LimsRules.INSPECTION_OPTIONS if opt["value"]] 
+            },
         ]
     },
+    # ... 이하 생략 ...
     "접수 완료": {
             "columns": [
                 {"name": "초기 용량(uL)", "id": "volume", "editable": True, "type": "numeric"},
@@ -41,7 +58,7 @@ STAGE_SCHEMA_CONFIG = {
         "columns": [
             {"name": "SEQ ID", "id": "seq_id", "editable": True},
             {"name": "Depth/Output", "id": "depth_output", "editable": True},
-            {"name": "달성 Depth/Output", "id": "depth_output", "editable": True, "required": False},
+            {"name": "달성 Depth/Output", "id": "depth_output_achieved", "editable": True, "required": False}, # 💡 팁: 'depth_output' id가 중복되어 덮어씌워질 수 있어 임의로 변경했습니다.
             {"name": "재실험 횟수", "id": "attempt_num", "editable": True, "type": "numeric", "required": False},
             {"name": "Seq QC Report Date", "id": "seq_qc_report_date", "editable": True, "type": "date"},
         ]
@@ -95,54 +112,73 @@ REPORT_SCHEMA_CONFIG = {
         ]
     }
 }
+
+    
+    # ... (이하 "접수 완료", "QC 진행" 등 나머지 단계는 기존과 동일하게 유지) ...
+
+Base = declarative_base()
+from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, DateTime, JSON
+from sqlalchemy.orm import declarative_base, relationship
+from datetime import datetime, timezone, timedelta
+
+# (STAGE_SCHEMA_CONFIG와 REPORT_SCHEMA_CONFIG 딕셔너리 코드는 그대로 유지합니다)
+# ... [이전 코드와 동일] ...
+
 Base = declarative_base()
 
 # ==========================================
 # 1. 의뢰 및 정산 (Order)
 # ==========================================
-
 class Order(Base):
     __tablename__ = "orders"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    order_id = Column(String, unique=True, index=True, nullable=False) # C11-260421-01
+    order_id = Column(String, unique=True, index=True, nullable=False) # 예: C11-260421-01
     facility = Column(String, nullable=False)
     client_team = Column(String)
-    client_name = Column(String)    # 🚀 추가: 의뢰자 이름
-    client_email = Column(String)   # 🚀 추가: 의뢰자 이메일
-    client_phone = Column(String)   # 🚀 추가: 의뢰자 연락처
+    client_name = Column(String)    
+    client_email = Column(String)   
+    client_phone = Column(String)   
     reception_date = Column(Date, nullable=False)
-    reception_type = Column(String, default="미정") # 🚀 접수 형태 (택배, 퀵 등)
+    reception_type = Column(String, default="미정") 
     sales_unit_price = Column(Integer, default=0)
+    
     samples = relationship("Sample", back_populates="order", cascade="all, delete-orphan")
+
 # ==========================================
-# 2. 검체 기본 정보 (Sample & JSON Metadata)
+# 2. 🚀 검체 마스터 (Sample) - 4대 고정 컬럼의 집결지
 # ==========================================
 class Sample(Base):
     __tablename__ = "samples"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
-    sample_id = Column(String, unique=True, index=True, nullable=False) # ACC-260421-001
+    
+    # 📌 4대 고정 컬럼 (어느 화면에서든 여기서 끌어다 씁니다)
+    order_pk = Column(Integer, ForeignKey("orders.id"), nullable=False) # 실제 관계용 FK
+    order_id = Column(String, index=True, nullable=False) # 💡 화면 노출 및 빠른 검색용 (비정규화)
+    project_name = Column(String, default="Default_Project") # 💡 sample_group 대신 UI와 이름 통일!
+    sample_id = Column(String, unique=True, index=True, nullable=False) # 예: ACC-260421-001
+    target_panel = Column(String, nullable=False) # 예: WES, WGS
+    
+    # 기본 메타데이터
     sample_name = Column(String, nullable=False)
     outside_id_1 = Column(String)
     cancer_type = Column(String)
     specimen = Column(String)
-    sample_group = Column(String)
     pairing_info = Column(String)
-    target_panel = Column(String, nullable=False)
     
-    # 입고 및 검수 정보
-    sample_received = Column(String, default="대기중") # 입고 완료 여부
-    receiver_name = Column(String)                   # 입고 담당자
+    # 입고 및 상태 관리
+    sample_received = Column(String, default="대기중") 
+    receiver_name = Column(String)                   
     visual_inspection = Column(String, default="대기중")
     storage_location = Column(String)
     initial_volume = Column(Float)
     
-    current_status = Column(String, default="접수 대기")
+    # 🚀 핵심 상태 관리
+    current_status = Column(String, default="접수 완료") # 초기값을 '접수 완료'로 변경하여 트래킹 용이성 확보
     issue_comment = Column(String)
-    panel_metadata = Column(JSON, default={}) # 🚀 특수 정보 보따리
+    panel_metadata = Column(JSON, default={}) # FASTQ 경로, MD5 등 유동적 데이터 저장소
     created_at = Column(DateTime, default=datetime.utcnow)
     
-    # 관계 설정
+    # 관계 설정 (1:1 매핑)
     order = relationship("Order", back_populates="samples")
     wet_lab = relationship("WetLabQC", back_populates="sample", uselist=False)
     sequencing = relationship("Sequencing", back_populates="sample", uselist=False)

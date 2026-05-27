@@ -9,6 +9,8 @@ from app.pages.report import create_report_view_app
 from app.pages.biling_dashboard import create_billing_dashboard_app 
 from app.pages.kanban import create_kanban_app 
 from app.pages.data_registration import create_data_registry_app 
+from app.pages.chatbot import create_chatbot_app
+
 
 from app.core.database import engine
 from app.models._schema import Base
@@ -42,6 +44,9 @@ app.mount("/kanban", WSGIMiddleware(kanban_app.server))
 
 analysis_app = create_analysis_app(requests_pathname_prefix="/analysis/")
 app.mount("/analysis", WSGIMiddleware(analysis_app.server))
+
+chatbot_app = create_chatbot_app(requests_pathname_prefix="/chatbot/")
+app.mount("/chatbot", WSGIMiddleware(chatbot_app.server))
 
 # ==========================================
 # 2. 루트 접속 시 자동 이동 (Redirect)

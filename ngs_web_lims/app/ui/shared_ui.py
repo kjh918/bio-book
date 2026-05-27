@@ -92,6 +92,10 @@ def create_navbar():
                                 DashIconify(icon="carbon:analytics", className="me-2 text-secondary"), 
                                 html.Span("Analysis", className="text-dark")
                             ], active="exact", external_link=True, href="/analysis/", className="py-2"),
+                            dbc.DropdownMenuItem([
+                                DashIconify(icon="carbon:ai", className="me-2 text-secondary"), 
+                                html.Span("Chatbot", className="text-dark")
+                            ], active="exact", external_link=True, href="/chatbot/", className="py-2"),
                         ],
                         nav=True, in_navbar=True, className="me-2"
                     ),

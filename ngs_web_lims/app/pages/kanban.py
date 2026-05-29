@@ -17,50 +17,115 @@ from app.pages.base import LimsDashApp
 from app.core.rules import LimsRules
 from app.ui.shared_ui import create_project_summary_card
 
-# ==========================================
-# [1] 화면 레이아웃
-# ==========================================
+from dash import html, dcc
+import dash_bootstrap_components as dbc
+import dash_ag_grid as dag
+from dash_iconify import DashIconify
+from dash import html, dcc
+import dash_bootstrap_components as dbc
+import dash_ag_grid as dag
+from dash_iconify import DashIconify
+
 def create_kanban_layout():
+    # 🎨 칸반 컬럼 헤더 스타일 헬퍼 (모던 파스텔 톤)
+    def col_header_style(bg_color, text_color):
+        return {
+            "backgroundColor": bg_color,
+            "color": text_color,
+            "fontSize": "0.95rem",
+            "padding": "10px",
+            "borderRadius": "8px",
+            "boxShadow": "0 2px 4px rgba(0,0,0,0.02)"
+        }
+
+    # 🎨 칸반 드롭 영역(본문) 스타일 헬퍼
+    def col_body_style():
+        return {
+            "minHeight": "600px",
+            "backgroundColor": "#f8fafc", # 아주 연한 슬레이트 회색
+            "borderRadius": "8px",
+            "border": "2px dashed #e2e8f0", # 드롭 영역임을 암시하는 점선
+            "marginTop": "8px",
+            "padding": "10px"
+        }
+
     return html.Div([
-        html.H3("🧬 NGS 통합 보드", className="fw-bold mb-4 text-secondary"),
+        # 🚀 1. 페이지 헤더 (style.css의 .page-title-header 적용)
+        html.Div([
+            html.Div([
+                html.H2([
+                    DashIconify(icon="carbon:flow", className="me-2 text-dark"), 
+                    "WORKFLOW BOARD"
+                ], className="fw-bold text-dark")
+            ])
+        ], className="page-title-header"),
         
+        # 🚀 2. 칸반 보드 영역
         html.Div([
             dbc.Row([
-                dbc.Col([html.H5("접수 대기", className="fw-bold text-center text-dark bg-light border p-2 rounded shadow-sm"), html.Div(id="kanban-col-0", className="p-2 bg-white rounded border", style={"minHeight": "600px"})], style={"minWidth": "280px"}),
-                dbc.Col([html.H5("접수 완료", className="fw-bold text-center text-white bg-info p-2 rounded shadow-sm"), html.Div(id="kanban-col-1", className="p-2 bg-light rounded border", style={"minHeight": "600px"})], style={"minWidth": "280px"}),
-                dbc.Col([html.H5("QC", className="fw-bold text-center text-dark bg-warning p-2 rounded shadow-sm"), html.Div(id="kanban-col-2", className="p-2 bg-light rounded border", style={"minHeight": "600px"})], style={"minWidth": "280px"}),
-                dbc.Col([html.H5("시퀀싱", className="fw-bold text-center text-white bg-primary p-2 rounded shadow-sm"), html.Div(id="kanban-col-3", className="p-2 bg-light rounded border", style={"minHeight": "600px"})], style={"minWidth": "280px"}),
-                dbc.Col([html.H5("분석", className="fw-bold text-center text-white bg-success p-2 rounded shadow-sm"), html.Div(id="kanban-col-4", className="p-2 bg-light rounded border", style={"minHeight": "600px"})], style={"minWidth": "280px"}),
-                dbc.Col([html.H5("정산", className="fw-bold text-center text-white bg-dark p-2 rounded shadow-sm"), html.Div(id="kanban-col-5", className="p-2 bg-light rounded border", style={"minHeight": "600px"})], style={"minWidth": "280px"}),
-            ], className="flex-nowrap g-2") 
+                dbc.Col([
+                    html.Div("접수 대기", className="fw-bold text-center", style=col_header_style("#f1f5f9", "#475569")),
+                    html.Div(id="kanban-col-0", style=col_body_style())
+                ], style={"minWidth": "280px"}),
+                
+                dbc.Col([
+                    html.Div("접수 완료", className="fw-bold text-center", style=col_header_style("#e0f2fe", "#0284c7")),
+                    html.Div(id="kanban-col-1", style=col_body_style())
+                ], style={"minWidth": "280px"}),
+                
+                dbc.Col([
+                    html.Div("QC 진행", className="fw-bold text-center", style=col_header_style("#fef3c7", "#d97706")),
+                    html.Div(id="kanban-col-2", style=col_body_style())
+                ], style={"minWidth": "280px"}),
+                
+                dbc.Col([
+                    html.Div("시퀀싱", className="fw-bold text-center", style=col_header_style("#e0e7ff", "#4f46e5")),
+                    html.Div(id="kanban-col-3", style=col_body_style())
+                ], style={"minWidth": "280px"}),
+                
+                dbc.Col([
+                    html.Div("분석", className="fw-bold text-center", style=col_header_style("#DFF5E1", "#18bc9c")),
+                    html.Div(id="kanban-col-4", style=col_body_style())
+                ], style={"minWidth": "280px"}),
+                
+                dbc.Col([
+                    html.Div("정산", className="fw-bold text-center", style=col_header_style("#f3e8ff", "#9333ea")),
+                    html.Div(id="kanban-col-5", style=col_body_style())
+                ], style={"minWidth": "280px"}),
+            ], className="flex-nowrap g-3") 
         ], style={"overflowX": "auto", "paddingBottom": "20px"}),
         
+        # 🚀 3. 숨겨진 기능용 스토어
         dcc.Store(id="current-modal-order-id"),
         dcc.Download(id="download-modal-excel"), 
 
+        # 🚀 4. 모달(Modal) 팝업 디자인 개편
         dbc.Modal([
-            dbc.ModalHeader(dbc.ModalTitle(id="modal-detail-title", className="fw-bold")),
+            dbc.ModalHeader(dbc.ModalTitle(id="modal-detail-title", className="fw-bold", style={"color": "#1e293b"})),
             dbc.ModalBody([
                 html.Div(id="modal-shared-card-container", className="mb-3"),
+                
+                # 모달 내부 툴바 (둥근 테두리와 깔끔한 레이아웃)
                 html.Div([
                     html.Div([
-                        html.Strong("✨ 덮어쓰기:", className="text-success me-2"),
-                        dbc.Select(id="bulk-col-select", options=[], placeholder="변경할 항목 선택...", style={"width": "180px"}, className="me-2 shadow-sm"),
-                        dbc.Input(id="bulk-val-input", placeholder="입력값 (예: Pass...)", style={"width": "180px"}, className="me-2 shadow-sm"),
-                        dbc.Button("적용", id="btn-bulk-apply", color="success", outline=True, size="sm", className="fw-bold shadow-sm"),
+                        html.Strong([DashIconify(icon="carbon:edit", className="me-1"), "일괄 변경:"], className="text-secondary me-2", style={"fontSize": "0.85rem"}),
+                        dbc.Select(id="bulk-col-select", options=[], placeholder="항목 선택...", style={"width": "150px"}, className="me-2 shadow-sm form-select-sm"),
+                        dbc.Input(id="bulk-val-input", placeholder="입력값...", style={"width": "150px"}, className="me-2 shadow-sm form-control-sm"),
+                        dbc.Button("적용", id="btn-bulk-apply", color="primary", size="sm", className="fw-bold shadow-sm rounded-3"),
                     ], className="d-flex align-items-center"),
                     
                     html.Div([
-                        dbc.Button("📥 현재 표 엑셀 다운로드", id="btn-export-excel", color="info", size="sm", className="me-2 fw-bold shadow-sm"),
+                        dbc.Button([DashIconify(icon="carbon:download", className="me-1"), "현재 표 엑셀 다운로드"], id="btn-export-excel", color="light", size="sm", className="me-2 fw-bold shadow-sm border rounded-3 text-secondary"),
                         dcc.Upload(
                             id="upload-overwrite-excel",
-                            children=dbc.Button("📤 엑셀 업로드로 표 덮어쓰기", color="warning", size="sm", className="fw-bold shadow-sm"),
+                            children=dbc.Button([DashIconify(icon="carbon:upload", className="me-1"), "엑셀 덮어쓰기"], color="white", size="sm", className="fw-bold shadow-sm border border-primary text-primary rounded-3"),
                             multiple=False, className="d-inline-block"
                         )
                     ], className="d-flex align-items-center")
                     
-                ], className="d-flex justify-content-between align-items-center p-2 mb-3 rounded border", style={"backgroundColor": "#f8fffb", "borderColor": "#20c997"}),
+                ], className="d-flex justify-content-between align-items-center p-3 mb-3 rounded-4 border", style={"backgroundColor": "#f8fafc", "borderColor": "#e2e8f0"}),
 
+                # 모달 내부 AG Grid
                 dag.AgGrid(
                     id="modal-datatable",
                     rowData=[], 
@@ -76,16 +141,20 @@ def create_kanban_layout():
                         "undoRedoCellEditingLimit": 50 
                     },
                     style={"height": "400px", "width": "100%"},
-                    className="ag-theme-alpine"
+                    className="ag-theme-alpine border-0 shadow-sm rounded-3"
                 )
             ], style={"maxHeight": "80vh", "overflowY": "auto"}),
+            
+            # 모달 푸터
             dbc.ModalFooter([
-                html.Span("수정 후 저장을 누르시면 내용이 반영되며 활동 로그가 기록됩니다.", className="text-info small fw-bold me-auto"),
-                dbc.Button("💾 변경사항 및 검수 저장", id="btn-save-modal", color="primary")
-            ])
+                html.Span("💡 수정 후 저장을 누르시면 변경사항이 반영되며 활동 로그가 기록됩니다.", className="text-muted small fw-bold me-auto"),
+                dbc.Button([DashIconify(icon="carbon:save", className="me-1"), "변경사항 저장"], id="btn-save-modal", color="primary", className="fw-bold rounded-3 shadow-sm px-4")
+            ], className="border-top-0 bg-light rounded-bottom-4")
         ], 
         id="sample-detail-modal", size="xl", is_open=False, centered=True, backdrop="static",
-        dialog_style={"maxWidth": "1400px", "width": "95%"}
+        dialog_style={"maxWidth": "1400px", "width": "95%"}, 
+        # 🚀 [오류 수정] content_class -> content_class_name 으로 변경!
+        content_class_name="rounded-4 border-0 shadow-lg" 
         ),
 
         html.Div(dbc.Toast(id="gatekeeper-toast", header="⚠️ 알림", is_open=False, dismissable=True, icon="danger", style={"position": "fixed", "top": 20, "right": 20, "width": 350, "zIndex": 9999})),
@@ -94,8 +163,7 @@ def create_kanban_layout():
         html.Button(id="btn-hidden-drop", style={"display": "none"}), 
         html.Div(id="dummy-js-output", style={"display": "none"})
 
-    ], style={"overflowX": "hidden", "position": "relative", "padding": "20px"})
-
+    ])
 # ==========================================
 # [2] 카드 생성 함수
 # ==========================================
@@ -104,6 +172,17 @@ def make_batch_card(order_obj, status, sample_count, has_issue):
     action_rule = LimsRules.STAGE_ACTIONS.get(status, {"text": "다음 단계", "color": "info", "next": "완료"})
     btn_text, btn_color, next_stage = action_rule["text"], action_rule["color"], action_rule["next"]
     group_id = f"{order_obj.order_id}___{status}"
+    
+    # 🚀 상태별 테두리 색상 및 보조 색상 매핑
+    STATUS_THEME = {
+        "접수 대기": {"border": "border-secondary", "text": "text-secondary"},
+        "접수 완료": {"border": "border-info", "text": "text-info"},
+        "QC 진행": {"border": "border-warning", "text": "text-warning"},
+        "시퀀싱": {"border": "border-primary", "text": "text-primary"},
+        "분석": {"border": "border-success", "text": "text-success"},
+        "정산": {"border": "border-dark", "text": "text-dark"}
+    }
+    theme = STATUS_THEME.get(status, {"border": "border-secondary", "text": "text-secondary"})
     
     stage_specific_content = []
     if status == "접수 대기": stage_specific_content.extend([html.Small("⏳ 실물 샘플 입고 대기중", className="text-danger fw-bold d-block mb-1"), html.Small(f"🏢 기관: {order_obj.facility}-{order_obj.client_team}", className="text-muted d-block")])
@@ -115,13 +194,18 @@ def make_batch_card(order_obj, status, sample_count, has_issue):
     return html.Div([
         dbc.Card([
             dbc.CardBody([
-                html.H6(f"📦 {order_obj.order_id}", className="fw-bold text-primary mb-2"),
-                html.P([html.Span(f"📊 {sample_count}건", className="badge bg-dark me-1"), html.Span("⚠️ 이슈", className="badge bg-danger ms-1") if has_issue else None], className="mb-2"),
+                # 🚀 제목 색상도 상태 테마(theme['text'])를 따라가도록 변경
+                html.H6(f"📦 {order_obj.order_id}", className=f"fw-bold {theme['text']} mb-2"),
+                html.P([
+                    html.Span(f"📊 {sample_count}건", className="badge bg-secondary me-1"), 
+                    html.Span("⚠️ 이슈", className="badge bg-danger ms-1") if has_issue else None
+                ], className="mb-2"),
                 html.Div(stage_specific_content, className="mb-3"),
                 dbc.Button(btn_text, id={"type": "btn-move-stage", "index": group_id, "next": next_stage}, color=btn_color, size="sm", className="w-100 mb-1 fw-bold"),
                 dbc.Button("🔍 상세 및 입고/진행 확인", id={"type": "btn-open-modal", "order_id": order_obj.order_id, "stage": status}, color="link", size="sm", className="w-100 text-muted")
             ], className="p-3")
-        ], className="shadow-sm border-start border-4 border-info h-100")
+        # 🚀 [핵심] border-info 대신 status별로 유동적인 border 클래스 적용
+        ], className=f"shadow-sm border-start border-4 {theme['border']} h-100 rounded-3") 
     ], draggable=True, id=f"drag-card-{group_id}", style={"cursor": "grab"}, className="mb-3")
 
 # ==========================================
@@ -206,9 +290,7 @@ def register_kanban_callbacks(dash_app):
             table_data = []
             for s in samples:
                 row_dict = {
-                    # 🚀 [핵심 추가]: base.py의 '접수 ID' 컬럼에 들어갈 실제 데이터를 넘겨줍니다!
                     "order_id": s.order_id, 
-                    
                     "sample_id": s.sample_id, 
                     "id": s.id, 
                     "sample_name": s.sample_name, 

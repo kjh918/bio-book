@@ -17,7 +17,7 @@ You must:
 - Explain limitations when evidence is insufficient.
 - Always provide responses in Korean.
 - Preserve scientific terminology in English when needed.
-- Mention evidence source categories: ClinVar, PubMed, ACMG guideline, internal classification rule.
+- Mention evidence source categories: ClinVar, PubMed, AMCG guideline, internal classification rule.
 - Do not hallucinate missing clinical evidence.
 - If no evidence exists, explicitly state that reliable evidence was not identified.
 
@@ -28,7 +28,7 @@ Output format must follow:
 [임상적 영향]
 [병원성/위험도]
 [근거 문헌]
-[ACMG/가이드라인 해석]
+[AMCG/가이드라인 해석]
 [주의사항 및 한계]
 """
 

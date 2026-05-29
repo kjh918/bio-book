@@ -3,196 +3,129 @@ from dash import html
 from dash_iconify import DashIconify
 from datetime import datetime, timezone, timedelta
 
-# --- 레이아웃 스타일 설정 (중복 선언 제거 및 깔끔한 정리) ---
 KST = timezone(timedelta(hours=9))
 
+# 🚀 1. 사이드바: 너비를 5rem(80px)으로 대폭 줄여 아이콘 전용 얇은 바(Bar)로 변경
 SIDEBAR_STYLE = {
     "position": "fixed",
-    "top": 0,
+    "top": "55px", # 네비게이션바 높이
     "left": 0,
     "bottom": 0,
-    "width": "16rem",
-    "padding": "2rem 1rem",
-    "backgroundColor": "#2C3E50",
-    "color": "white",
-    "boxShadow": "2px 0 5px rgba(0,0,0,0.1)",
+    "width": "5rem", 
+    "padding": "1rem 0",
+    "backgroundColor": "#ffffff",
+    "borderRight": "1px solid #e2e8f0",
     "zIndex": 1020,
-    "overflowY": "auto"
+    "display": "flex",
+    "flexDirection": "column",
+    "alignItems": "center",
+    "boxShadow": "2px 0 8px rgba(0,0,0,0.02)"
 }
 
-#CONTENT_STYLE = {
-#    "marginLeft": "16rem", # 사이드바 너비만큼 메인 컨텐츠 우측으로 밀기
-#    "padding": "2rem 2rem", 
-#    "backgroundColor": "#F8F9FA",
-#    "minHeight": "100vh"
-#}
+# 🚀 2. 메인 컨텐츠: 사이드바가 줄어든 만큼 화면을 넓게 씁니다.
 CONTENT_STYLE = {
-    "marginLeft": "0",      # 🚀 0으로 변경하거나 아예 줄을 지우세요!
-    "marginRight": "0",
-    "padding": "2rem 1rem",
+    "marginLeft": "6.5rem",    # 사이드바(5rem)에서 1.5rem 띄움
+    "marginTop": "75px",       # 상단바(55px)에서 20px 띄움
+    "marginRight": "1.5rem",   # 오른쪽 화면 끝에서 띄움
+    "marginBottom": "1.5rem",  # 아래쪽 화면 끝에서 띄움
+    "padding": "2rem",
+    "backgroundColor": "#ffffff", # 안쪽 페이지 배경은 깨끗한 흰색
+    "borderRadius": "16px",    # 모서리를 부드럽게 둥글게
+    "boxShadow": "0 10px 30px rgba(0, 0, 0, 0.08)", # 🚀 붕 떠보이는 짙은 그림자 효과
+    "border": "1px solid #e2e8f0", # 미세한 윤곽선
+    "minHeight": "calc(100vh - 100px)"
 }
-
-from dash import html
-import dash_bootstrap_components as dbc
-from dash_iconify import DashIconify
 
 def create_navbar():
     return dbc.Navbar(
         dbc.Container([
-            # 🚀 1. 왼쪽: 로고 및 타이틀
+            # 왼쪽: 로고 (얇아진 사이드바 너비에 맞게 조정)
             html.A(
                 dbc.Row([
-                    dbc.Col(DashIconify(icon="carbon:dna", width=35, color="#18BC9C")),
-                    dbc.Col(dbc.NavbarBrand("NGS LIMS", className="ms-2 fw-bold fs-4 text-dark")),
+                    dbc.Col(DashIconify(icon="carbon:dna", width=26, color="#0d6efd")),
+                    dbc.Col(dbc.NavbarBrand("LIMS", className="ms-2 fw-bold text-dark", style={"fontSize": "1.1rem"})),
                 ], align="center", className="g-0"),
                 href="/",
-                style={"textDecoration": "none"},
+                style={"textDecoration": "none", "marginRight": "3rem"},
             ),
             
-            # 🚀 2. 오른쪽: 토글 버튼
-            dbc.NavbarToggler(id="navbar-toggler", n_clicks=0),
+            # 🚀 중앙: 기존 사이드바에 있던 텍스트 메뉴들을 상단 드롭다운으로 전면 이동
+            dbc.Nav([
+                dbc.DropdownMenu(
+                    label=html.Span([DashIconify(icon="carbon:dashboard", className="me-2", style={"verticalAlign": "middle"}), "OVERVIEW"], className="d-flex align-items-center"),
+                    toggle_class_name="text-dark fw-bold px-3 border-0 bg-transparent d-flex align-items-center",
+                    children=[
+                        dbc.DropdownMenuItem("Dashboard", href="/", external_link=True),
+                        dbc.DropdownMenuItem("Project View", href="/pro/", external_link=True),
+                    ],
+                    nav=True, in_navbar=True,
+                ),
+                dbc.DropdownMenu(
+                    label=html.Span([DashIconify(icon="carbon:flow", className="me-2", style={"verticalAlign": "middle"}), "WORKFLOW"], className="d-flex align-items-center"),
+                    toggle_class_name="text-dark fw-bold px-3 border-0 bg-transparent d-flex align-items-center",
+                    children=[
+                        dbc.DropdownMenuItem("Registration", href="/reg/", external_link=True),
+                        dbc.DropdownMenuItem("Kanban Workflow", href="/kanban/", external_link=True),
+                        dbc.DropdownMenuItem("QC Report", href="/report/", external_link=True),
+                        dbc.DropdownMenuItem("Data Registry", href="/data_reg/", external_link=True),
+                        dbc.DropdownMenuItem("AI Chatbot", href="/chatbot/", external_link=True),
+                    ],
+                    nav=True, in_navbar=True,
+                ),
+                dbc.DropdownMenu(
+                    label=html.Span([DashIconify(icon="carbon:finance", className="me-2", style={"verticalAlign": "middle"}), "MANAGEMENT"], className="d-flex align-items-center"),
+                    toggle_class_name="text-dark fw-bold px-3 border-0 bg-transparent d-flex align-items-center",
+                    children=[
+                        dbc.DropdownMenuItem("Billing", href="/biling/", external_link=True),
+                    ],
+                    nav=True, in_navbar=True,
+                ),
+            ], className="me-auto d-flex align-items-center", navbar=True, style={"fontSize": "0.85rem", "height": "55px"}),
             
-            # 🚀 3. 메뉴 리스트
-            dbc.Collapse(
-                dbc.Nav([
-                    dbc.DropdownMenu(
-                        label="📊 OVERVIEW",
-                        toggle_class_name="text-dark fw-bold",
-                        children=[
-                            # 🎨 하위 항목 통일: 아이콘과 텍스트 모두 text-secondary(다크그레이) 및 text-dark(블랙)로 통일
-                            dbc.DropdownMenuItem([
-                                DashIconify(icon="carbon:dashboard", className="me-2 text-secondary"), 
-                                html.Span("Dashboard", className="text-dark")
-                            ], active="exact", external_link=True, href="/", className="py-2"),
-                            dbc.DropdownMenuItem([
-                                DashIconify(icon="carbon:data-table", className="me-2 text-secondary"), 
-                                html.Span("Project View", className="text-dark")
-                            ], active="exact", external_link=True, href="/pro/", className="py-2"),
-                        ],
-                        nav=True, in_navbar=True, className="me-2"
-                    ),
-                    
-                    dbc.DropdownMenu(
-                        label="🧪 WORKFLOW",
-                        toggle_class_name="text-dark fw-bold",
-                        children=[
-                            dbc.DropdownMenuItem([
-                                DashIconify(icon="carbon:document-add", className="me-2 text-secondary"), 
-                                html.Span("Registration", className="text-dark")
-                            ], active="exact", external_link=True, href="/reg/", className="py-2"),
-                            dbc.DropdownMenuItem([
-                                DashIconify(icon="carbon:report", className="me-2 text-secondary"), 
-                                html.Span("QC Report", className="text-dark")
-                            ], active="exact", external_link=True, href="/report/", className="py-2"),
-                            dbc.DropdownMenuItem([
-                                DashIconify(icon="carbon:document-add", className="me-2 text-secondary"), 
-                                html.Span("Data Registration", className="text-dark")
-                            ], active="exact", external_link=True, href="/data_reg/", className="py-2"),
-                            dbc.DropdownMenuItem([
-                                DashIconify(icon="carbon:analytics", className="me-2 text-secondary"), 
-                                html.Span("Analysis", className="text-dark")
-                            ], active="exact", external_link=True, href="/analysis/", className="py-2"),
-                            dbc.DropdownMenuItem([
-                                DashIconify(icon="carbon:ai", className="me-2 text-secondary"), 
-                                html.Span("Chatbot", className="text-dark")
-                            ], active="exact", external_link=True, href="/chatbot/", className="py-2"),
-                        ],
-                        nav=True, in_navbar=True, className="me-2"
-                    ),
-
-                    dbc.DropdownMenu(
-                        label="💼 MANAGEMENT",
-                        toggle_class_name="text-dark fw-bold",
-                        children=[
-                            dbc.DropdownMenuItem([
-                                DashIconify(icon="carbon:finance", className="me-2 text-secondary"), 
-                                html.Span("매입/매출", className="text-dark")
-                            ], active="exact", external_link=True, href="/biling/", className="py-2"),
-                        ],
-                        nav=True, in_navbar=True, className="me-2"
-                    ),
-                    
-                    dbc.NavItem(
-                        html.Div([
-                            DashIconify(icon="carbon:user-avatar-filled-alt", width=25, className="me-2 text-secondary"),
-                            html.Span("Admin", className="text-dark fw-bold small")
-                        ], className="d-flex align-items-center ms-4 h-100")
-                    )
-                ], className="ms-auto", navbar=True),
-                id="navbar-collapse",
-                is_open=False,
-                navbar=True,
-            ),
+            dbc.Nav([
+                dbc.NavItem(
+                    html.Div([
+                        DashIconify(icon="carbon:notification", width=20, className="me-3 text-secondary", style={"cursor": "pointer"}),
+                        html.Div("UA", className="rounded-circle d-flex justify-content-center align-items-center fw-bold text-primary shadow-sm", 
+                                 style={"width": "32px", "height": "32px", "backgroundColor": "#e6f0ff", "fontSize": "0.8rem", "cursor": "pointer"})
+                    ], className="d-flex align-items-center ms-auto h-100")
+                )
+            ], className="ms-auto", navbar=True),
         ], fluid=True),
         
         color="white",  
-        className="mb-4 shadow-sm border-bottom navbar-light",
-        style={"padding": "10px 20px"}
+        className="shadow-sm border-bottom",
+        style={"position": "fixed", "top": 0, "left": 0, "right": 0, "height": "55px", "zIndex": 1030, "padding": "0 20px"}
     )
 
-# [1] 좌측 사이드바 (계층형 메뉴 적용)
 def create_sidebar():
+    nav_item_style = {
+        "display": "flex", "justifyContent": "center", "alignItems": "center", 
+        "padding": "12px", "borderRadius": "10px", "marginBottom": "12px", 
+        "color": "#64748b", "transition": "0.2s"
+    }
+    
     return html.Div([
-        # 사이드바 헤더 (로고 및 타이틀)
-        html.Div([
-            DashIconify(icon="carbon:dna", width=40, color="#18BC9C", className="me-2"),
-            html.H4("NGS LIMS", className="fw-bold m-0")
-        ], className="d-flex align-items-center mb-4 pb-3 border-bottom border-secondary"),
-        
-        # 계층형 메뉴 시작
+        # 🚀 에러 수정 완료: dbc.NavLink 대신 내부 html.Div에 title(툴팁) 속성 적용
         dbc.Nav([
-            
-            # ------------------------------------------------
-            # 📌 GROUP 1: OVERVIEW (오버뷰)
-            # ------------------------------------------------
-            # 🚀 콤마(,) 추가 및 text-white 적용, 마진 축소(mt-2, mb-1)
-            html.Div("📊 OVERVIEW", className="text-white small fw-bold mt-2 mb-1 ms-2 letter-spacing-1"),
-            
-            dbc.NavLink([DashIconify(icon="carbon:dashboard", width=20, className="me-2"), "Dashboard"], 
-                        href="/", active="exact", external_link=True, className="text-white mb-1 rounded hover-bg-primary ms-2"),
-            
-            dbc.NavLink([DashIconify(icon="carbon:data-table", width=20, className="me-2"), "Project View"], 
-                        href="/pro/", active="exact", external_link=True, className="text-white mb-3 rounded hover-bg-primary ms-2"),
-            
-            # ------------------------------------------------
-            # 📌 GROUP 2: WORKFLOW (실험/업무 단계)
-            # ------------------------------------------------
-            # 🚀 text-muted 제거, text-white 적용, 마진 축소(mt-3, mb-1)
-            html.Div("🧪 WORKFLOW", className="text-white small fw-bold mt-3 mb-1 ms-2 letter-spacing-1"),
-            
-            dbc.NavLink([DashIconify(icon="carbon:document-add", width=20, className="me-2"), "Registration"], 
-                        href="/reg/", active="exact", external_link=True, className="text-white mb-1 rounded hover-bg-primary ms-2"),
-            
-            dbc.NavLink([DashIconify(icon="carbon:finance", width=20, className="me-2"), "Workflow"], 
-                        href="/kanban/", active="exact", external_link=True, className="text-white mb-1 rounded hover-bg-primary ms-2"),
-            
-            dbc.NavLink([DashIconify(icon="carbon:report", width=20, className="me-2l"), "QC Report"], 
-                        href="/report/", active="exact", external_link=True, className="text-white mb-3 rounded hover-bg-primary ms-2"),
-
-            # ------------------------------------------------
-            # 📌 GROUP 3: MANAGEMENT (관리 및 정산)
-            # ------------------------------------------------
-            # 🚀 콤마(,) 추가, 오타(mall) 수정, text-white 적용, 마진 축소(mt-3, mb-1)
-            html.Div("💼 MANAGEMENT", className="text-white small fw-bold mt-3 mb-1 ms-2 letter-spacing-1"),
-            
-            dbc.NavLink([DashIconify(icon="carbon:finance", width=20, className="me-2"), "매입/매출"], 
-                        href="/biling/", active="exact", external_link=True, className="text-white mb-1 rounded hover-bg-primary ms-2"),
-            
-            
-        ], vertical=True, pills=True),
-
-        # 하단 유저 정보 (웹앱 느낌을 주는 디테일)
-        html.Div([
-            html.Hr(className="border-secondary"),
-            html.Div([
-                DashIconify(icon="carbon:user-avatar-filled-alt", width=30, className="me-2 text-muted"),
-                html.Span("Admin User", className="small")
-            ], className="d-flex align-items-center")
-        ], style={"position": "absolute", "bottom": "20px", "width": "14rem"})
+            dbc.NavLink(html.Div(DashIconify(icon="carbon:dashboard", width=22), title="Dashboard"), href="/", active="exact", external_link=True, style=nav_item_style, className="side-nav-icon"),
+            dbc.NavLink(html.Div(DashIconify(icon="carbon:flow", width=22), title="Kanban Workflow"), href="/kanban/", active="exact", external_link=True, style=nav_item_style, className="side-nav-icon"),
+            dbc.NavLink(html.Div(DashIconify(icon="carbon:report", width=22), title="QC Report"), href="/report/", active="exact", external_link=True, style=nav_item_style, className="side-nav-icon"),
+            dbc.NavLink(html.Div(DashIconify(icon="carbon:cloud-download", width=22), title="Data Registry"), href="/data_reg/", active="exact", external_link=True, style=nav_item_style, className="side-nav-icon"),
+            dbc.NavLink(html.Div(DashIconify(icon="carbon:chat-bot", width=22), title="AI Chatbot"), href="/chatbot/", active="exact", external_link=True, style=nav_item_style, className="side-nav-icon"),
+        ], vertical=True, pills=True, className="w-100 px-2 mt-3"),
         
-    ], style=SIDEBAR_STYLE)
+        # 하단 설정 아이콘
+        html.Div([
+            dbc.NavLink(html.Div(DashIconify(icon="carbon:settings", width=22), title="Settings"), href="#", style=nav_item_style)
+        ], style={"position": "absolute", "bottom": "10px", "width": "100%", "padding": "0 8px"})
+        
+    ], style=SIDEBAR_STYLE, className="side-navbar")
 
 def create_project_summary_card(order_obj, current_sample_count=None):
+    if order_obj is None:
+        raise ValueError("order_obj cannot be None")
+
     sample_count = current_sample_count if current_sample_count is not None else len(order_obj.samples)
     revenue = (order_obj.sales_unit_price or 0) * sample_count
 
@@ -202,7 +135,6 @@ def create_project_summary_card(order_obj, current_sample_count=None):
             for log in s.logs:
                 all_logs.append({
                     "sample_name": s.sample_name, "action": log.action_type,
-                    "prev": log.previous_state or "-", "new": log.new_state or "-",
                     "details": log.details or "-", "time": log.created_at
                 })
     
@@ -217,41 +149,61 @@ def create_project_summary_card(order_obj, current_sample_count=None):
             badge_color = "secondary"
             if "제외" in log["action"] or "실패" in log["action"]: badge_color = "danger"
             elif "완료" in log["action"]: badge_color = "success"
-            elif "변경" in log["action"]: badge_color = "primary"
+            elif "변경" in log["action"]: badge_color = "dark" 
             elif "특이사항" in log["action"]: badge_color = "warning text-dark"
 
             log_items.append(
                 html.Div([
-                    html.Span(f"[{time_str}]", className="text-muted small me-2", style={"fontFamily": "monospace"}),
-                    html.Strong(f"{log['sample_name']}", className="me-2 text-dark", style={"width": "110px", "display": "inline-block", "fontSize": "0.85rem"}),
-                    dbc.Badge(log['action'], color=badge_color, className="me-2"),
-                    html.Span(f" {log['details']}", className="text-info small fw-bold")
-                ], className="border-bottom py-1 d-flex align-items-center")
+                    html.Span(f"[{time_str}]", className="text-muted me-2", style={"fontFamily": "monospace", "fontSize": "0.75rem"}),
+                    html.Strong(f"{log['sample_name']}", className="me-2 text-dark", style={"width": "110px", "display": "inline-block", "fontSize": "0.8rem"}),
+                    dbc.Badge(log['action'], color=badge_color, className="me-2 rounded-pill", style={"fontSize": "0.7rem"}), 
+                    html.Span(f"{log['details']}", className="text-secondary fw-bold", style={"fontSize": "0.75rem", "whiteSpace": "pre-wrap"})
+                ], className="border-bottom py-2 d-flex align-items-center")
             )
 
-    log_container = html.Div(log_items, style={"maxHeight": "140px", "overflowY": "auto", "backgroundColor": "#f8f9fa", "padding": "8px", "borderRadius": "5px", "border": "1px solid #dee2e6"})
-
+    log_container = html.Div(log_items, style={"maxHeight": "140px", "overflowY": "auto", "backgroundColor": "#f8fafc", "padding": "10px", "borderRadius": "8px", "border": "1px solid #e2e8f0"})
+    note_val = getattr(order_obj, 'notes', "") or ""
     return dbc.Card([
-        dbc.CardHeader(html.H5(f"📂 Projcet : {order_obj.order_id}", className="mb-0 fw-bold text-primary")),
+        # 🚀 헤더 테두리 색상 강제 적용
+        dbc.CardHeader(
+            html.H5([DashIconify(icon="carbon:folder-open", className="me-2 text-dark"), f"Project : {order_obj.order_id}"], 
+            className="mb-0 fw-bold", style={"fontSize": "1rem"}), 
+            className="bg-white pt-3 pb-0",
+        ),
         dbc.CardBody([
-            # 🚀 글씨가 겹치지 않도록 반응형(md=3, sm=6) 컬럼 적용
             dbc.Row([
-                dbc.Col([html.Small("🏢 의뢰 기관", className="text-muted d-block"), html.Strong(order_obj.facility)], md=3, sm=6, className="mb-2"),
-                dbc.Col([html.Small("📅 접수 일자", className="text-muted d-block"), html.Strong(str(order_obj.reception_date))], md=3, sm=6, className="mb-2"),
-                dbc.Col([html.Small("📊 대상 검체", className="text-muted d-block"), html.Strong(f"{sample_count}건")], md=3, sm=6, className="mb-2"),
-                dbc.Col([html.Small("💰 예상 매출", className="text-muted d-block"), html.Strong(f"{revenue:,}원", className="text-success")], md=3, sm=6, className="mb-2"),
-            ], className="mb-1"),
-            
-            html.H6(f"🕒 최근 활동 로그 (최신 50건)", className="fw-bold text-secondary mb-2 border-top pt-2"),
+                dbc.Col([html.Div("🏢 의뢰 기관", className="text-muted mb-1", style={"fontSize": "0.75rem"}), html.Strong(order_obj.facility, style={"fontSize": "0.85rem"})], md=3, sm=6, className="mb-3"),
+                dbc.Col([html.Div("📅 접수 일자", className="text-muted mb-1", style={"fontSize": "0.75rem"}), html.Strong(str(order_obj.reception_date), style={"fontSize": "0.85rem"})], md=3, sm=6, className="mb-3"),
+                dbc.Col([html.Div("📊 대상 검체", className="text-muted mb-1", style={"fontSize": "0.75rem"}), html.Strong(f"{sample_count}건", style={"fontSize": "0.85rem"})], md=3, sm=6, className="mb-3"),
+                dbc.Col([html.Div("💰 예상 매출", className="text-muted mb-1", style={"fontSize": "0.75rem"}), html.Strong(f"{revenue:,}원", className="text-dark", style={"fontSize": "0.85rem"})], md=3, sm=6, className="mb-3"),
+            ]),
+            html.Div("📝 특이사항 메모", className="fw-bold text-slate-700 mb-2 mt-1", style={"fontSize": "0.8rem"}),
+            dbc.Textarea(
+                id="order-notes-input", 
+                placeholder="특이사항을 입력하세요.", 
+                style={
+                    "fontSize": "0.85rem", 
+                    "borderRadius": "8px", 
+                    "border": "1px solid #1a2a40", # 🚀 테두리 색상 명시
+                    "padding": "10px",
+                    "width": "100%",
+                    "resize": "vertical" # 사용자가 줄바꿈을 많이 할 경우 높이를 조절할 수 있게 함
+                },
+                rows=3,
+                className="form-control" 
+            ),
+
+            html.Div("🕒 최근 활동 로그 (최신 50건)", className="fw-bold text-slate-700 mb-2 border-top pt-2 mt-3", style={"fontSize": "0.8rem"}),
             log_container
-            
         ], className="pb-3")
-    ], className="mb-3 shadow-sm border-primary", style={"borderWidth": "2px"})
+    ], className="mb-4 shadow-sm border-0 rounded-4", style={"border": "1px solid #1a2a40 !important"}) # 🚀 카드 전체 테두리 색상 강제
 
 
-# [2] 전체 레이아웃 래퍼
 def apply_modern_layout(page_content):
+    if page_content is None:
+        raise ValueError("page_content cannot be None")
     return html.Div([
         create_navbar(),
-        html.Div(page_content, style=CONTENT_STYLE)
-    ])
+        create_sidebar(),
+        html.Div(page_content, style=CONTENT_STYLE, className="main-content") 
+    ], style={"backgroundColor": "#F4F7F9", "minHeight": "100vh", "overflow": "auto"})

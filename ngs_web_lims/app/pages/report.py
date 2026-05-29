@@ -134,12 +134,12 @@ def register_report_callbacks(dash_app):
         if not active_tab: return no_update, no_update, ""
         config = REPORT_SCHEMA_CONFIG.get(active_tab, {"columns": []})
         columnDefs = [
-            {"headerName": "선택", "field": "sample_id", "pinned": "left", "width": 100, "checkboxSelection": True, "headerCheckboxSelection": True},
-            {"headerName": "Order ID", "field": "order_id", "width": 140},
-            {"headerName": "패널", "field": "target_panel", "width": 100},
-            {"headerName": "현재 상태", "field": "current_status", "width": 120},
+            {"headerName": "선택", "field": "sample_id", "pinned": "left", "width": 200, "checkboxSelection": True, "headerCheckboxSelection": True},
+            {"headerName": "Order ID", "field": "order_id", "width": 200},
+            {"headerName": "패널", "field": "target_panel", "width": 150},
+            {"headerName": "현재 상태", "field": "current_status", "width": 150},
         ]
-        columnDefs.extend([{"headerName": col["name"], "field": col["id"], "width": 130} for col in config["columns"]])
+        columnDefs.extend([{"headerName": col["name"], "field": col["id"], "width": 140} for col in config["columns"]])
         
         db = SessionLocal()
         try:

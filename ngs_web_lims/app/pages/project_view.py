@@ -5,51 +5,56 @@ from app.core.database import SessionLocal
 from app.models._schema import Order, Sample
 from app.pages.base import LimsDashApp
 from app.ui.shared_ui import create_project_summary_card # 기존 카드 생성 함수 활용
-from dash import html, dcc, Input, Output, State
-import dash_bootstrap_components as dbc
-import dash_ag_grid as dag
-from app.core.database import SessionLocal
-from app.models._schema import Order, Sample
-from app.ui.shared_ui import create_project_summary_card # 기존 카드 생성 함수 재활용
+from dash_iconify import DashIconify
 
 def create_project_view_layout():
     return html.Div([
-        html.H3("📂 프로젝트 상세 조회", className="fw-bold text-secondary mb-4"),
+        # 🚀 1. 모던 페이지 헤더
+        html.Div([
+            html.Div([
+                html.H2([DashIconify(icon="carbon:folder-open", className="me-2 text-dark"), "Project View"]),
+                #html.P("의뢰된 프로젝트의 목록을 조회하고 개별 샘플 상세 상태를 확인합니다.", className="text-muted mt-1 mb-0")
+            ])
+        ], className="page-title-header"),
         
+        # 🚀 2. 프로젝트 리스트와 상세 정보 영역 (플로팅 카드 레이아웃)
         dbc.Row([
-            # --- 좌측: 최신 주문 목록 (4칸) ---
+            # 좌측: 주문 목록 카드
             dbc.Col([
                 html.Div([
-                    html.H5("📅 주문 목록", className="fw-bold mb-3"),
+                    html.H5([DashIconify(icon="carbon:list", className="me-2"), "주문 목록"], className="fw-bold mb-3 text-dark"),
                     dag.AgGrid(
                         id='project-list-grid',
                         columnDefs=[
                             {"headerName": "접수일", "field": "reception_date", "width": 110},
-                            {"headerName": "Order ID", "field": "order_id", "width": 160},
-                            {"headerName": "시료 수", "field": "sample_count", "width": 80}
+                            {"headerName": "Order ID", "field": "order_id", "width": 150},
+                            {"headerName": "수량", "field": "sample_count", "width": 70}
                         ],
                         rowData=[],
                         defaultColDef={"sortable": True, "filter": True, "resizable": True},
-                        dashGridOptions={"rowSelection": "single"},
-                        style={"height": "650px", "width": "100%"},
-                        className="ag-theme-alpine"
+                        dashGridOptions={
+                            "rowSelection": "single",
+                            "rowHeight": 40
+                        },
+                        style={"height": "600px", "width": "100%"},
+                        className="ag-theme-alpine border-0 shadow-sm rounded-3"
                     )
-                ], className="p-4 bg-white border-0 rounded-4 shadow-sm h-100")
+                ], className="p-4 bg-white border border-light rounded-4 shadow-sm h-100")
             ], width=4),
 
-            # --- 우측: 상세 정보 뷰 (8칸 - 모달 스타일) ---
+            # 우측: 상세 정보 뷰
             dbc.Col([
                 html.Div(id='project-detail-container', children=[
-                    html.Div("👈 좌측에서 프로젝트를 선택하면 상세 정보가 표시됩니다.", 
-                             className="text-muted text-center mt-5 fs-5")
-                ], className="p-4 bg-white border-0 rounded-4 shadow-sm h-100", style={'minHeight': '650px'})
+                    html.Div([
+                        DashIconify(icon="carbon:cursor-1", width=50, className="text-muted mb-3"),
+                        html.Div("좌측 목록에서 프로젝트를 선택하시면 상세 정보가 표시됩니다.", className="text-muted fs-6")
+                    ], className="d-flex flex-column align-items-center justify-content-center text-center", style={"height": "600px"})
+                ], className="p-4 bg-white border border-light rounded-4 shadow-sm h-100")
             ], width=8),
-        ]),
+        ], className="g-4")
     ], className="pb-4")
 
 def register_project_callbacks(dash_app):
-    
-    # 1. 최신순으로 주문 목록 불러오기
     @dash_app.callback(
         Output('project-list-grid', 'rowData'),
         Input('project-list-grid', 'id')
@@ -57,7 +62,6 @@ def register_project_callbacks(dash_app):
     def load_order_list(_):
         db = SessionLocal()
         try:
-            # 🚀 접수일(reception_date) 기준 최신순 정렬
             orders = db.query(Order).order_by(Order.reception_date.desc()).all()
             return [
                 {
@@ -69,50 +73,44 @@ def register_project_callbacks(dash_app):
         finally:
             db.close()
 
-    # 2. 행 선택 시 상세 정보 표시 (모달과 동일한 UI 로직)
-    # 2. [수정됨] 행 선택 시 우측 상세 정보 업데이트 (Input을 selectedRows로 변경)
     @dash_app.callback(
         Output('project-detail-container', 'children'),
-        Input('project-list-grid', 'selectedRows')  # 🚀 핵심: selectionChanged 대신 selectedRows 사용
+        Input('project-list-grid', 'selectedRows')
     )
     def display_project_details(selected_rows):
-        # 🚀 디버깅용 로그 (터미널에 선택한 데이터가 찍히는지 꼭 확인하세요!)
-        print(f"DEBUG: 선택된 행 정보: {selected_rows}")
-        
         if not selected_rows:
-            return html.Div("👈 좌측에서 프로젝트를 선택하세요.", className="text-muted text-center mt-5 fs-5")
+            return html.Div([
+                DashIconify(icon="carbon:cursor-1", width=50, className="text-muted mb-3"),
+                html.Div("좌측 목록에서 프로젝트를 선택하시면 상세 정보가 표시됩니다.", className="text-muted fs-6")
+            ], className="d-flex flex-column align-items-center justify-content-center text-center", style={"height": "600px"})
 
-        # 🚀 선택된 데이터 가져오기 (단일 선택이므로 첫 번째 행)
         selected_row = selected_rows[0]
         order_id = selected_row.get("order_id")
-        reception_date = selected_row.get("reception_date")
 
         db = SessionLocal()
         try:
             order = db.query(Order).filter(Order.order_id == order_id).first()
             if not order: return html.Div("데이터를 찾을 수 없습니다.")
 
-            # 상세 테이블 컬럼
             cols = ["sample_id", "sample_name", "target_panel", "current_status", "issue_comment"]
             
             detail_table = dag.AgGrid(
                 columnDefs=[{"headerName": c.replace("_", " ").title(), "field": c} for c in cols],
                 rowData=[{c: getattr(s, c, "") for c in cols} for s in order.samples],
                 defaultColDef={"sortable": True, "filter": True, "resizable": True},
-                style={"height": "400px", "width": "100%"},
-                className="ag-theme-alpine"
+                style={"height": "350px", "width": "100%"},
+                className="ag-theme-alpine border-0 shadow-sm rounded-3"
             )
             
             return html.Div([
                 create_project_summary_card(order, len(order.samples)),
-                html.Hr(className="my-4"),
-                html.H5("📋 해당 프로젝트 샘플 목록", className="fw-bold mb-3"),
-                detail_table
+                html.Div([
+                    html.H5([DashIconify(icon="carbon:data-table", className="me-2"), "샘플 상세 목록"], className="fw-bold mb-3"),
+                    detail_table
+                ], className="mt-4")
             ])
         finally:
             db.close()
-
-
 
 def create_project_view_app(requests_pathname_prefix: str):
     lims = LimsDashApp(__name__, requests_pathname_prefix)

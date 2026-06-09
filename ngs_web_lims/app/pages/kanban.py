@@ -21,10 +21,6 @@ from dash import html, dcc
 import dash_bootstrap_components as dbc
 import dash_ag_grid as dag
 from dash_iconify import DashIconify
-from dash import html, dcc
-import dash_bootstrap_components as dbc
-import dash_ag_grid as dag
-from dash_iconify import DashIconify
 
 def create_kanban_layout():
     # 🎨 칸반 컬럼 헤더 스타일 헬퍼 (모던 파스텔 톤)

@@ -58,6 +58,7 @@ def create_navbar():
                         dbc.DropdownMenuItem("Dashboard", href="/", external_link=True),
                         dbc.DropdownMenuItem("Project View", href="/pro/", external_link=True),
                         dbc.DropdownMenuItem("Project Modify", href="/modify", external_link=True),
+                        dbc.DropdownMenuItem("MASTER", href="/master", external_link=True),
                     ],
                     nav=True, in_navbar=True,
                 ),

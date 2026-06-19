@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>GMC TSO500 Sample QC Report</title>
+    <style>
+        /* PDF 변환 시 A4 용지 규격 및 좌우/상하 여백 설정 */
+        @page { 
+            size: A4; 
+            margin: 15mm 15mm 15mm 15mm; 
+        }
+        
+        body { 
+            font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; 
+            font-size: 10px; 
+            color: #222; 
+            line-height: 1.4; 
+            margin: 0;
+            padding: 0;
+        }
+
+        /* 헤더 영역 (GMC 로고 및 타이틀 정렬용) */
+        .header-container {
+            display: table;
+            width: 100%;
+            border-bottom: 2px solid #1a2a40; /* GMC 다크 블루 포인트 선 */
+            padding-bottom: 8px;
+            margin-bottom: 5px;
+        }
+        .header-logo {
+            display: table-cell;
+            width: 20%;
+            vertical-align: middle;
+            text-align: left;
+        }
+        .header-logo img {
+            max-height: 35px; 
+            max-width: 100%;
+        }
+        .header-title {
+            display: table-cell;
+            width: 60%;
+            font-size: 20px;
+            text-align: center;
+            font-weight: bold;
+            color: #1a2a40;
+            vertical-align: middle;
+            letter-spacing: -0.5px;
+        }
+        .header-spacer {
+            display: table-cell;
+            width: 20%;
+        }
+
+        .report-date-top { 
+            text-align: right; 
+            font-weight: bold; 
+            font-size: 10px;
+            color: #555;
+            margin-bottom: 15px; 
+            margin-top: 5px; 
+        }
+
+        /* 섹션 소제목 스타일 (좌측 얇은 바 포인트) */
+        .section-title { 
+            font-size: 12px; 
+            font-weight: bold; 
+            margin-top: 20px; 
+            margin-bottom: 6px;
+            color: #1a2a40;
+            text-transform: uppercase;
+            border-left: 3px solid #1a2a40;
+            padding-left: 6px;
+        }
+
+        /* 공통 테이블 표준 구조 */
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-bottom: 12px; 
+        }
+        th, td { 
+            border: 1px solid #7f8c8d; 
+            padding: 5px 3px; 
+            text-align: center; 
+            vertical-align: middle;
+        }
+        th { 
+            background-color: #f8fafc; 
+            color: #334155;
+            font-weight: bold; 
+            font-size: 10px; 
+        }
+        
+        /* Order Information 전용 라벨 칼럼 구조 */
+        .order-table th { text-align: left; background-color: #f8fafc; width: 18%; padding-left: 8px; }
+        .order-table td { text-align: left; width: 32%; padding-left: 8px; color: #334155; }
+
+        /* 요약 통계 정보 대시보드 라인 */
+        .qc-summary { 
+            font-weight: bold; 
+            text-align: left; 
+            margin-bottom: 6px; 
+            font-size: 11px; 
+            color: #475569;
+            background-color: #f1f5f9;
+            padding: 6px 10px;
+            border-radius: 4px;
+        }
+        .qc-summary span {
+            font-size: 12px;
+            color: #0f172a;
+            font-weight: 800;
+        }
+
+        /* 🚀 상태에 따른 글래스/파스텔 무드 색상 정의 */
+        .status-pass { 
+            color: #15803d; 
+            font-weight: bold; 
+            background-color: #dcfce7 !important; /* 연녹색 하이라이트 */
+        }
+        .status-fail { 
+            color: #b91c1c; 
+            font-weight: bold; 
+            background-color: #fee2e2 !important; /* 연빨간색 하이라이트 */
+        }
+        .status-hold { 
+            color: #b45309; 
+            font-weight: bold; 
+            background-color: #fef3c7 !important; /* 연노란색 하이라이트 */
+        }
+
+        /* 하단 서브 리스트 및 푸터 구조 */
+        .info-list { padding-left: 15px; font-size: 10px; color: #475569; line-height: 1.6; margin-top: 5px;}
+        .info-list li { margin-bottom: 2px; }
+        .page-footer { text-align: right; margin-top: 25px; font-size: 10px; font-weight: bold; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 5px; }
+    </style>
+</head>
+<body>
+    
+    <div class="header-container">
+        <div class="header-logo">
+            <img src="{{ logo_path }}" alt="GMC Logo">
+        </div>
+        <div class="header-title">GMC TSO500 DNA/RNA QC Report</div>
+        <div class="header-spacer"></div>
+    </div>
+    
+    <div class="report-date-top">Report Date: {{ report_date }}</div>
+    
+    <div class="section-title">Order Information</div>
+    <table class="order-table">
+        <tr>
+            <th>Order Number</th>
+            <td>{{ order_id }}</td>
+            <th>Order Date</th>
+            <td>{{ order_date }}</td>
+        </tr>
+        <tr>
+            <th>Customer Name</th>
+            <td>{{ customer_name }}</td>
+            <th>Arrival Date</th>
+            <td>{{ arrival_date }}</td>
+        </tr>
+        <tr>
+            <th>Customer Organization</th>
+            <td>{{ customer_organization }}</td>
+            <th>Report Date</th>
+            <td>{{ report_date }}</td>
+        </tr>
+        <tr>
+            <th>Customer Contact</th>
+            <td colspan="3">{{ customer_contact }}</td>
+        </tr>
+    </table>
+
+    <div class="section-title">QC Result</div>
+    
+    <div class="qc-summary">
+        # of Samples : <span>{{ samples|length }}</span> &nbsp;&nbsp;|&nbsp;&nbsp; 
+        Pass : <span style="color: #16a34a;">{{ pass_count }}</span> &nbsp;&nbsp;|&nbsp;&nbsp; 
+        Hold : <span style="color: #d97706;">{{ hold_count }}</span> &nbsp;&nbsp;|&nbsp;&nbsp; 
+        Fail : <span style="color: #dc2626;">{{ fail_count }}</span>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th rowspan="2" style="width: 4%;">No</th>
+                <th rowspan="2" style="width: 18%;">Customer<br>Sample ID</th>
+                <th colspan="2" style="width: 12%;">Result</th>
+                <th colspan="4" style="width: 30%;">DNA</th>
+                <th colspan="4" style="width: 30%;">RNA</th>
+                <th rowspan="2" style="width: 6%;">비고</th>
+            </tr>
+            <tr>
+                <th style="width: 6%;">DNA</th>
+                <th style="width: 6%;">RNA</th>
+                
+                <th style="width: 8%;">QUBIT<br>Conc.<br>(ng/ul)</th>
+                <th style="width: 7%;">Volume<br>(ul)</th>
+                <th style="width: 8%;">Total<br>Amt(ug)</th>
+                <th style="width: 7%;">A260<br>/280</th>
+                
+                <th style="width: 8%;">QUBIT<br>Conc.<br>(ng/ul)</th>
+                <th style="width: 7%;">Volume</th>
+                <th style="width: 8%;">Total<br>Amt(ug)</th>
+                <th style="width: 7%;">DV200<br>(%)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in samples %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td style="font-weight: bold; text-align: left; padding-left: 5px;">{{ row.get('Sample Name', '') }}</td>
+                
+                {% set dna_qc = row.get('DNA_QC', '') %}
+                {% set rna_qc = row.get('RNA_QC', '') %}
+                
+                <td class="{% if dna_qc == 'PASS' %}status-pass{% elif dna_qc == 'FAIL' %}status-fail{% elif dna_qc == 'HOLD' %}status-hold{% endif %}">{{ dna_qc }}</td>
+                <td class="{% if rna_qc == 'PASS' %}status-pass{% elif rna_qc == 'FAIL' %}status-fail{% elif rna_qc == 'HOLD' %}status-hold{% endif %}">{{ rna_qc }}</td>
+                
+                <td>{{ row.get('DNA_Conc', '-') }}</td>
+                <td>{{ row.get('DNA_Vol', '-') }}</td>
+                <td>{{ row.get('DNA_Total', '-') }}</td>
+                <td>{{ row.get('Purity', '-') }}</td>
+                
+                <td>{{ row.get('RNA_Conc', '-') }}</td>
+                <td>{{ row.get('RNA_Vol', '-') }}</td>
+                <td>{{ row.get('RNA_Total', '-') }}</td>
+                <td>{{ row.get('DV200', '-') }}</td>
+                
+                <td style="font-size: 9px; text-align: left; padding-left: 4px;">{{ row.get('Comment', '') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if images %}
+    <div style="page-break-before: always;"></div> 
+    <div class="section-title">QC Graphs</div>
+    <div style="text-align: center; margin-top: 15px;">
+        {% for img_data in images %}
+            <img src="{{ img_data }}" style="max-width: 100%; max-height: 380px; margin-bottom: 15px; border: 1px solid #cbd5e1; padding: 5px; border-radius: 4px;" />
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div style="page-break-inside: avoid;">
+        <div class="section-title">QC Criteria</div>
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2" style="width: 18%;">Service Type</th>
+                    <th rowspan="2" style="width: 15%;">Library type</th>
+                    <th rowspan="2" style="width: 23%;">Library kit</th>
+                    <th colspan="2" style="width: 17%;">DNA</th>
+                    <th colspan="2" style="width: 17%;">RNA</th>
+                    <th rowspan="2" style="width: 10%;">비고</th>
+                </tr>
+                <tr>
+                    <th>Total<br>Amt(ug)</th>
+                    <th>260/280</th>
+                    <th>Total<br>Amt(ng)</th>
+                    <th>DV200<br>(%)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="font-weight: bold;">Trusight Oncology 500</td>
+                    <td>Target enrichment</td>
+                    <td>TruSight Oncology 500</td>
+                    <td>&gt; 0.1</td>
+                    <td>1.7~2.1</td>
+                    <td>&gt; 0.1</td>
+                    <td>&gt; 40</td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="section-title">QC Information & Guidelines</div>
+        <ul class="info-list">
+            <li>1. 샘플이 모든 QC 기준을 충족하면 <strong>"PASS"</strong>로 표시됩니다.</li>
+            <li>2. 샘플이 QC기준을 통과하지 못하면 <strong>"FAIL"</strong>로 표시됩니다.</li>
+            <li>3. 샘플의 양이 한 번의 Library 제작만 가능하거나, QC 기준보다 약간 낮은 경우 <strong>"HOLD"</strong>로 표시됩니다.</li>
+            <ul style="list-style-type: none; padding-left: 10px; margin-top: 3px; color: #64748b;">
+                <li>• <strong>PASS</strong>: 라이브러리 구축 가능. (총량이 QC 기준 2배 이상인 경우)</li>
+                <li>• <strong>HOLD</strong>: 의뢰자 확인 후 다음 단계로 진행.</li>
+                <li>• <strong>FAIL</strong>: 의뢰인과 논의하여 실험을 취소하거나, 대체 샘플 진행가능 여부 확인.</li>
+            </ul>
+        </ul>
+        
+        <div class="page-footer">지엠씨의원</div>
+    </div>
+
+</body>
+</html>

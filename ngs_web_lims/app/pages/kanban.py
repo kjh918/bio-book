@@ -122,13 +122,6 @@ def create_kanban_layout():
             dbc.ModalBody([
                 html.Div(id="modal-shared-card-container", className="mb-3"),
 
-                # 샘플 분리(예외 처리) 안내 배너
-                dbc.Alert([
-                    DashIconify(icon="carbon:split", className="me-2"),
-                    html.Strong("개별 샘플 분리: "),
-                    "아래 표에서 특정 샘플의 '진행 상태'를 직접 변경하면 해당 샘플만 분리되어 독립 카드로 관리됩니다."
-                ], color="info", className="py-2 mb-3 small"),
-
                 # 툴바
                 html.Div([
                     html.Div([
@@ -162,18 +155,20 @@ def create_kanban_layout():
                     dashGridOptions={
                         "rowHeight": 45, "singleClickEdit": True,
                         "stopEditingWhenCellsLoseFocus": True,
+                        # enterNavigatesVertically는 팝업 에디터(agLargeTextCellEditor)에서
+                        # 엔터키를 가로채 줄바꿈 대신 셀 이동을 일으킴 → 비활성화
                         "enterNavigatesVertically": False,
-                        "enterNavigatesVerticallyAfterEdit": True,
+                        "enterNavigatesVerticallyAfterEdit": False,
                         "undoRedoCellEditing": True,
                         "undoRedoCellEditingLimit": 50,
-                        # 분리된(예외) 샘플은 행 색상으로 강조
-                        "getRowStyle": {
-                            "function": "params.data.is_split ? {backgroundColor: '#fff7ed', fontStyle: 'italic'} : {}"
-                        }
                     },
                     style={"height": "420px", "width": "100%"},
                     className="ag-theme-alpine border-0 shadow-sm rounded-3"
-                )
+                ),
+                # ⚠️ rowData(State)는 빠른 연속 편집 직후 저장 클릭 시
+                # 동기화 지연으로 최신 편집값이 누락될 수 있어, 셀 편집 이벤트를
+                # 별도 Store에 즉시 echo-back 시켜 저장 시점 데이터 신뢰성 확보
+                dcc.Store(id="modal-rowdata-synced", data=[])
             ], style={"maxHeight": "82vh", "overflowY": "auto"}),
 
             dbc.ModalFooter([
@@ -192,41 +187,17 @@ def create_kanban_layout():
 
 
 # ============================================================
-# [2] 카드 생성 – Project 그룹 헤더 + Order 카드
+# [2] 카드 생성 – Order 카드 (간결한 버전)
 # ============================================================
 
-def _sample_status_bar(samples_in_order):
-    """Order 안의 샘플들을 상태별로 집계해 미니 배지 바를 반환."""
-    counts = defaultdict(int)
-    for s in samples_in_order:
-        counts[s.current_status] += 1
-
-    badges = []
-    for stage in STAGES:
-        n = counts.get(stage, 0)
-        if n:
-            theme = STATUS_THEME.get(stage, {})
-            badges.append(
-                html.Span(f"{stage[:2]} {n}",
-                          className=f"badge bg-{theme.get('badge', 'secondary')} me-1",
-                          style={"fontSize": "0.7rem"})
-            )
-    # 보류/실패
-    held = counts.get("보류/실패", 0) + counts.get("재실험", 0)
-    if held:
-        badges.append(html.Span(f"보류 {held}", className="badge bg-danger me-1",
-                                style={"fontSize": "0.7rem"}))
-    return html.Div(badges, className="mb-2")
-
-
-def make_order_card(order_obj, status, samples_in_status, all_samples_in_order, is_split=False):
+def make_order_card(order_obj, status, samples_in_status):
     """
-    단일 Order 카드.
-    is_split=True : 이 Order 안의 샘플들이 여러 단계에 흩어진 상태 → '분리됨' 배지 표시
+    단일 Order 카드 — 핵심 정보만 표시하는 간결한 버전.
+    GCX 코드(줄바꿈) + 건수/이슈 배지 + 상세보기 버튼만 노출한다.
     """
-    action_rule = LimsRules.STAGE_ACTIONS.get(status, {"text": "다음 단계", "color": "info", "next": "완료"})
-    btn_text, btn_color, next_stage = action_rule["text"], action_rule["color"], action_rule["next"]
     group_id = f"{order_obj.order_id}___{status}"
+
+    team_id = f'{order_obj.facility}_{order_obj.client_team}'
     theme = STATUS_THEME.get(status, {"border": "border-secondary", "text": "text-secondary"})
 
     has_issue = any(
@@ -234,82 +205,45 @@ def make_order_card(order_obj, status, samples_in_status, all_samples_in_order, 
         for s in samples_in_status
     )
 
-    # 단계별 부가 정보
-    stage_info = []
-    if status == "접수 대기":
-        received = sum(1 for s in samples_in_status
-                       if str(getattr(s, "sample_received", "")).replace(" ", "") == "입고완료")
-        stage_info.append(
-            html.Small(f"📦 입고 완료 {received}/{len(samples_in_status)}건",
-                       className=f"d-block {'text-success' if received == len(samples_in_status) else 'text-danger'} fw-bold mb-1")
-        )
-        stage_info.append(html.Small(f"🏢 {order_obj.facility} · {order_obj.client_team}",
-                                     className="text-muted d-block"))
-    elif status == "접수 완료":
-        stage_info.append(html.Small(f"📅 접수일: {order_obj.reception_date}", className="text-muted d-block"))
-    elif status == "QC 진행":
-        passed = sum(1 for s in samples_in_status
-                     if str(getattr(s, "sample_qc", "")).upper() == "PASS")
-        stage_info.append(
-            html.Small(f"🔬 QC PASS {passed}/{len(samples_in_status)}건",
-                       className="d-block text-warning fw-bold mb-1")
-        )
-    elif status == "정산 대기":
-        rev = (order_obj.sales_unit_price or 0) * len(samples_in_status)
-        stage_info.append(
-            html.Div(html.Small(f"💰 예상 매출: {rev:,}원", className="text-primary fw-bold"),
-                     className="bg-light p-1 rounded border")
-        )
-    else:
-        stage_info.append(html.Small(f"🏢 {order_obj.facility}", className="text-muted d-block"))
 
     return html.Div([
         dbc.Card([
             dbc.CardBody([
-                # 제목 행
+                # GCX 코드 (자체 줄에 표시)
+                html.Div(
+                    order_obj.order_id,
+                    className=f"fw-bold {theme['text']} mb-2",
+                    style={"fontSize": "0.92rem", "wordBreak": "break-all", "lineHeight": "1.3"}
+                ),
+                # GCX 코드 (자체 줄에 표시)
+                html.Div(
+                    f"{order_obj.facility}-{order_obj.client_team}: {order_obj.client_name}",
+                    className="fw-bold",
+                    style={"fg": "#6E7680", "fontSize": "0.8rem", "wordBreak": "break-all", "lineHeight": "1.3"}
+                ),
+                html.Div(
+                    f"Recept_Date: {order_obj.reception_date}",
+                    className="fw-bold",
+                    style={"fg": "#6E7680", "fontSize": "0.8rem", "wordBreak": "break-all", "lineHeight": "1.3"}
+                ),
+                # 건수 + 이슈 배지
                 html.Div([
-                    html.H6(f"📦 {order_obj.order_id}",
-                            className=f"fw-bold {theme['text']} mb-0",
-                            style={"fontSize": "0.85rem"}),
-                    html.Div([
-                        html.Span(f"{len(samples_in_status)}건",
-                                  className="badge bg-secondary me-1"),
-                        html.Span("⚠️ 이슈", className="badge bg-danger me-1") if has_issue else None,
-                        html.Span("🔀 분리됨", className="badge bg-warning text-dark") if is_split else None,
-                    ])
-                ], className="d-flex justify-content-between align-items-start mb-2"),
+                    html.Span(f"{len(samples_in_status)}건",
+                              className="badge bg-secondary me-1"),
+                    html.Span("⚠️ 이슈", className="badge bg-danger") if has_issue else None,
+                ], className="mb-3"),
 
-                # 전체 샘플 상태 미니 바 (Order 내 흩어진 현황)
-                _sample_status_bar(all_samples_in_order),
-
-                html.Div(stage_info, className="mb-3"),
-
-                dbc.Button(btn_text,
-                           id={"type": "btn-move-stage", "index": group_id, "next": next_stage},
-                           color=btn_color, size="sm", className="w-100 mb-1 fw-bold"),
-                dbc.Button("🔍 상세 / 개별 샘플 분리",
+                dbc.Button("상세보기",
                            id={"type": "btn-open-modal", "order_id": order_obj.order_id, "stage": status},
-                           color="link", size="sm", className="w-100 text-muted p-0 mt-1")
+                           color="light", size="sm",
+                           className="w-100 fw-bold border text-secondary",
+                           style={"fontSize": "0.8rem"})
             ], className="p-3")
         ], className=f"shadow-sm border-start border-4 {theme['border']} rounded-3")
     ], draggable=True, id=f"drag-card-{group_id}",
        style={"cursor": "grab"}, className="mb-2")
 
 
-def make_project_group(project_name, order_cards):
-    """Project 이름을 헤더로 갖는 접이식 그룹 컨테이너."""
-    safe_id = re.sub(r"[^a-zA-Z0-9가-힣_-]", "_", project_name)
-    return html.Div([
-        # 프로젝트 구분선 헤더
-        html.Div([
-            DashIconify(icon="carbon:folder", className="me-1 text-muted", width=14),
-            html.Span(project_name, style={"fontSize": "0.75rem", "color": "#64748b",
-                                           "fontWeight": "700", "letterSpacing": "0.06em",
-                                           "textTransform": "uppercase"}),
-            html.Hr(style={"flex": 1, "marginLeft": "8px", "borderColor": "#e2e8f0", "marginTop": "9px"})
-        ], className="d-flex align-items-center mb-2 mt-1"),
-        html.Div(order_cards)
-    ], id=f"proj-group-{safe_id}", className="mb-1")
 
 
 # ============================================================
@@ -347,9 +281,6 @@ def register_kanban_callbacks(dash_app):
                 filtered_orders.append(o)
 
             # ── 각 Order를 단계별로 분해 ──
-            # 구조: {col_idx: {project_name: [card, ...]}}
-            col_proj: list[dict[str, list]] = [defaultdict(list) for _ in range(6)]
-
             for o in filtered_orders:
                 # 패널 필터 적용 후 샘플
                 samples = [s for s in o.samples
@@ -363,25 +294,14 @@ def register_kanban_callbacks(dash_app):
                     stage = s.current_status if s.current_status in STATUS_IDX else "접수 대기"
                     by_stage[stage].append(s)
 
-                # Order 내 샘플이 여러 단계에 흩어졌는지 확인
-                is_split = len(by_stage) > 1
-
                 for stage, stage_samples in by_stage.items():
                     col_idx = STATUS_IDX[stage]
-                    # project_name은 샘플 첫 번째 값 기준 (없으면 "Default")
-                    proj = (stage_samples[0].project_name or "Default").strip()
-                    card = make_order_card(o, stage, stage_samples, samples, is_split=is_split)
-                    col_proj[col_idx][proj].append(card)
+                    card = make_order_card(o, stage, stage_samples)
+                    cols[col_idx].append(card)
 
-            # ── Project 그룹 헤더 씌워서 컬럼에 배치 ──
-            for col_idx, proj_dict in enumerate(col_proj):
-                if not proj_dict:
+            for col_idx in range(6):
+                if not cols[col_idx]:
                     cols[col_idx] = [html.Div("빈 단계", className="text-center text-muted small mt-5")]
-                    continue
-                col_children = []
-                for proj_name in sorted(proj_dict.keys()):
-                    col_children.append(make_project_group(proj_name, proj_dict[proj_name]))
-                cols[col_idx] = col_children
 
             return cols
 
@@ -401,7 +321,8 @@ def register_kanban_callbacks(dash_app):
          Output("modal-datatable", "columnDefs"),
          Output("current-modal-order-id", "data"),
          Output("current-modal-stage", "data"),
-         Output("bulk-col-select", "options")],
+         Output("bulk-col-select", "options"),
+         Output("modal-rowdata-synced", "data", allow_duplicate=True)],
         [Input({"type": "btn-open-modal", "order_id": ALL, "stage": ALL}, "n_clicks"),
          Input("btn-save-modal", "n_clicks")],
         [State("sample-detail-modal", "is_open"),
@@ -411,11 +332,11 @@ def register_kanban_callbacks(dash_app):
     )
     def handle_modal(open_clicks, save_clicks, is_open, current_oid, current_stage):
         if not ctx.triggered:
-            return [no_update] * 8
+            return [no_update] * 9
         tid = ctx.triggered[0]["prop_id"].split(".")[0]
 
         if tid == "btn-save-modal":
-            return False, no_update, no_update, no_update, no_update, no_update, no_update, no_update
+            return False, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update
 
         db = SessionLocal()
         try:
@@ -423,15 +344,15 @@ def register_kanban_callbacks(dash_app):
 
             if "btn-open-modal" in tid:
                 if all(c is None for c in open_clicks):
-                    return [no_update] * 8
+                    return [no_update] * 9
                 btn_data = json.loads(tid)
                 oid, stage = btn_data["order_id"], btn_data["stage"]
 
             if not oid:
-                return [no_update] * 8
+                return [no_update] * 9
             order = db.query(Order).filter(Order.order_id == oid).first()
             if not order:
-                return [no_update] * 8
+                return [no_update] * 9
 
             # 해당 단계 샘플만 표시
             samples = [s for s in order.samples if s.current_status == stage]
@@ -439,18 +360,6 @@ def register_kanban_callbacks(dash_app):
 
             # 컬럼 정의
             columns = LimsDashApp.get_base_grid_columns(include_project=False)
-
-            # 분리 여부 열 (읽기 전용 표시용)
-            columns.append({
-                "headerName": "🔀 분리 여부", "field": "is_split_label",
-                "width": 100, "editable": False,
-                "cellStyle": {
-                    "styleConditions": [
-                        {"condition": "params.value === '분리됨'",
-                         "style": {"color": "#d97706", "fontWeight": "bold"}}
-                    ]
-                }
-            })
 
             bulk_options = [{"label": col["name"], "value": col["id"]}
                             for col in stage_config["columns"] if col.get("editable", True)]
@@ -464,33 +373,17 @@ def register_kanban_callbacks(dash_app):
                         ag_col["cellEditorParams"] = {"values": col["options"]}
                 columns.append(ag_col)
 
-            bulk_options.extend([
-                {"label": "🔄 진행 상태 (개별 분리)", "value": "current_status"},
-                {"label": "📝 특이사항/메모", "value": "issue_comment"}
-            ])
+            bulk_options.append({"label": "📝 특이사항/메모", "value": "issue_comment"})
             columns.extend([
-                {"headerName": "진행 상태", "field": "current_status", "editable": True,
-                 "width": 130,
-                 "cellEditor": "agSelectCellEditor",
-                 "cellEditorParams": {"values": STAGES + ["보류/실패", "재실험"]},
-                 "cellStyle": {
-                     "styleConditions": [
-                         {"condition": f"params.value === '{stage}'",
-                          "style": {"color": "#64748b"}},
-                         {"condition": f"params.value !== '{stage}' && params.value !== ''",
-                          "style": {"color": "#d97706", "fontWeight": "bold",
-                                    "backgroundColor": "#fff7ed"}}
-                     ]
-                 }},
+                # 진행 상태는 보기 전용 — 단계 이동은 칸반 보드의 드래그&드롭으로만 처리
+                {"headerName": "진행 상태", "field": "current_status", "editable": False,
+                 "width": 110,
+                 "cellStyle": {"color": "#64748b", "backgroundColor": "#f8fafc"}},
                 {"headerName": "특이사항/메모", "field": "issue_comment", "editable": True,
                  "cellEditor": "agLargeTextCellEditor", "cellEditorPopup": True,
                  "cellEditorParams": {"maxLength": 1000, "rows": 6, "cols": 50},
                  "flex": 1, "minWidth": 220}
             ])
-
-            # Order 전체 단계 집합 (분리 여부 판단용)
-            all_stages_in_order = set(s.current_status for s in order.samples)
-            is_split_order = len(all_stages_in_order) > 1
 
             table_data = []
             for s in samples:
@@ -502,8 +395,6 @@ def register_kanban_callbacks(dash_app):
                     "target_panel": s.target_panel,
                     "current_status": s.current_status,
                     "issue_comment": s.issue_comment or "",
-                    "is_split": is_split_order,
-                    "is_split_label": "분리됨" if is_split_order else "통합",
                 }
                 for col in stage_config["columns"]:
                     col_id = col["id"]
@@ -514,15 +405,27 @@ def register_kanban_callbacks(dash_app):
                 table_data.append(row_dict)
 
             shared_card = create_project_summary_card(order, len(samples))
+            title = f"📋 {oid} · {stage} ({len(samples)}건)"
 
-            # 모달 타이틀: 분리 여부 표시
-            title_extra = " 🔀 일부 샘플 분리 중" if is_split_order else ""
-            title = f"📋 {oid} · {stage} ({len(samples)}건){title_extra}"
-
-            return True, title, shared_card, table_data, columns, oid, stage, bulk_options
+            return True, title, shared_card, table_data, columns, oid, stage, bulk_options, table_data
 
         finally:
             db.close()
+
+    # ── 셀 편집 즉시 동기화 Store에 echo-back ──────────────
+    # singleClickEdit + numeric/dropdown 셀 편집 직후 바로 저장 버튼을 누르면
+    # State("rowData")가 최신 편집값을 못 받아오는 레이스 컨디션이 발생할 수 있어
+    # cellValueChanged 이벤트마다 전체 rowData를 별도 Store로 즉시 echo한다.
+    @dash_app.callback(
+        Output("modal-rowdata-synced", "data", allow_duplicate=True),
+        Input("modal-datatable", "cellValueChanged"),
+        State("modal-datatable", "rowData"),
+        prevent_initial_call=True
+    )
+    def sync_rowdata_on_edit(cell_changed, row_data):
+        if row_data is None:
+            return no_update
+        return row_data
 
     # ── 엑셀 다운로드 ────────────────────────────────────────
     @dash_app.callback(
@@ -536,7 +439,7 @@ def register_kanban_callbacks(dash_app):
     def export_excel(n_clicks, table_data, oid, stage):
         if not table_data:
             return no_update
-        df = pd.DataFrame(table_data).drop(columns=["id", "is_split", "is_split_label"], errors="ignore")
+        df = pd.DataFrame(table_data).drop(columns=["id"], errors="ignore")
         return dcc.send_data_frame(df.to_excel, f"{oid}_{stage}_데이터.xlsx", index=False)
 
     # ── 일괄 변경 & 엑셀 덮어쓰기 ───────────────────────────
@@ -588,17 +491,24 @@ def register_kanban_callbacks(dash_app):
          Input({"type": "btn-move-stage", "index": ALL, "next": ALL}, "n_clicks"),
          Input("btn-save-modal", "n_clicks")],
         [State("modal-datatable", "rowData"),
+         State("modal-rowdata-synced", "data"),
          State("kanban-update-trigger", "data"),
          State("current-modal-stage", "data")],
         prevent_initial_call=True
     )
-    def update_data(drag_data, btn_clicks, save_click, table_data, trig, modal_stage):
+    def update_data(drag_data, btn_clicks, save_click, grid_row_data, synced_row_data, trig, modal_stage):
         if not ctx.triggered:
             return no_update, False, no_update
 
         trigger_val = ctx.triggered[0]["value"]
         if not trigger_val:
             return no_update, False, no_update
+
+        # ⚠️ modal-datatable.rowData(State)는 빠른 연속 셀 편집 직후 저장을
+        # 누르면 최신 값이 아직 반영되지 않은 채로 콜백에 전달될 수 있다.
+        # cellValueChanged 이벤트마다 echo-back된 modal-rowdata-synced를
+        # 우선 사용하고, 비어있을 때만 grid rowData로 폴백한다.
+        table_data = synced_row_data if synced_row_data else grid_row_data
 
         tid = ctx.triggered[0]["prop_id"].split(".")[0]
         db = SessionLocal()
@@ -607,7 +517,7 @@ def register_kanban_callbacks(dash_app):
             upd = 0
 
             # ──────────────────────────────────────────────────
-            # 1. 모달 저장 (개별 샘플 분리 포함)
+            # 1. 모달 저장 (QC 입력값 / 메모 갱신만 — 단계 이동은 드래그&드롭 전용)
             # ──────────────────────────────────────────────────
             if tid == "btn-save-modal" and table_data:
                 stage = modal_stage or "접수 대기"
@@ -622,113 +532,52 @@ def register_kanban_callbacks(dash_app):
 
                     old_status = s.current_status
                     old_issue = s.issue_comment or ""
-                    new_status = str(row.get("current_status", s.current_status)).strip()
-                    new_issue = str(row.get("issue_comment", "")).strip("\t\r")
-
-                    # ── 재실험 파생 ──
-                    if "재실험" in new_status:
-                        base_id = str(s.sample_id or "UNKNOWN")
-                        m = re.search(r"-R(\d+)$", base_id)
-                        new_s_id = (base_id[:m.start()] + f"-R{int(m.group(1)) + 1}"
-                                    if m else base_id + "-R1")
-                        new_s = Sample(
-                            order_pk=s.order_pk, order_id=s.order_id, sample_id=new_s_id,
-                            target_panel=s.target_panel, current_status="접수 대기",
-                            sample_name=s.sample_name, cancer_type=s.cancer_type,
-                            specimen=s.specimen, project_name=s.project_name,
-                            pairing_info=s.pairing_info, outside_id_1=s.outside_id_1,
-                            issue_comment=f"[{stage} 단계에서 재실험 요청됨 (원본: {base_id})]",
-                            panel_metadata=s.panel_metadata
-                        )
-                        db.add(new_s)
-                        s.current_status = "보류/실패"
-                        s.issue_comment = f"[재실험 진행으로 인한 종료] {new_issue}"
-                        db.add(ActionLog(sample_id=s.id, action_type="재실험 요청",
-                                         previous_state=stage, new_state="보류/실패",
-                                         details=f"새 샘플 {new_s_id} 파생됨"))
-                        upd += 1
-                        continue
+                    # ⚠️ strip() 대신 좌우 공백만 제거 — 줄바꿈(\n)은 보존
+                    new_issue = str(row.get("issue_comment", "")).strip(" \t\r")
 
                     # ── 필드 갱신 ──
                     has_field_change = False
+                    # panel_metadata는 JSON이라 변경 감지를 위해 미리 복사
+                    new_meta = dict(s.panel_metadata) if s.panel_metadata else {}
+
                     for col in stage_config["columns"]:
                         c_id = col["id"]
                         if c_id not in row:
                             continue
                         val = row[c_id]
+                        # 메모(text) 타입은 줄바꿈 보존, 나머지는 좌우 공백만 제거
                         if isinstance(val, str):
-                            val = val.strip()
+                            val = val.strip(" \t\r") if col.get("type") != "memo" else val
                         if col.get("type") == "numeric":
                             try:
                                 val = float(val) if str(val).strip() else None
                             except ValueError:
                                 val = None
-                        if hasattr(s, c_id):
+
+                        # Sample 모델에 실제 컬럼이 있으면 직접 set
+                        if hasattr(s.__class__, c_id):
                             if getattr(s, c_id) != val:
                                 setattr(s, c_id, val)
                                 has_field_change = True
                         else:
-                            if s.panel_metadata is None:
-                                s.panel_metadata = {}
-                            if s.panel_metadata.get(c_id) != val:
-                                s.panel_metadata[c_id] = val
+                            # 없으면 panel_metadata JSON에 저장
+                            if new_meta.get(c_id) != val:
+                                new_meta[c_id] = val
                                 has_field_change = True
 
                     if has_field_change:
-                        if s.panel_metadata is not None:
-                            s.panel_metadata = dict(s.panel_metadata)
+                        # panel_metadata는 새 dict 할당해야 SQLAlchemy가 변경 감지
+                        s.panel_metadata = new_meta
+                        db.add(s)
                         db.add(ActionLog(sample_id=s.id, action_type="데이터 갱신",
                                          previous_state=old_status, new_state=old_status,
                                          details="상세 수정"))
                         upd += 1
 
-                    # ── 역방향 이동 차단 ──
-                    stages_order = STAGES + ["보류/실패"]
-                    try:
-                        old_idx = stages_order.index(old_status)
-                        new_idx = stages_order.index(new_status)
-                    except ValueError:
-                        old_idx = new_idx = 0
-
-                    if new_idx < old_idx and new_status != "보류/실패":
-                        error_msgs.append(
-                            f"🚫 [{s.sample_name}] 역방향 이동 불가 (현재: {old_status})")
-                        new_status = old_status
-
-                    # ── 단계 전진 조건(pass_value) 검증 ──
-                    if new_status != old_status and new_status not in ["보류/실패", "재실험"]:
-                        is_passed = True
-                        for col in stage_config["columns"]:
-                            db_val = str(
-                                getattr(s, col["id"], "") if hasattr(s, col["id"])
-                                else (s.panel_metadata.get(col["id"], "") if s.panel_metadata else "")
-                            ).replace(" ", "")
-                            target_val = str(col.get("pass_value", "")).replace(" ", "")
-                            if col.get("required") and not db_val:
-                                error_msgs.append(
-                                    f"[{s.sample_name}] 필수 항목 '{col['name']}' 누락")
-                                is_passed = False
-                            if col.get("pass_value") and db_val != target_val:
-                                error_msgs.append(
-                                    f"📦 [{s.sample_name}] '{col['name']}'을 "
-                                    f"'{col.get('pass_value')}'로 설정해야 이동 가능합니다.")
-                                is_passed = False
-                        if not is_passed:
-                            new_status = old_status
-
-                    if old_status != new_status:
-                        s.current_status = new_status
-                        action_label = ("개별 샘플 분리 이동" if new_status != stage
-                                        else "상태 변경")
-                        db.add(ActionLog(sample_id=s.id, action_type=action_label,
-                                         previous_state=old_status, new_state=new_status,
-                                         details="모달 저장"))
-                        upd += 1
-
                     if old_issue != new_issue:
                         s.issue_comment = new_issue
                         db.add(ActionLog(sample_id=s.id, action_type="특이사항 갱신",
-                                         previous_state=old_status, new_state=s.current_status,
+                                         previous_state=old_status, new_state=old_status,
                                          details=f"{old_issue or '없음'} → 변경됨"))
                         upd += 1
 

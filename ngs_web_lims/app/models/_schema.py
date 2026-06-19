@@ -13,7 +13,7 @@ STAGE_SCHEMA_CONFIG = {
             {
                 "name": "입고 확인 📦", "id": "sample_received", "editable": True, 
                 "presentation": "dropdown", "required": True, "pass_value": "입고 완료",
-                "options": ["대기중", "입고 완료"] # 👈 여기도 드롭다운 추가!
+                "options": ["대기중", "입고 완료"] 
             },
             {
                 "name": "입고 담당자 👤", "id": "receiver_name", "editable": True, "required": True
@@ -24,33 +24,35 @@ STAGE_SCHEMA_CONFIG = {
             {
                 "name": "실물 상태 👁️", "id": "visual_inspection", "editable": True, 
                 "presentation": "dropdown",
-                # 🚀 rules.py의 INSPECTION_OPTIONS에서 "value" 값들(Pass, Hold_Volume 등)만 추출해서 자동 연결!
                 "options": [opt["value"] for opt in LimsRules.INSPECTION_OPTIONS if opt["value"]] 
             },
         ]
     },
-    # ... 이하 생략 ...
     "접수 완료": {
             "columns": [
-                {"name": "초기 용량(uL)", "id": "volume", "editable": True, "type": "numeric"},
+                {"name": "초기 용량(uL)", "id": "initial_volume", "editable": True, "type": "numeric"},
                 {"name": "검사진행 여부", "id": "test_progress", "editable": True, "presentation": "dropdown", "options": ["O", "X", "-"]},
                 {"name": "Dead Line", "id": "dead_line", "editable": True, "type": "date"},
             ]
         },    
     "QC 진행": {
         "columns": [
-            # 📌 공통 QC 항목
-            {"name": "QC 판정", "id": "sample_qc", "editable": True, "presentation": "dropdown", "options": ["PASS", "FAIL", "HOLD", "RE-RUN"]},
-            {"name": "농도(ng/uL)", "id": "concentration", "editable": True, "type": "numeric"},
-            {"name": "순도(A260/280)", "id": "purity", "editable": True, "type": "numeric"},
-            {"name": "현재 용량(uL)", "id": "volume", "editable": True, "type": "numeric"},
-            {"name": "총량(μg)", "id": "total_amount", "editable": True, "type": "numeric"},
+            # 🧬 DNA 전용 항목
+            {"name": "DNA QC", "id": "dna_qc", "editable": True, "presentation": "dropdown", "options": ["PASS", "FAIL", "HOLD", "RE-RUN", "PENDING"]},
+            {"name": "DNA 농도(ng/uL)", "id": "dna_concentration", "editable": True, "type": "numeric"},
+            {"name": "DNA 순도(A260/280)", "id": "purity", "editable": True, "type": "numeric"},
+            {"name": "DNA 용량(uL)", "id": "dna_volume", "editable": True, "type": "numeric"},
+            {"name": "DNA 총량(μg)", "id": "dna_total_amount", "editable": True, "type": "numeric"},
             
             # 🧬 RNA 전용 항목
-            {"name": "RIN (RNA)", "id": "rin", "editable": True, "type": "numeric"},
+            {"name": "RNA QC", "id": "rna_qc", "editable": True, "presentation": "dropdown", "options": ["PASS", "FAIL", "HOLD", "RE-RUN", "PENDING"]},
+            {"name": "RNA 농도(ng/uL)", "id": "rna_concentration", "editable": True, "type": "numeric"},
+            {"name": "RNA 용량(uL)", "id": "rna_volume", "editable": True, "type": "numeric"},
+            {"name": "RNA 총량(μg)", "id": "rna_total_amount", "editable": True, "type": "numeric"},
             {"name": "DV200 (%)", "id": "dv200", "editable": True, "type": "numeric"},
             
-            # 🧬 DNA 전용 항목 (필요에 따라 추가)
+            # 📌 부가 참조 항목 (필요 시 작성)
+            {"name": "RIN (RNA)", "id": "rin", "editable": True, "type": "numeric"},
             {"name": "DIN (DNA)", "id": "din", "editable": True, "type": "numeric"},
         ]
     },
@@ -58,7 +60,7 @@ STAGE_SCHEMA_CONFIG = {
         "columns": [
             {"name": "SEQ ID", "id": "seq_id", "editable": True},
             {"name": "Depth/Output", "id": "depth_output", "editable": True},
-            {"name": "달성 Depth/Output", "id": "depth_output_achieved", "editable": True, "required": False}, # 💡 팁: 'depth_output' id가 중복되어 덮어씌워질 수 있어 임의로 변경했습니다.
+            {"name": "달성 Depth/Output", "id": "depth_output_achieved", "editable": True, "required": False}, 
             {"name": "재실험 횟수", "id": "attempt_num", "editable": True, "type": "numeric", "required": False},
             {"name": "Seq QC Report Date", "id": "seq_qc_report_date", "editable": True, "type": "date"},
         ]
@@ -73,14 +75,12 @@ STAGE_SCHEMA_CONFIG = {
     },
     "정산 대기": {
         "columns": [
-            # 매출 관련
             {"name": "매출 여부", "id": "sales_yn", "editable": True, "presentation": "dropdown", "options": ["Y", "N", "-"]},
             {"name": "매출 단가", "id": "sales_unit_price", "editable": True, "type": "numeric"},
             {"name": "견적서 발행", "id": "quotation_yn", "editable": True, "presentation": "dropdown", "options": ["Y", "N", "-"]},
             {"name": "Quotation ID", "id": "quotation_id", "editable": True},
             {"name": "거래명세서 발행일", "id": "trading_statement_date", "editable": True, "type": "date"},
             {"name": "세금계산서 발행일", "id": "tax_invoice_date", "editable": True, "type": "date"},
-            # 매입 및 지출 관련
             {"name": "매입 여부", "id": "purchase_yn", "editable": True, "presentation": "dropdown", "options": ["Y", "N", "-"]},
             {"name": "매입 단가", "id": "purchase_unit_price", "editable": True, "type": "numeric"},
             {"name": "품의(지출) 작성일", "id": "expense_report_date", "editable": True, "type": "date"},
@@ -89,14 +89,16 @@ STAGE_SCHEMA_CONFIG = {
         ]
     }
 }
+
 REPORT_SCHEMA_CONFIG = {
     "QC Report": {
-        "description": "실험 및 시퀀싱 품질 검증을 위한 내부 보고서",
+        "description": "실험 및 시퀀싱 품질 검증을 위한 내부 보고서 (TSO500 포함)",
         "columns": [
-            {"name": "QC 결과", "id": "sample_qc", "editable": True, "presentation": "dropdown", "options": ["PASS", "FAIL", "PENDING"]},
+            {"name": "DNA QC", "id": "dna_qc", "editable": True, "presentation": "dropdown", "options": ["PASS", "FAIL", "HOLD", "PENDING"]},
+            {"name": "RNA QC", "id": "rna_qc", "editable": True, "presentation": "dropdown", "options": ["PASS", "FAIL", "HOLD", "PENDING"]},
             {"name": "QC 발행일", "id": "sample_qc_report_date", "editable": True, "type": "date"},
-            {"name": "달성 Depth", "id": "depth_output", "editable": False}, # 시퀀싱 단계에서 넘어온 데이터 (읽기 전용)
-            {"name": "추출 농도", "id": "concentration", "editable": False}, 
+            {"name": "DNA 농도", "id": "dna_concentration", "editable": False}, 
+            {"name": "RNA 농도", "id": "rna_concentration", "editable": False}, 
             {"name": "검토자", "id": "qc_reviewer", "editable": True},
         ]
     },
@@ -105,7 +107,7 @@ REPORT_SCHEMA_CONFIG = {
         "columns": [
             {"name": "보고서 타입", "id": "report_type", "editable": True, "presentation": "dropdown", "options": ["Standard", "Advanced"]},
             {"name": "최종 발행일", "id": "standard_report_date_01", "editable": True, "type": "date"},
-            {"name": "종양 비율(%)", "id": "tumor_purity", "editable": False}, # 분석 단계 데이터
+            {"name": "종양 비율(%)", "id": "tumor_purity", "editable": False},
             {"name": "매핑률(%)", "id": "mapped_reads_pct", "editable": False},
             {"name": "판독의", "id": "pathologist_name", "editable": True},
             {"name": "특이사항", "id": "report_comment", "editable": True},
@@ -113,16 +115,6 @@ REPORT_SCHEMA_CONFIG = {
     }
 }
 
-    
-    # ... (이하 "접수 완료", "QC 진행" 등 나머지 단계는 기존과 동일하게 유지) ...
-
-Base = declarative_base()
-from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, DateTime, JSON
-from sqlalchemy.orm import declarative_base, relationship
-from datetime import datetime, timezone, timedelta
-
-# (STAGE_SCHEMA_CONFIG와 REPORT_SCHEMA_CONFIG 딕셔너리 코드는 그대로 유지합니다)
-# ... [이전 코드와 동일] ...
 
 Base = declarative_base()
 
@@ -132,7 +124,7 @@ Base = declarative_base()
 class Order(Base):
     __tablename__ = "orders"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    order_id = Column(String, unique=True, index=True, nullable=False) # 예: C11-260421-01
+    order_id = Column(String, unique=True, index=True, nullable=False)
     facility = Column(String, nullable=False)
     client_team = Column(String)
     client_name = Column(String)    
@@ -145,18 +137,18 @@ class Order(Base):
     samples = relationship("Sample", back_populates="order", cascade="all, delete-orphan")
 
 # ==========================================
-# 2. 🚀 검체 마스터 (Sample) - 4대 고정 컬럼의 집결지
+# 2. 🚀 검체 마스터 (Sample)
 # ==========================================
 class Sample(Base):
     __tablename__ = "samples"
     id = Column(Integer, primary_key=True, autoincrement=True)
     
-    # 📌 4대 고정 컬럼 (어느 화면에서든 여기서 끌어다 씁니다)
-    order_pk = Column(Integer, ForeignKey("orders.id"), nullable=False) # 실제 관계용 FK
-    order_id = Column(String, index=True, nullable=False) # 💡 화면 노출 및 빠른 검색용 (비정규화)
-    project_name = Column(String, default="Default_Project") # 💡 sample_group 대신 UI와 이름 통일!
-    sample_id = Column(String, unique=True, index=True, nullable=False) # 예: ACC-260421-001
-    target_panel = Column(String, nullable=False) # 예: WES, WGS
+    # 📌 4대 고정 컬럼
+    order_pk = Column(Integer, ForeignKey("orders.id"), nullable=False)
+    order_id = Column(String, index=True, nullable=False) 
+    project_name = Column(String, default="Default_Project") 
+    sample_id = Column(String, unique=True, index=True, nullable=False) 
+    target_panel = Column(String, nullable=False) 
     
     # 기본 메타데이터
     sample_name = Column(String, nullable=False)
@@ -173,9 +165,9 @@ class Sample(Base):
     initial_volume = Column(Float)
     
     # 🚀 핵심 상태 관리
-    current_status = Column(String, default="접수 완료") # 초기값을 '접수 완료'로 변경하여 트래킹 용이성 확보
+    current_status = Column(String, default="접수 완료")
     issue_comment = Column(String)
-    panel_metadata = Column(JSON, default={}) # FASTQ 경로, MD5 등 유동적 데이터 저장소
+    panel_metadata = Column(JSON, default={}) # TSO500 등 유동적 QC 데이터 자동 저장소
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # 관계 설정 (1:1 매핑)
@@ -186,7 +178,7 @@ class Sample(Base):
     logs = relationship("ActionLog", backref="sample")
 
 # ==========================================
-# 3. 추출 및 QC (Wet Lab)
+# 3. 추출 및 QC (Wet Lab) - 🚀 DNA/RNA 명시적 확장
 # ==========================================
 class WetLabQC(Base):
     __tablename__ = "wet_lab_qc"
@@ -194,8 +186,23 @@ class WetLabQC(Base):
     sample_id = Column(Integer, ForeignKey("samples.id"), unique=True)
     
     extraction_status = Column(String)
-    concentration = Column(Float)
-    sample_qc = Column(String)
+    
+    # 🧬 DNA 관련 DB 컬럼
+    dna_qc = Column(String)
+    dna_concentration = Column(Float)
+    dna_volume = Column(Float)
+    dna_total_amount = Column(Float)
+    purity = Column(Float) # A260/280
+    din = Column(Float)
+    
+    # 🧬 RNA 관련 DB 컬럼
+    rna_qc = Column(String)
+    rna_concentration = Column(Float)
+    rna_volume = Column(Float)
+    rna_total_amount = Column(Float)
+    dv200 = Column(Float)
+    rin = Column(Float)
+    
     sample_qc_report_date = Column(DateTime)
     
     sample = relationship("Sample", back_populates="wet_lab")

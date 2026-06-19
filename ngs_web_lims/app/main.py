@@ -12,6 +12,7 @@ from app.pages.kanban import create_kanban_app
 from app.pages.data_registration import create_data_registry_app 
 from app.pages.chatbot import create_chatbot_app
 from app.pages.batch_modify import create_batch_modify_app
+from app.pages.master_table import create_master_app
 
 from app.core.database import engine
 from app.models._schema import Base
@@ -50,6 +51,7 @@ dash_apps = {
     "/analysis": create_analysis_app,
     "/modify": create_batch_modify_app,
     "/chatbot": create_chatbot_app,
+    "/master": create_master_app,
     # 필요 시 "/billing": create_billing_dashboard_app 추가
 }
 

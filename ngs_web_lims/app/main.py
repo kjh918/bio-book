@@ -5,8 +5,8 @@ from starlette.middleware.wsgi import WSGIMiddleware
 
 from app.pages.project_view import create_project_view_app
 from app.pages.registration import create_registration_app
-from app.pages.analysis import create_analysis_app
-from app.pages.report import create_report_view_app
+from app.pages.analysis import create_analysis_dashboard_app
+from app.pages.report.base import create_report_view_app
 from app.pages.biling_dashboard import create_billing_dashboard_app 
 from app.pages.kanban import create_kanban_app 
 from app.pages.data_registration import create_data_registry_app 
@@ -16,6 +16,9 @@ from app.pages.master_table import create_master_app
 
 from app.core.database import engine
 from app.models._schema import Base
+
+# 🚀 [추가] 분리된 순수 API 라우터 모듈 불러오기
+from app.api import analysis_api
 
 # [MODIFIED] 전역 실행 대신 Lifespan을 통한 안전한 DB 초기화 및 자원 관리
 @asynccontextmanager
@@ -48,7 +51,7 @@ dash_apps = {
     "/pro": create_project_view_app,
     "/report": create_report_view_app,
     "/kanban": create_kanban_app,
-    "/analysis": create_analysis_app,
+    "/analysis": create_analysis_dashboard_app,
     "/modify": create_batch_modify_app,
     "/chatbot": create_chatbot_app,
     "/master": create_master_app,
@@ -68,7 +71,8 @@ def read_root():
     return RedirectResponse(url="/kanban")
 
 # ==========================================
-# 3. Native FastAPI API Endpoints (향후 추가될 RAG/DB 통신용)
+# 3. Native FastAPI API Endpoints (기계 간 통신용)
 # ==========================================
-# @app.post("/api/v1/analyze")
-# async def run_analysis(): ...
+# 🚀 분석 서버에서 LIMS로 데이터를 쏠 때 사용할 API 라우터 등록
+# 이렇게 등록하면 자동으로 /api/v1/analysis/result 주소가 활성화됩니다.
+app.include_router(analysis_api.router, prefix="/api/v1")

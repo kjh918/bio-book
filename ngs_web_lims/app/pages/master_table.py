@@ -6,81 +6,83 @@ from datetime import datetime
 from sqlalchemy import desc
 
 from app.core.database import SessionLocal
-from app.models._schema import Sample, Order
+# 🚀 필수 모델들 및 스키마 설정(STAGE_SCHEMA_CONFIG) 불러오기
+from app.models._schema import Sample, Order, WetLabQC, Sequencing, Analysis, ActionLog, STAGE_SCHEMA_CONFIG
+from sqlalchemy.orm.attributes import flag_modified
 from app.pages.base import LimsDashApp
 
-# 🚀 [고정 컬럼 설정] LimsDashApp 표준 구조 계승 및 행 고정(Left Pinning)
+# =========================================================
+# 🚀 1. 동적 컬럼 자동 생성 (Dynamic Column Generation)
+# =========================================================
+
+# [A] 기본 고정 컬럼 (프로젝트 및 샘플 식별자)
 base_columns = LimsDashApp.get_base_grid_columns(include_project=True)
 for col in base_columns:
     if col["field"] in ["project_name", "sample_name", "target_panel"]:
         col["editable"] = True
         col["cellStyle"] = {"backgroundColor": "#fffbeb", "cursor": "text"} # 직접 수정 가능 (연노랑)
     else:
-        col["editable"] = False # order_id, sample_id는 관계 무결성을 위해 편집 제한
+        col["editable"] = False 
 
-# 🚀 [확장 컬럼 설정] Order 정보 및 모든 실험/정산 데이터 메타 필드
-extended_columns = [
-    {"headerName": "현재 상태 🚦", "field": "current_status", "presentation": "dropdown", "options": ["접수 대기", "접수 완료", "QC 진행", "시퀀싱 진행", "분석 진행", "정산 대기"]},
-    
-    # 🚀 [Order (의뢰 및 정산) 정보 추가]
-    {"headerName": "의뢰 기관", "field": "facility", "width": 140},
-    {"headerName": "소속 팀", "field": "client_team", "width": 120},
-    {"headerName": "의뢰자 성명", "field": "client_name", "width": 120},
-    {"headerName": "연락처", "field": "client_phone", "width": 140},
-    {"headerName": "이메일", "field": "client_email", "width": 180},
-    {"headerName": "매출 단가", "field": "sales_unit_price", "type": "numeric", "width": 120},
-
-    # 🚀 [입고 및 기본 정보]
-    {"headerName": "입고 확인", "field": "sample_received", "presentation": "dropdown", "options": ["대기중", "입고 완료"]},
-    {"headerName": "입고 담당자", "field": "receiver_name"},
-    {"headerName": "보관 위치", "field": "storage_location"},
-    {"headerName": "암종(Cancer)", "field": "cancer_type"},
-    {"headerName": "검체(Specimen)", "field": "specimen"},
-    {"headerName": "페어링 정보", "field": "pairing_info"},
-    {"headerName": "외부 ID", "field": "outside_id_1"},
-    
-    # 🚀 [DNA QC 메트릭]
-    {"headerName": "DNA QC 결과", "field": "dna_qc", "presentation": "dropdown", "options": ["PASS", "FAIL", "HOLD", "RE-RUN", "PENDING"]},
-    {"headerName": "DNA 농도(ng/uL)", "field": "dna_concentration", "type": "numeric"},
-    {"headerName": "DNA 순도(260/280)", "field": "purity", "type": "numeric"},
-    {"headerName": "DNA 용량(uL)", "field": "dna_volume", "type": "numeric"},
-    {"headerName": "DNA 총량(μg)", "field": "dna_total_amount", "type": "numeric"},
-    {"headerName": "DIN", "field": "din", "type": "numeric"},
-    
-    # 🚀 [RNA QC 메트릭]
-    {"headerName": "RNA QC 결과", "field": "rna_qc", "presentation": "dropdown", "options": ["PASS", "FAIL", "HOLD", "RE-RUN", "PENDING"]},
-    {"headerName": "RNA 농도(ng/uL)", "field": "rna_concentration", "type": "numeric"},
-    {"headerName": "RNA 용량(uL)", "field": "rna_volume", "type": "numeric"},
-    {"headerName": "RNA 총량(μg)", "field": "rna_total_amount", "type": "numeric"},
-    {"headerName": "DV200 (%)", "field": "dv200", "type": "numeric"},
-    {"headerName": "RIN", "field": "rin", "type": "numeric"},
-    
-    # 🚀 [시퀀싱 정보]
-    {"headerName": "SEQ ID", "field": "seq_id"},
-    {"headerName": "Depth/Output", "field": "depth_output"},
-    {"headerName": "이슈 코멘트 💬", "field": "issue_comment", "width": 250}
-]
-
-# 확장 컬럼들도 편집 가능하도록 세팅 (배경색 적용 안 함, 일반 흰색 입력칸)
-for col in extended_columns:
-    col["editable"] = True
-
-# 체크박스 다중 선택 기능을 첫 번째 고정 열인 'Project'에 추가합니다.
+# 체크박스 다중 선택 기능을 첫 번째 고정 열에 추가
 if base_columns:
     base_columns[0]["checkboxSelection"] = True
     base_columns[0]["headerCheckboxSelection"] = True
     base_columns[0]["width"] = 200
 
-# 최종 컬럼 정의 리스트 통합
-MASTER_COLUMN_DEFS = base_columns + extended_columns
+# [B] 수동 확장 컬럼 (상태 및 Order 전용)
+order_columns = [
+    {"headerName": "현재 상태 🚦", "field": "current_status", "editable": True, "cellEditor": "agSelectCellEditor", "cellEditorParams": {"values": ["접수 대기", "접수 완료", "QC 진행", "시퀀싱 진행", "분석 진행", "정산 대기"]}},
+    {"headerName": "의뢰 기관", "field": "facility", "width": 140, "editable": True},
+    {"headerName": "소속 팀", "field": "client_team", "width": 120, "editable": True},
+    {"headerName": "의뢰자 성명", "field": "client_name", "width": 120, "editable": True},
+    {"headerName": "연락처", "field": "client_phone", "width": 140, "editable": True},
+    {"headerName": "이메일", "field": "client_email", "width": 180, "editable": True},
+]
+
+# [C] 🌟 STAGE_SCHEMA_CONFIG 에서 동적 컬럼 긁어오기
+dynamic_columns = []
+DYNAMIC_FIELD_IDS = [] # 데이터 매핑에 사용할 ID 리스트
+FIELD_TYPES = {}       # 저장 시 형변환(float 등)을 위한 타입 저장소
+
+for stage, config in STAGE_SCHEMA_CONFIG.items():
+    for col in config["columns"]:
+        col_id = col["id"]
+        
+        # 중복 방지
+        if col_id in DYNAMIC_FIELD_IDS: continue
+        
+        DYNAMIC_FIELD_IDS.append(col_id)
+        FIELD_TYPES[col_id] = col.get("type", "text")
+        
+        ag_col = {
+            "headerName": col["name"],
+            "field": col_id,
+            "editable": col.get("editable", True),
+            "width": 130
+        }
+        
+        if col.get("type") == "numeric":
+            ag_col["filter"] = "agNumberColumnFilter"
+        
+        if col.get("presentation") == "dropdown":
+            ag_col["cellEditor"] = "agSelectCellEditor"
+            if "options" in col:
+                ag_col["cellEditorParams"] = {"values": col["options"]}
+                
+        dynamic_columns.append(ag_col)
+
+# 최종 마스터 컬럼 통합
+MASTER_COLUMN_DEFS = base_columns + order_columns + dynamic_columns
 
 
+# =========================================================
+# 🚀 2. 레이아웃
+# =========================================================
 def create_master_table_layout():
     return html.Div([
-        # 데이터 리프레시용 내부 저장소 (Store)
         dcc.Store(id="master-table-refresh-trigger", data=0),
 
-        # 페이지 헤더
         html.Div([
             html.Div([
                 html.H2([DashIconify(icon="carbon:table-split", className="me-2 text-dark"), "Master Data Management Board"]),
@@ -88,11 +90,9 @@ def create_master_table_layout():
             ])
         ], className="page-title-header mb-4"),
 
-        # 상단 제어 바 (검색, 삭제, 저장 버튼)
         dbc.Card([
             dbc.CardBody([
                 dbc.Row([
-                    # 전역 통합 검색 엔진
                     dbc.Col([
                         dbc.InputGroup([
                             dbc.InputGroupText(DashIconify(icon="carbon:search")),
@@ -100,14 +100,12 @@ def create_master_table_layout():
                         ], className="shadow-sm")
                     ], lg=4),
                     
-                    # 실시간 팁
                     dbc.Col([
                         html.Div([
                             html.Span("💡 열 헤더의 필터 마크(≡)를 누르면 엑셀처럼 상세 필터링도 가능합니다.", className="text-muted small d-block")
                         ])
                     ], lg=4),
                     
-                    # 데이터 액션 버튼 레이아웃
                     dbc.Col([
                         dbc.Row([
                             dbc.Col([
@@ -125,13 +123,11 @@ def create_master_table_layout():
             ], className="py-3")
         ], className="border-0 shadow-sm rounded-4 mb-4"),
 
-        # 영구 삭제 확인 알림 팝업 (안전장치)
         dcc.ConfirmDialog(
             id='confirm-delete-dialog',
             message='⚠️ 정말 선택한 샘플 데이터를 삭제하시겠습니까?\n\n연결된 모든 메타데이터(QC, 시퀀싱, 로그 등)가 영구적으로 삭제되며 절대 되돌릴 수 없습니다.'
         ),
 
-        # 메인 마스터 그리드
         dbc.Card([
             dbc.CardBody([
                 dag.AgGrid(
@@ -151,9 +147,12 @@ def create_master_table_layout():
     ], className="pb-5", style={"padding": "20px"})
 
 
+# =========================================================
+# 🚀 3. 콜백 (동적 데이터 매핑 및 저장)
+# =========================================================
 def register_master_table_callbacks(dash_app):
 
-    # 🚀 [콜백 1] 데이터 실시간 로딩 (Order 데이터 포함)
+    # 🚀 [콜백 1] 데이터 동적 로딩
     @dash_app.callback(
         Output("master-master-grid", "rowData"),
         [Input("master-table-search", "value"),
@@ -179,6 +178,7 @@ def register_master_table_callbacks(dash_app):
                 ]):
                     continue
 
+                # 기본 데이터 세팅
                 row = {
                     "id": s.id, 
                     "project_name": s.project_name,
@@ -187,47 +187,35 @@ def register_master_table_callbacks(dash_app):
                     "sample_name": s.sample_name,
                     "target_panel": s.target_panel,
                     "current_status": s.current_status,
-                    
-                    # 🚀 Order(의뢰) 데이터 연동
                     "facility": s.order.facility if s.order else "-",
                     "client_team": s.order.client_team if s.order else "-",
                     "client_name": s.order.client_name if s.order else "-",
                     "client_phone": s.order.client_phone if s.order else "-",
                     "client_email": s.order.client_email if s.order else "-",
-                    "sales_unit_price": s.order.sales_unit_price if s.order else 0,
-
-                    "sample_received": s.sample_received,
-                    "receiver_name": s.receiver_name,
-                    "storage_location": s.storage_location,
-                    "cancer_type": s.cancer_type,
-                    "specimen": s.specimen,
-                    "pairing_info": s.pairing_info,
-                    "outside_id_1": s.outside_id_1,
-                    "issue_comment": s.issue_comment or "",
-                    
-                    "dna_qc": s.wet_lab.dna_qc if s.wet_lab else "PENDING",
-                    "dna_concentration": s.wet_lab.dna_concentration if s.wet_lab and s.wet_lab.dna_concentration is not None else "",
-                    "purity": s.wet_lab.purity if s.wet_lab and s.wet_lab.purity is not None else "",
-                    "dna_volume": s.wet_lab.dna_volume if s.wet_lab and s.wet_lab.dna_volume is not None else "",
-                    "dna_total_amount": s.wet_lab.dna_total_amount if s.wet_lab and s.wet_lab.dna_total_amount is not None else "",
-                    "din": s.wet_lab.din if s.wet_lab and s.wet_lab.din is not None else "",
-                    
-                    "rna_qc": s.wet_lab.rna_qc if s.wet_lab else "PENDING",
-                    "rna_concentration": s.wet_lab.rna_concentration if s.wet_lab and s.wet_lab.rna_concentration is not None else "",
-                    "rna_volume": s.wet_lab.rna_volume if s.wet_lab and s.wet_lab.rna_volume is not None else "",
-                    "rna_total_amount": s.wet_lab.rna_total_amount if s.wet_lab and s.wet_lab.rna_total_amount is not None else "",
-                    "dv200": s.wet_lab.dv200 if s.wet_lab and s.wet_lab.dv200 is not None else "",
-                    "rin": s.wet_lab.rin if s.wet_lab and s.wet_lab.rin is not None else "",
-                    
-                    "seq_id": s.sequencing.seq_id if s.sequencing else "",
-                    "depth_output": s.sequencing.depth_output if s.sequencing else ""
                 }
+                
+                # 🌟 동적 컬럼(STAGE_SCHEMA_CONFIG) 자동 추출 로직
+                for col_id in DYNAMIC_FIELD_IDS:
+                    val = None
+                    # 각 DB 모델을 순회하며 값이 있는지 탐색
+                    if hasattr(s, col_id): val = getattr(s, col_id)
+                    elif s.order and hasattr(s.order, col_id): val = getattr(s.order, col_id)
+                    elif s.wet_lab and hasattr(s.wet_lab, col_id): val = getattr(s.wet_lab, col_id)
+                    elif s.sequencing and hasattr(s.sequencing, col_id): val = getattr(s.sequencing, col_id)
+                    elif s.analysis and hasattr(s.analysis, col_id): val = getattr(s.analysis, col_id)
+                    
+                    # 그래도 없으면 JSON 메타데이터에서 탐색
+                    if val is None and s.panel_metadata:
+                        val = s.panel_metadata.get(col_id, "")
+                        
+                    row[col_id] = val if val is not None else ""
+
                 data.append(row)
             return data
         finally:
             db.close()
 
-    # 🚀 [콜백 2] DB 일괄 저장 (Order 데이터 포함)
+    # 🚀 [콜백 2] DB 일괄 저장 (스마트 라우팅 및 타입 자동 변환)
     @dash_app.callback(
         Output("master-table-status-message", "children", allow_duplicate=True),
         Input("btn-save-master-table", "n_clicks"),
@@ -241,51 +229,69 @@ def register_master_table_callbacks(dash_app):
         try:
             for row in row_data:
                 sample = db.query(Sample).filter(Sample.id == row.get("id")).first()
-                if sample:
-                    # Sample 정보 업데이트
-                    sample.project_name = row.get("project_name")
-                    sample.sample_name = row.get("sample_name")
-                    sample.target_panel = row.get("target_panel")
-                    sample.current_status = row.get("current_status")
-                    sample.sample_received = row.get("sample_received")
-                    sample.receiver_name = row.get("receiver_name")
-                    sample.storage_location = row.get("storage_location")
-                    sample.cancer_type = row.get("cancer_type")
-                    sample.specimen = row.get("specimen")
-                    sample.pairing_info = row.get("pairing_info")
-                    sample.outside_id_1 = row.get("outside_id_1")
-                    sample.issue_comment = row.get("issue_comment")
+                if not sample: continue
 
-                    # 🚀 Order 정보 동기화 업데이트
-                    if sample.order:
-                        sample.order.facility = row.get("facility")
-                        sample.order.client_team = row.get("client_team")
-                        sample.order.client_name = row.get("client_name")
-                        sample.order.client_phone = row.get("client_phone")
-                        sample.order.client_email = row.get("client_email")
-                        sample.order.sales_unit_price = float(row.get("sales_unit_price")) if row.get("sales_unit_price") not in ["", None] else 0
+                # 1. 고정 정보 업데이트
+                sample.project_name = row.get("project_name")
+                sample.sample_name = row.get("sample_name")
+                sample.target_panel = row.get("target_panel")
+                sample.current_status = row.get("current_status")
 
-                    if sample.wet_lab:
-                        sample.wet_lab.dna_qc = row.get("dna_qc")
-                        sample.wet_lab.dna_concentration = float(row["dna_concentration"]) if row.get("dna_concentration") not in ["", None] else None
-                        sample.wet_lab.purity = float(row["purity"]) if row.get("purity") not in ["", None] else None
-                        sample.wet_lab.dna_volume = float(row["dna_volume"]) if row.get("dna_volume") not in ["", None] else None
-                        sample.wet_lab.dna_total_amount = float(row["dna_total_amount"]) if row.get("dna_total_amount") not in ["", None] else None
-                        sample.wet_lab.din = float(row["din"]) if row.get("din") not in ["", None] else None
-                        
-                        sample.wet_lab.rna_qc = row.get("rna_qc")
-                        sample.wet_lab.rna_concentration = float(row["rna_concentration"]) if row.get("rna_concentration") not in ["", None] else None
-                        sample.wet_lab.rna_volume = float(row["rna_volume"]) if row.get("rna_volume") not in ["", None] else None
-                        sample.wet_lab.rna_total_amount = float(row["rna_total_amount"]) if row.get("rna_total_amount") not in ["", None] else None
-                        sample.wet_lab.dv200 = float(row["dv200"]) if row.get("dv200") not in ["", None] else None
-                        sample.wet_lab.rin = float(row["rin"]) if row.get("rin") not in ["", None] else None
+                if sample.order:
+                    sample.order.facility = row.get("facility")
+                    sample.order.client_team = row.get("client_team")
+                    sample.order.client_name = row.get("client_name")
+                    sample.order.client_phone = row.get("client_phone")
+                    sample.order.client_email = row.get("client_email")
 
-                    if sample.sequencing:
-                        sample.sequencing.seq_id = row.get("seq_id")
-                        sample.sequencing.depth_output = row.get("depth_output")
+                # 2. 껍데기 자동 생성 (Lazy Initialization)
+                if not sample.wet_lab:
+                    sample.wet_lab = WetLabQC(sample_id=sample.id)
+                    db.add(sample.wet_lab)
+                if not sample.sequencing:
+                    sample.sequencing = Sequencing(sample_id=sample.id)
+                    db.add(sample.sequencing)
+                if not sample.analysis:
+                    sample.analysis = Analysis(sample_id=sample.id)
+                    db.add(sample.analysis)
+
+                # 3. 🌟 동적 데이터 자동 배달 로직
+                new_meta = dict(sample.panel_metadata) if sample.panel_metadata else {}
+                has_meta_change = False
+
+                for col_id in DYNAMIC_FIELD_IDS:
+                    if col_id not in row: continue
+                    
+                    val = row[col_id]
+                    if val == "": val = None
+                    
+                    # 숫자형으로 지정된 경우 float 변환 방어코드
+                    if val is not None and FIELD_TYPES.get(col_id) == "numeric":
+                        try: val = float(val)
+                        except ValueError: val = None
+
+                    # 알아서 제 위치 찾아가기
+                    if hasattr(Sample, col_id) and col_id != "panel_metadata":
+                        setattr(sample, col_id, val)
+                    elif hasattr(Order, col_id) and sample.order:
+                        setattr(sample.order, col_id, val)
+                    elif hasattr(WetLabQC, col_id):
+                        setattr(sample.wet_lab, col_id, val)
+                    elif hasattr(Sequencing, col_id):
+                        setattr(sample.sequencing, col_id, val)
+                    elif hasattr(Analysis, col_id) and col_id not in ["analysis_results", "analysis_metadata"]:
+                        setattr(sample.analysis, col_id, val)
+                    else:
+                        if new_meta.get(col_id) != val:
+                            new_meta[col_id] = val
+                            has_meta_change = True
+
+                if has_meta_change:
+                    sample.panel_metadata = new_meta
+                    flag_modified(sample, "panel_metadata")
 
             db.commit()
-            return dbc.Alert("🎉 전역 보드의 모든 수정사항이 데이터베이스에 실시간 반영되었습니다!", color="success", className="shadow-sm rounded-3")
+            return dbc.Alert("🎉 전역 보드의 모든 수정사항이 데이터베이스에 완벽히 반영되었습니다!", color="success", className="shadow-sm rounded-3")
         except Exception as e:
             db.rollback()
             return dbc.Alert(f"❌ 데이터 저장 실패: {str(e)}", color="danger", className="shadow-sm rounded-3")
@@ -293,7 +299,7 @@ def register_master_table_callbacks(dash_app):
             db.close()
 
 
-    # 🚀 [콜백 3] 삭제 버튼 작동 시 안전 팝업
+    # 🚀 [콜백 3, 4] 영구 삭제 로직 (기존 코드 유지)
     @dash_app.callback(
         Output('confirm-delete-dialog', 'displayed'),
         Input('btn-delete-master-table', 'n_clicks'),
@@ -301,12 +307,9 @@ def register_master_table_callbacks(dash_app):
         prevent_initial_call=True
     )
     def display_confirm(n_clicks, selected_rows):
-        if n_clicks and selected_rows:
-            return True
+        if n_clicks and selected_rows: return True
         return False
 
-
-    # 🚀 [콜백 4] 안전 팝업 확인 시 삭제 로직
     @dash_app.callback(
         [Output("master-table-status-message", "children", allow_duplicate=True),
          Output("master-table-refresh-trigger", "data")],
@@ -339,13 +342,11 @@ def register_master_table_callbacks(dash_app):
                     deleted_count += 1
             
             db.flush()
-            
             for order in orders_to_check:
                 if order and not order.samples:
                     db.delete(order)
 
             db.commit()
-            
             return dbc.Alert(f"🗑️ 총 {deleted_count}건의 샘플 및 연관 로그들이 데이터베이스에서 안전하게 제거되었습니다.", color="success"), current_refresh + 1
             
         except Exception as e:

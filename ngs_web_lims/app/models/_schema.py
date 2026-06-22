@@ -59,18 +59,49 @@ STAGE_SCHEMA_CONFIG = {
     "시퀀싱 진행": {
         "columns": [
             {"name": "SEQ ID", "id": "seq_id", "editable": True},
-            {"name": "Depth/Output", "id": "depth_output", "editable": True},
-            {"name": "달성 Depth/Output", "id": "depth_output_achieved", "editable": True, "required": False}, 
-            {"name": "재실험 횟수", "id": "attempt_num", "editable": True, "type": "numeric", "required": False},
+            {"name": "재실험 횟수", "id": "attempt_num", "editable": True, "type": "numeric"},
+            
+            # 🚀 [추가] 시퀀싱 수행 기관 (내부/외주 추적)
+            {"name": "수행 기관구분", "id": "seq_facility_type", "editable": True, "presentation": "dropdown", "options": ["내부 진행", "외부 위탁"]},
+            {"name": "외주 업체명", "id": "outsourced_facility", "editable": True, "presentation": "dropdown", "options": ["마크로젠", "테라젠", "랩지노믹스", "노보진"]},
+            {"name": "외주 발송일", "id": "outsourced_date", "editable": True, "type": "date"},
+            {"name": "외주 수령일", "id": "received_date", "editable": True, "type": "date"},
+
+            # 장비 및 Run 메타데이터
+            {"name": "Platform", "id": "platform", "editable": True, "presentation": "dropdown", "options": ["NovaSeq 6000", "NovaSeq X", "NextSeq 550", "MiSeq", "기타"]},
+            {"name": "Run ID", "id": "run_id", "editable": True},
+            {"name": "Flowcell ID", "id": "flowcell_id", "editable": True},
+            
+            # 시퀀싱 QC 메트릭
+            {"name": "Traget Amount (Gb)", "id": "target_gb", "editable": True, "type": "numeric"},
+            {"name": "Produced Amount (Gb)", "id": "produced_gb", "editable": True, "type": "numeric"},
+            {"name": "Total BP (M)", "id": "total_basepair_m", "editable": True, "type": "numeric"},
+            {"name": "Total Reads (M)", "id": "total_reads_m", "editable": True, "type": "numeric"},
+            {"name": "Q30 (%)", "id": "q30_score", "editable": True, "type": "numeric"},
+            
+            # FASTQ 파일 연동 경로
+            {"name": "FASTQ 경로", "id": "fastq_path", "editable": True},
+            
+            {"name": "Seq QC 결과", "id": "seq_qc_status", "editable": True, "presentation": "dropdown", "options": ["PASS", "FAIL", "HOLD", "PENDING"]},
             {"name": "Seq QC Report Date", "id": "seq_qc_report_date", "editable": True, "type": "date"},
         ]
     },
     "분석 진행": {
         "columns": [
-            {"name": "Std Report Date 01", "id": "standard_report_date_01", "editable": True, "type": "date"},
-            {"name": "Std Report Date 02", "id": "standard_report_date_02", "editable": True, "type": "date"},
-            {"name": "Adv Report Date 01", "id": "advanced_report_date_01", "editable": True, "type": "date"},
-            {"name": "Adv Report Date 02", "id": "advanced_report_date_02", "editable": True, "type": "date"},
+            {"name": "분석 상태", "id": "analysis_status", "editable": True, "presentation": "dropdown", "options": ["대기중", "분석 진행중", "분석 완료", "판독중", "최종 완료"]},
+            {"name": "분석 담당자", "id": "analyst", "editable": True},
+            
+            # 인프라 데이터
+            {"name": "Pipeline", "id": "pipeline", "editable": True, "presentation": "dropdown", "options": ["DNA", "RNA", "DNA/RNA 통합"]},
+            {"name": "Pipeline Version", "id": "pipeline_version", "editable": True},
+            {"name": "Raw Data 경로", "id": "raw_data_pathway", "editable": True},
+            {"name": "Work Dir 경로", "id": "work_dir_pathway", "editable": True},
+            
+            # 일정 데이터
+            {"name": "분석 시작일", "id": "analysis_run_start_date", "editable": True, "type": "date"},
+            {"name": "분석 종료일", "id": "analysis_run_end_date", "editable": True, "type": "date"},
+            {"name": "Std Report 발행일", "id": "standard_report_date_01", "editable": True, "type": "date"},
+            {"name": "Adv Report 발행일", "id": "advanced_report_date_01", "editable": True, "type": "date"},
         ]
     },
     "정산 대기": {
@@ -90,6 +121,22 @@ STAGE_SCHEMA_CONFIG = {
     }
 }
 
+ANALYSIS_SCHEMA_CONFIG = {
+    "TSO500": {
+        "description": "실험 및 시퀀싱 품질 검증을 위한 내부 보고서 (TSO500 포함)",
+        "columns": [
+            {"name": "DATA ID", "id": "data_id"},
+            {"name": "분석 담당자", "id": "analyst", "editable": True},
+            {"name": "Panel", "id": "pipeline", "editable": True, "presentation": "dropdown", "options": ["DNA", "RNA"]},
+            {"name": "Pipeline Version", "id": "pipeline_version", "editable": True, "presentation": "dropdown", "options": [""]},
+            {"name": "분석 시작 일자", "id": "analysis_run_start_date", "editable": True, "type": "date"},
+            {"name": "분석 종료 일자", "id": "analysis_run_end_date", "editable": True, "type": "date"},
+            {"name": "데이터 경로", "id": "raw_data_pathway", "editable": True},
+            {"name": "분석작업폴더 경로", "id": "work_dir_pathway", "editable": True},
+        ]
+    },
+}
+
 REPORT_SCHEMA_CONFIG = {
     "QC Report": {
         "description": "실험 및 시퀀싱 품질 검증을 위한 내부 보고서 (TSO500 포함)",
@@ -97,9 +144,18 @@ REPORT_SCHEMA_CONFIG = {
             {"name": "DNA QC", "id": "dna_qc", "editable": True, "presentation": "dropdown", "options": ["PASS", "FAIL", "HOLD", "PENDING"]},
             {"name": "RNA QC", "id": "rna_qc", "editable": True, "presentation": "dropdown", "options": ["PASS", "FAIL", "HOLD", "PENDING"]},
             {"name": "QC 발행일", "id": "sample_qc_report_date", "editable": True, "type": "date"},
-            {"name": "DNA 농도", "id": "dna_concentration", "editable": False}, 
-            {"name": "RNA 농도", "id": "rna_concentration", "editable": False}, 
             {"name": "검토자", "id": "qc_reviewer", "editable": True},
+            
+            # 🚀 누락되었던 PDF 연동 필수 항목들을 화면에 보이도록 추가! (수정 불가 처리)
+            {"name": "DNA 농도", "id": "dna_concentration", "editable": False, "type": "numeric"}, 
+            {"name": "DNA 용량", "id": "dna_volume", "editable": False, "type": "numeric"},
+            {"name": "DNA 총량", "id": "dna_total_amount", "editable": False, "type": "numeric"},
+            {"name": "DNA 순도", "id": "purity", "editable": False, "type": "numeric"},
+            {"name": "RNA 농도", "id": "rna_concentration", "editable": False, "type": "numeric"}, 
+            {"name": "RNA 용량", "id": "rna_volume", "editable": False, "type": "numeric"},
+            {"name": "RNA 총량", "id": "rna_total_amount", "editable": False, "type": "numeric"},
+            {"name": "DV200", "id": "dv200", "editable": False, "type": "numeric"},
+            {"name": "특이사항", "id": "issue_comment", "editable": False},
         ]
     },
     "Clinical Report": {
@@ -215,11 +271,34 @@ class Sequencing(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     sample_id = Column(Integer, ForeignKey("samples.id"), unique=True)
     
-    test_status = Column(String)
+    # 식별 및 진행 정보
     seq_id = Column(String, unique=True)
-    depth_output = Column(String)
-    seq_qc_report_date = Column(DateTime)
     attempt_num = Column(Integer, default=1)
+    
+    # 🚀 시퀀싱 수행 기관 정보 (내부/외주 추적)
+    seq_facility_type = Column(String, default="내부 진행")
+    outsourced_facility = Column(String)
+    outsourced_date = Column(Date)
+    received_date = Column(Date)          # [신규] 외주 수령일
+    
+    # 🚀 장비 및 배치 정보
+    platform = Column(String)
+    run_id = Column(String)
+    flowcell_id = Column(String)
+    
+    # 🚀 시퀀싱 QC 메트릭 (Gb, BP 등 명세 세분화 반영)
+    target_gb = Column(Float)             # [신규] 목표 데이터량
+    produced_gb = Column(Float)           # [신규] 생산 데이터량
+    total_basepair_m = Column(Float)      # [신규] Total BP (M)
+    total_reads_m = Column(Float)
+    q30_score = Column(Float)
+    
+    # 🚀 연동 경로
+    fastq_path = Column(String)
+    
+    # 보고 및 상태
+    seq_qc_status = Column(String, default="PENDING")
+    seq_qc_report_date = Column(Date)
     
     sample = relationship("Sample", back_populates="sequencing")
 
@@ -231,10 +310,25 @@ class Analysis(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     sample_id = Column(Integer, ForeignKey("samples.id"), unique=True)
     
-    mapped_reads_pct = Column(Float)
-    deadline_date = Column(DateTime)
-    std_report_date_01 = Column(DateTime)
-    adv_report_date_01 = Column(DateTime)
+    # 📌 [정형화된 공통 컬럼] 어떤 분석이든 공통으로 가지는 메타데이터
+    analysis_status = Column(String, default="대기중")
+    analyst = Column(String)
+
+    pipeline = Column(String)           # 예: DNA, RNA, DNA/RNA
+    pipeline_version = Column(String)   # 예: v2.3.1
+    raw_data_pathway = Column(String)
+    work_dir_pathway = Column(String)
+    
+    analysis_run_start_date = Column(Date)
+    analysis_run_end_date = Column(Date)
+    
+    # 📌 [레포트 연동 공통 컬럼] Clinical Report 호환용
+    standard_report_date_01 = Column(Date)
+    advanced_report_date_01 = Column(Date)
+    
+    # 🚀 [분석별 규격화된 JSON] TSO, WES, WTS 등 분석 타입에 따라 형태가 보장된 JSON 데이터
+    # API에서 pydantic을 통해 엄격하게 검증된 값만 이 컬럼에 저장됩니다.
+    analysis_results = Column(JSON, default={}) 
     
     sample = relationship("Sample", back_populates="analysis")
 

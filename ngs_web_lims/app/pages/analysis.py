@@ -1,188 +1,200 @@
 from dash import html, dcc, Input, Output, State, no_update
 import dash_bootstrap_components as dbc
-import dash_ag_grid as dag
 from dash_iconify import DashIconify
-import subprocess # 🚀 로컬 스크립트 실행용
-import datetime
 
 from app.core.database import SessionLocal
-from app.models._schema import Sample
+# 🚀 뼈대 설정 및 모델들 불러오기
+from app.models._schema import Sample, Order, WetLabQC, Sequencing, Analysis, ANALYSIS_SCHEMA_CONFIG, STAGE_SCHEMA_CONFIG
 from app.pages.base import LimsDashApp
 
-def create_analysis_view_layout():
+def create_analysis_dashboard_layout():
+    # 스키마에 정의된 패널 목록 목록 생성
+    panel_options = [{"label": f"🧬 {panel} 분석 결과 비교", "value": panel} for panel in ANALYSIS_SCHEMA_CONFIG.keys()]
+    default_panel = list(ANALYSIS_SCHEMA_CONFIG.keys())[0] if ANALYSIS_SCHEMA_CONFIG else None
+
     return html.Div([
-        html.H3("💻 생물정보학(BI) 분석 파이프라인", className="fw-bold text-secondary mb-4"),
-        
-        dbc.Row([
-            # 🛠️ 1. 분석 설정 및 실행 패널 (좌측)
-            dbc.Col([
-                dbc.Card([
-                    dbc.CardHeader(html.H5("1. 파이프라인 설정", className="fw-bold mb-0")),
-                    dbc.CardBody([
-                        html.Label("파이프라인 종류", className="fw-bold text-primary small"),
-                        dbc.Select(id="analysis-type-select", options=[
-                            {"label": "DNA Somatic Variant Calling", "value": "dna_somatic"},
-                            {"label": "RNA Expression & Fusion", "value": "rna_fusion"},
-                            {"label": "Methylation Profiling", "value": "meth_profile"}
-                        ], value="dna_somatic", className="mb-3"),
-                        
-                        html.Label("파이프라인 버전 (Version)", className="fw-bold text-primary small"),
-                        dbc.Select(id="analysis-version-select", options=[
-                            {"label": "v2.1.0 (최신/안정)", "value": "v2.1.0"},
-                            {"label": "v2.0.5 (이전 안정화)", "value": "v2.0.5"},
-                            {"label": "v3.0.0-beta (테스트용)", "value": "v3.0.0-beta"}
-                        ], value="v2.1.0", className="mb-4"),
-                        
-                        html.Label("분석 결과 저장 기본 경로", className="fw-bold text-muted small"),
-                        dbc.Input(id="analysis-outdir-input", value="/storage/data/analysis_results/", readonly=True, className="mb-4 bg-light"),
-                        
-                        html.Hr(),
-                        
-                        dbc.Button([DashIconify(icon="carbon:play-filled", className="me-2"), "🚀 선택 샘플 분석 스크립트 구동"], 
-                                   id="btn-run-analysis", color="success", className="w-100 fw-bold py-2 shadow-sm")
-                    ])
-                ], className="border-0 shadow-sm rounded-4 h-100")
-            ], xs=12, lg=3),
-            
-            # 📊 2. 대상 샘플 목록 Grid (우측)
-            dbc.Col([
-                dbc.Card([
-                    dbc.CardHeader(html.H5("2. 분석 대기 샘플 목록", className="fw-bold mb-0")),
-                    dbc.CardBody([
-                        dag.AgGrid(
-                            id="analysis-ag-grid",
-                            columnDefs=[
-                                {"headerName": "선택", "field": "sample_id", "pinned": "left", "width": 120, "checkboxSelection": True, "headerCheckboxSelection": True},
-                                {"headerName": "Order ID", "field": "order_id", "width": 140},
-                                {"headerName": "패널", "field": "target_panel", "width": 100},
-                                {"headerName": "현재 상태", "field": "current_status", "width": 120},
-                                {"headerName": "FASTQ 경로 (예상)", "field": "fastq_path", "width": 250},
-                            ],
-                            rowData=[],
-                            defaultColDef={"sortable": True, "filter": True, "resizable": True},
-                            dashGridOptions={"rowSelection": "multiple", "suppressRowClickSelection": True},
-                            style={"height": "350px", "width": "100%"},
-                            className="ag-theme-alpine"
-                        )
-                    ], className="p-3")
-                ], className="border-0 shadow-sm rounded-4 h-100")
-            ], xs=12, lg=9)
-        ], className="mb-4"),
-        
-        # 📝 3. 실행 로그 콘솔
-        dbc.Card([
-            dbc.CardHeader(html.H5("🖥️ 스크립트 실행 로그 (Console Output)", className="fw-bold mb-0")),
-            dbc.CardBody([
-                html.Pre(id="analysis-console-log", children="대기 중...\n", 
-                         style={"backgroundColor": "#1e1e1e", "color": "#00ff00", "padding": "15px", "borderRadius": "8px", "minHeight": "200px", "overflowY": "auto", "fontFamily": "monospace"})
+        # 🚀 1. 페이지 헤더
+        html.Div([
+            html.Div([
+                html.H2([DashIconify(icon="carbon:chart-evaluation", className="me-2 text-dark"), "Analysis Results Dashboard"]),
+                html.P("패널별 세부 분석 지표(Metrics)와 파이프라인 실행 결과를 한눈에 비교하고 검토합니다.", className="text-muted mt-1 mb-0")
             ])
+        ], className="page-title-header mb-4"),
+
+        # 🚀 2. 컨트롤 패널 (패널 선택 및 내보내기 버튼)
+        dbc.Card([
+            dbc.CardBody([
+                dbc.Row([
+                    dbc.Col([
+                        html.Label("📌 분석 종류(Panel) 선택", className="fw-bold small text-primary mb-1"),
+                        dcc.Dropdown(
+                            id="dashboard-panel-select",
+                            options=panel_options,
+                            value=default_panel,
+                            clearable=False,
+                            className="shadow-sm"
+                        )
+                    ], lg=4),
+                    
+                    dbc.Col([
+                        html.Div("💡 열 헤더의 필터 마크(≡)를 누르면 엑셀처럼 지표별(예: TMB Score) 상세 필터링이 가능합니다.", className="text-muted small mt-4")
+                    ], lg=5),
+                    
+                    dbc.Col([
+                        dbc.Button([DashIconify(icon="carbon:csv", className="me-2"), "엑셀(CSV) 내보내기"], 
+                                   id="btn-export-analysis-csv", color="success", className="fw-bold shadow-sm w-100 rounded-3 mt-3")
+                    ], lg=3, className="text-end")
+                ])
+            ], className="py-3")
+        ], className="border-0 shadow-sm rounded-4 mb-4"),
+
+        # 🚀 3. 메인 분석 결과 그리드
+        dbc.Card([
+            dbc.CardBody([
+                html.Div(id="analysis-dashboard-grid-container")
+            ], className="p-0 rounded-4 overflow-hidden")
         ], className="border-0 shadow-sm rounded-4")
         
     ], className="pb-5", style={"padding": "20px"})
 
 
-def register_analysis_callbacks(dash_app):
-    
-    # 1. '시퀀싱 진행' 또는 '분석 진행' 단계의 샘플만 불러오기
+def register_analysis_dashboard_callbacks(dash_app):
+
+    # 🚀 [콜백 1] 선택된 패널에 따라 동적으로 AG Grid 생성 및 데이터 로드
     @dash_app.callback(
-        Output("analysis-ag-grid", "rowData"),
-        Input("analysis-type-select", "value") # 탭 열리거나 타입 바뀔 때 갱신
+        Output("analysis-dashboard-grid-container", "children"),
+        Input("dashboard-panel-select", "value")
     )
-    def load_ready_samples(_):
+    def update_dashboard_grid(selected_panel):
+        if not selected_panel:
+            return html.Div("패널을 선택해주세요.", className="p-4 text-center text-muted")
+
+        # 1. 🚀 LimsDashApp 표준 고정 기본 컬럼 불러오기 (Left Pinning 포함)
+        base_cols = LimsDashApp.get_base_grid_columns(include_project=True)
+        for col in base_cols:
+            col["editable"] = False # 대시보드 화면이므로 편집 비활성화
+
+        # 2. 🚀 STAGE_SCHEMA_CONFIG의 "분석 진행" 영역 컬럼들을 동적으로 긁어와 배치
+        analysis_stage_config = STAGE_SCHEMA_CONFIG.get("분석 진행", {"columns": []})
+        common_analysis_cols = []
+        COMMON_FIELD_IDS = []
+
+        for col in analysis_stage_config["columns"]:
+            c_id = col["id"]
+            COMMON_FIELD_IDS.append(c_id)
+            
+            ag_col = {
+                "headerName": col["name"],
+                "field": c_id,
+                "editable": False,
+                "width": 130,
+                "cellStyle": {"backgroundColor": "#f8f9fa"} # 공통 인프라 구분을 위해 연회색 적용
+            }
+            if col.get("type") == "numeric":
+                ag_col["filter"] = "agNumberColumnFilter"
+            common_analysis_cols.append(ag_col)
+
+        # 3. 🚀 ANALYSIS_SCHEMA_CONFIG에서 선택된 패널의 고유 지표 컬럼 동적 로드 (JSON 평탄화용)
+        panel_config = ANALYSIS_SCHEMA_CONFIG.get(selected_panel, {"columns": []})
+        specific_cols = []
+        SPECIFIC_FIELD_IDS = []
+
+        for col in panel_config["columns"]:
+            c_id = col["id"]
+            SPECIFIC_FIELD_IDS.append(c_id)
+            
+            col_def = {
+                "headerName": col["name"], 
+                "field": c_id, 
+                "editable": False,
+                "width": 140,
+                # JSON 변수 필드임을 식별하기 위해 스카이블루 스타일 적용
+                "cellStyle": {"backgroundColor": "#e3f2fd", "color": "#0d47a1", "fontWeight": "500"}
+            }
+            if col.get("type") == "numeric":
+                col_def["filter"] = "agNumberColumnFilter"
+            specific_cols.append(col_def)
+
+        # 최종 컬럼 정의 조립
+        columnDefs = base_cols + common_analysis_cols + specific_cols
+
+        # 4. 🚀 데이터 동적 매핑 로드
         db = SessionLocal()
         try:
-            # 실무에서는 시퀀싱이 끝난 샘플들만 가져옵니다.
-            samples = db.query(Sample).filter(Sample.current_status.in_(["시퀀싱 진행", "분석 진행", "접수 완료"])).all()
+            # 선택된 패널에 매칭되는 샘플만 타겟팅 필터링
+            samples = db.query(Sample).filter(Sample.target_panel == selected_panel).all()
             data = []
+            
             for s in samples:
-                data.append({
-                    "sample_id": s.sample_id,
+                # [A] 기본 정보 로드
+                row = {
+                    "id": s.id,
+                    "project_name": s.project_name,
                     "order_id": s.order_id,
-                    "target_panel": s.target_panel,
-                    "current_status": s.current_status,
-                    # 시퀀싱 장비에서 FASTQ가 떨어지는 기본 규칙 경로를 가상으로 표시
-                    "fastq_path": f"/storage/data/raw_fastq/{s.sample_id}_R1.fastq.gz" 
-                })
-            return data
-        finally: db.close()
+                    "sample_id": s.sample_id,
+                    "sample_name": s.sample_name,
+                    "target_panel": s.target_panel
+                }
+                
+                # [B] "분석 진행" 단계의 공통 컬럼 관계형 매핑 처리 (자동 순회)
+                for col_id in COMMON_FIELD_IDS:
+                    val = None
+                    if hasattr(s, col_id): val = getattr(s, col_id)
+                    elif s.analysis and hasattr(s.analysis, col_id): val = getattr(s.analysis, col_id)
+                    
+                    row[col_id] = val if val is not None else "-"
 
-    # 🚀 2. [핵심] 실제 로컬 분석 스크립트 실행 콜백
+                # [C] 🌟 JSON 필드(analysis_results) 내부의 패널 고유 데이터 평탄화 처리
+                results_json = {}
+                if s.analysis and s.analysis.analysis_results:
+                    # 데이터가 문자열로 들어가 있을 경우를 대비한 안전한 딕셔너리 변환 방어코드
+                    if isinstance(s.analysis.analysis_results, str):
+                        import json
+                        try: results_json = json.loads(s.analysis.analysis_results)
+                        except: results_json = {}
+                    else:
+                        results_json = s.analysis.analysis_results
+
+                for col_id in SPECIFIC_FIELD_IDS:
+                    # JSON 내부 깊숙이 박혀있는 고유 메트릭 키값 로드, 없을 시 기본값 '-' 처리
+                    row[col_id] = results_json.get(col_id, "-")
+
+                data.append(row)
+
+            # 🚀 5. LimsDashApp 표준 AG Grid 명세서 호출 생성
+            grid = LimsDashApp.create_standard_aggrid(
+                id="analysis-dashboard-grid",
+                columnDefs=columnDefs,
+                height="68vh"
+            )
+            
+            # 대시보드용 페이지네이션 추가 구성 옵션 주입
+            grid.dashGridOptions.update({
+                "pagination": True,
+                "paginationPageSize": 25,
+                "enableCellTextSelection": True
+            })
+            grid.rowData = data
+            return grid
+            
+        finally:
+            db.close()
+
+    # 🚀 [콜백 2] 엑셀(CSV) 내보내기 기능
     @dash_app.callback(
-        Output("analysis-console-log", "children"),
-        Input("btn-run-analysis", "n_clicks"),
-        [State("analysis-ag-grid", "selectedRows"),
-         State("analysis-type-select", "value"),
-         State("analysis-version-select", "value"),
-         State("analysis-outdir-input", "value")],
+        Output("analysis-dashboard-grid", "exportDataAsCsv"),
+        Input("btn-export-analysis-csv", "n_clicks"),
         prevent_initial_call=True
     )
-    def run_local_script(n_clicks, selected_rows, pipe_type, pipe_version, outdir):
-        if not selected_rows:
-            return "⚠️ 선택된 샘플이 없습니다. 표에서 분석할 샘플을 체크해주세요."
-        
-        log_output = f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 파이프라인 구동 시작...\n"
-        log_output += f" - 설정 파이프라인: {pipe_type} ({pipe_version})\n"
-        log_output += f" - 타겟 샘플 수: {len(selected_rows)}건\n"
-        log_output += "-" * 50 + "\n"
+    def export_csv(n_clicks):
+        if n_clicks:
+            return True
+        return False
 
-        db = SessionLocal()
-        try:
-            for row in selected_rows:
-                sample_id = row['sample_id']
-                fastq_r1 = row['fastq_path']
-                fastq_r2 = fastq_r1.replace("_R1", "_R2") # 쌍으로 가정
-                sample_outdir = f"{outdir}{sample_id}/"
-                
-                # ========================================================
-                # 🚀 여기에 연구원님의 실제 BASH 스크립트 명령어를 구성하세요!
-                # ========================================================
-                # 예시 명령어: python run_pipeline.py -s ACC-240426-01-001 -v v2.1.0 -o /output/dir
-                cmd_list = [
-                    "echo", # ⚠️ 실제 사용 시 "echo"를 지우고 파이썬이나 bash 경로를 넣으세요! (예: "bash")
-                    "/storage/scripts/run_ngs_pipeline.sh",
-                    "--sample", sample_id,
-                    "--type", pipe_type,
-                    "--version", pipe_version,
-                    "--r1", fastq_r1,
-                    "--r2", fastq_r2,
-                    "--outdir", sample_outdir
-                ]
-                
-                # 명령어 조합된 텍스트
-                cmd_str = " ".join(cmd_list)
-                log_output += f"▶ [{sample_id}] 실행 명령어: {cmd_str}\n"
 
-                try:
-                    # 🚀 Python의 subprocess를 이용해 터미널 명령어 직접 실행!
-                    # (실제 분석은 오래 걸리므로, 실무에서는 nohup이나 sbatch를 이용해 백그라운드로 던집니다)
-                    result = subprocess.run(cmd_list, capture_output=True, text=True, timeout=10)
-                    
-                    if result.returncode == 0:
-                        log_output += f"  [성공] Job 제출 완료.\n"
-                        # DB의 상태를 '분석 진행'으로 업데이트 해줍니다.
-                        target_sample = db.query(Sample).filter(Sample.sample_id == sample_id).first()
-                        if target_sample:
-                            target_sample.current_status = "분석 진행"
-                    else:
-                        log_output += f"  [실패] 에러 내용: {result.stderr}\n"
-
-                except Exception as e:
-                    log_output += f"  [시스템 오류] 스크립트 실행 실패: {e}\n"
-
-            db.commit() # DB 상태 변경 확정
-            log_output += "-" * 50 + "\n"
-            log_output += f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 모든 작업 큐 전송 완료. LIMS 상태가 '분석 진행'으로 변경되었습니다.\n"
-            
-            return log_output
-            
-        except Exception as e:
-            db.rollback()
-            return f"서버 내부 오류 발생: {e}"
-        finally: db.close()
-
-def create_analysis_app(requests_pathname_prefix: str):
+def create_analysis_dashboard_app(requests_pathname_prefix: str):
     lims = LimsDashApp(__name__, requests_pathname_prefix)
-    lims.set_content(create_analysis_view_layout)
+    lims.set_content(create_analysis_dashboard_layout)
     app = lims.get_app() 
-    register_analysis_callbacks(app)
+    register_analysis_dashboard_callbacks(app)
     return app

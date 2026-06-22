@@ -220,15 +220,15 @@
                 <td class="{% if dna_qc == 'PASS' %}status-pass{% elif dna_qc == 'FAIL' %}status-fail{% elif dna_qc == 'HOLD' %}status-hold{% endif %}">{{ dna_qc }}</td>
                 <td class="{% if rna_qc == 'PASS' %}status-pass{% elif rna_qc == 'FAIL' %}status-fail{% elif rna_qc == 'HOLD' %}status-hold{% endif %}">{{ rna_qc }}</td>
                 
-                <td>{{ row.get('DNA_Conc', '-') }}</td>
-                <td>{{ row.get('DNA_Vol', '-') }}</td>
-                <td>{{ row.get('DNA_Total', '-') }}</td>
-                <td>{{ row.get('Purity', '-') }}</td>
+                <td>{{ row['DNA_Conc'] }}</td>
+                <td>{{ row['DNA_Vol'] }}</td>
+                <td>{{ row['DNA_Total'] }}</td>
+                <td>{{ row['Purity'] }}</td>
                 
-                <td>{{ row.get('RNA_Conc', '-') }}</td>
-                <td>{{ row.get('RNA_Vol', '-') }}</td>
-                <td>{{ row.get('RNA_Total', '-') }}</td>
-                <td>{{ row.get('DV200', '-') }}</td>
+                <td>{{ row['RNA_Conc'] }}</td>
+                <td>{{ row['RNA_Vol'] }}</td>
+                <td>{{ row['RNA_Total'] }}</td>
+                <td>{{ row['DV200'] }}</td>
                 
                 <td style="font-size: 9px; text-align: left; padding-left: 4px;">{{ row.get('Comment', '') }}</td>
             </tr>

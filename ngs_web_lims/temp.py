@@ -1,43 +1,39 @@
-# patch_db.py
-from sqlalchemy import text
-from app.core.database import SessionLocal
+import sqlite3
+from app.core.database import DATABASE_URL
 
-def patch_database():
-    print("🚀 DB 스키마 업데이트 시작...")
-    db = SessionLocal()
+# DATABASE_URL이 "sqlite:///./lims.db" 형태라고 가정합니다.
+db_path = DATABASE_URL.replace("sqlite:///", "")
+
+def migrate():
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
     
-    # 💡 wet_lab_qc 테이블에 추가해야 할 새로운 컬럼들 목록
-    columns_to_add = [
-        "dna_qc VARCHAR",
-        "dna_concentration FLOAT",
-        "dna_volume FLOAT",
-        "dna_total_amount FLOAT",
-        "purity FLOAT",
-        "din FLOAT",
-        
-        "rna_qc VARCHAR",
-        "rna_concentration FLOAT",
-        "rna_volume FLOAT",
-        "rna_total_amount FLOAT",
-        "dv200 FLOAT",
-        "rin FLOAT"
+    # 추가할 컬럼 목록 (Analysis 테이블)
+    new_columns = [
+        ("analysis_status", "VARCHAR DEFAULT '대기중'"),
+        ("analyst", "VARCHAR"),
+        ("pathologist_name", "VARCHAR"),
+        ("pipeline", "VARCHAR"),
+        ("pipeline_version", "VARCHAR"),
+        ("raw_data_pathway", "VARCHAR"),
+        ("work_dir_pathway", "VARCHAR"),
+        ("analysis_run_start_date", "DATE"),
+        ("analysis_run_end_date", "DATE"),
+        ("standard_report_date_01", "DATE"),
+        ("advanced_report_date_01", "DATE"),
+        ("analysis_results", "JSON")
     ]
-
-    for col in columns_to_add:
+    
+    for col_name, col_type in new_columns:
         try:
-            # SQLite에 컬럼을 하나씩 밀어넣는 SQL 명령어 실행
-            db.execute(text(f"ALTER TABLE wet_lab_qc ADD COLUMN {col}"))
-            print(f"✅ 컬럼 추가 완료: {col.split()[0]}")
-        except Exception as e:
-            # 이미 컬럼이 존재하면 에러가 나는데, 이 경우 가볍게 무시하고 넘어갑니다.
-            if "duplicate column name" in str(e).lower():
-                print(f"⏭️ 이미 존재하는 컬럼입니다 (패스): {col.split()[0]}")
-            else:
-                print(f"⚠️ 기타 에러 (무시 가능): {e}")
-
-    db.commit()
-    db.close()
-    print("🎉 패치 완료! 기존 데이터는 모두 보존되었습니다. 이제 서버를 다시 켜주세요.")
+            cursor.execute(f"ALTER TABLE analysis ADD COLUMN {col_name} {col_type}")
+            print(f"✅ 컬럼 추가 완료: {col_name}")
+        except sqlite3.OperationalError:
+            print(f"⚠️ 이미 존재하는 컬럼입니다: {col_name}")
+    
+    conn.commit()
+    conn.close()
+    print("🚀 마이그레이션 종료.")
 
 if __name__ == "__main__":
-    patch_database()
+    migrate()

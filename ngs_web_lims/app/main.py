@@ -5,14 +5,15 @@ from starlette.middleware.wsgi import WSGIMiddleware
 
 from app.pages.project_view import create_project_view_app
 from app.pages.registration import create_registration_app
-from app.pages.analysis import create_analysis_dashboard_app
-from app.pages.report.base import create_report_view_app
 from app.pages.biling_dashboard import create_billing_dashboard_app 
 from app.pages.kanban import create_kanban_app 
 from app.pages.data_registration import create_data_registry_app 
 from app.pages.chatbot import create_chatbot_app
 from app.pages.batch_modify import create_batch_modify_app
 from app.pages.master_table import create_master_app
+
+from app.pages.analysis.base import create_analysis_dashboard_app
+from app.pages.report.base import create_report_view_app
 
 from app.core.database import engine
 from app.models._schema import Base

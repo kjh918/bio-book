@@ -10,8 +10,10 @@ import re
 from datetime import datetime
 from collections import defaultdict
 
+import os
+from pathlib import Path
 from app.core.database import SessionLocal
-from app.models._schema import Order, Sample, ActionLog, STAGE_SCHEMA_CONFIG
+from app.models._schema import Order, Sample, Analysis, ActionLog, STAGE_SCHEMA_CONFIG, ANALYSIS_SCHEMA_CONFIG
 from app.pages.base import LimsDashApp
 from app.core.rules import LimsRules
 from app.ui.shared_ui import create_project_summary_card
@@ -374,6 +376,7 @@ def register_kanban_callbacks(dash_app):
 
         db = SessionLocal()
         try:
+            
             oid   = current_oid
             stage = current_stage or "접수 대기"
 
@@ -443,6 +446,7 @@ def register_kanban_callbacks(dash_app):
 
             shared_card = create_project_summary_card(order, len(samples))
             title       = f"📋 {oid} · {stage} ({len(samples)}건)"
+            
 
             return (True, title, shared_card,
                     table_data, columns, oid, stage, bulk_options,

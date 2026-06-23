@@ -224,7 +224,6 @@ def register_registration_callbacks(dash_app):
         if not sample_data or not facility_code or not panel_code: 
             return dbc.Alert("⚠️ 필수 정보 누락 또는 파싱된 데이터가 없습니다.", color="warning")
         
-        # UI에서 입력받은 정보 (없을 경우 하이픈 대체)
         final_client_name = client_name if client_name else "-"
         final_client_phone = client_phone if client_phone else "-"
         final_client_email = client_email if client_email else "-"
@@ -251,9 +250,9 @@ def register_registration_callbacks(dash_app):
                 order_id=new_order_id, 
                 facility=fac_info["facility"], 
                 client_team=fac_info["team"],
-                client_name=final_client_name,      # 화면 입력값 적용
-                client_email=final_client_email,    # 화면 입력값 적용
-                client_phone=final_client_phone,    # 화면 입력값 적용
+                client_name=final_client_name,      
+                client_email=final_client_email,    
+                client_phone=final_client_phone,    
                 reception_date=datetime.utcnow().date(), 
                 sales_unit_price=0
             )
@@ -261,7 +260,10 @@ def register_registration_callbacks(dash_app):
             db.flush() 
             
             mapping_rule = get_full_mapping_for_panel(panel_code)
-            success_count = 0 
+            
+            sample_seq_counter = 0  # 🌟 엑셀 행(고유 검체) 기준 카운터 (001, 002...)
+            db_insert_count = 0     # 🌟 실제 DB에 쪼개져서 들어간 총 레코드 수
+            
             for raw_row in sample_data:
                 base_data, extra_metadata = {}, {}
                 for excel_col, map_info in mapping_rule.items():
@@ -274,41 +276,59 @@ def register_registration_callbacks(dash_app):
                     fallback_val = (get_fuzzy_val(raw_row, "Patient ID") or 
                                     get_fuzzy_val(raw_row, "Sample ID") or 
                                     get_fuzzy_val(raw_row, "환자번호") or 
-                                    get_fuzzy_val(raw_row, "검체번호"))
+                                    get_fuzzy_val(raw_row, "검체번호") or
+                                    get_fuzzy_val(raw_row, "Patient ID/ Sample ID"))
                     if fallback_val and str(fallback_val).strip() not in ["", "nan", "NaT"]:
                         base_data["sample_name"] = str(fallback_val).strip()
 
                 if not base_data.get("sample_name"): 
                     continue
-                
-                sample_seq = str(success_count + 1).zfill(3) 
-                internal_sample_id = f"ACC-{today_str}-{batch_seq}-{sample_seq}"
-                
-                new_sample = Sample(
-                    order_pk=new_order.id,               
-                    order_id=new_order.order_id,         
-                    sample_id=internal_sample_id, 
-                    target_panel=panel_code, 
-                    current_status="접수 대기",          
-                    sample_name=base_data["sample_name"], 
-                    cancer_type=base_data.get("cancer_type"), 
-                    specimen=base_data.get("specimen"),
-                    project_name=base_data.get("sample_group"), 
-                    pairing_info=base_data.get("pairing_info"), 
-                    outside_id_1=base_data.get("outside_id_1"),
-                    issue_comment=base_data.get("issue_comment"), 
-                    panel_metadata=extra_metadata
-                )
-                db.add(new_sample)
-                success_count += 1
 
-            if success_count == 0:
+                # 🌟 [수정됨] 유효한 엑셀 행(검체)을 찾았을 때만 번호를 +1 올립니다!
+                sample_seq_counter += 1
+                sample_seq = str(sample_seq_counter).zfill(3) 
+
+                na_raw = str(get_fuzzy_val(raw_row, "Nucleic Acid Type") or get_fuzzy_val(raw_row, "검사물질") or "").upper().replace(" ", "")
+                
+                if "DNA/RNA" in na_raw or "BOTH" in na_raw:
+                    types_to_create = ["DNA", "RNA"]
+                elif "RNA" in na_raw:
+                    types_to_create = ["RNA"]
+                elif "DNA" in na_raw:
+                    types_to_create = ["DNA"]
+                else:
+                    types_to_create = ["DNA", "RNA"] if panel_code == "TSO500" else ["DNA"]
+
+                # 🌟 타입별로 루프를 돌지만, 번호(sample_seq)는 동일하게 유지됩니다!
+                for na_type in types_to_create:
+                    internal_sample_id = f"ACC-{today_str}-{batch_seq}-{sample_seq}-{na_type}"
+                    
+                    new_sample = Sample(
+                        order_pk=new_order.id,               
+                        order_id=new_order.order_id,         
+                        sample_id=internal_sample_id, 
+                        target_panel=panel_code, 
+                        nucleic_acid_type=na_type,       
+                        current_status="접수 대기",          
+                        sample_name=base_data["sample_name"], 
+                        cancer_type=base_data.get("cancer_type"), 
+                        specimen=base_data.get("specimen"),
+                        project_name=base_data.get("sample_group"), 
+                        pairing_info=base_data.get("pairing_info"), 
+                        outside_id_1=base_data.get("outside_id_1"),
+                        issue_comment=base_data.get("issue_comment"), 
+                        panel_metadata=extra_metadata
+                    )
+                    db.add(new_sample)
+                    db_insert_count += 1  # DB 레코드 수만 증가
+
+            if db_insert_count == 0:
                 db.rollback()
                 return dbc.Alert("🚨 엑셀에서 유효한 검체 정보(Patient ID)를 찾지 못했습니다. 매핑 양식을 확인해 주세요.", color="danger")
 
             db.commit() 
-            return dbc.Alert(f"🎉 성공! 의뢰자[{final_client_name}]님의 샘플 총 {success_count}건 등록 완료. (칸반 보드를 확인하세요)", color="success")
-            
+            return dbc.Alert(f"🎉 성공! 의뢰자[{final_client_name}]님의 원본 검체 {sample_seq_counter}건 (DNA/RNA 분할 총 {db_insert_count}건) 등록이 완료되었습니다.", color="success")
+        
         except Exception as e:
             db.rollback()
             print(traceback.format_exc())

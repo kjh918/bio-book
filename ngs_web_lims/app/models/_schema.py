@@ -219,7 +219,8 @@ class Sample(Base):
     visual_inspection = Column(String, default="대기중")
     storage_location = Column(String)
     initial_volume = Column(Float)
-    
+    nucleic_acid_type = Column(String)
+
     # 🚀 핵심 상태 관리
     current_status = Column(String, default="접수 완료")
     issue_comment = Column(String)

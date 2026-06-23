@@ -22,31 +22,87 @@ def get_qc_report_layout():
     ]
     return create_shared_report_layout(prefix="qc", title="QC Report 작성 대상", template_options=qc_templates)
 
-
 def prepare_qc_jinja_data(selected_rows, img_contents):
-    mapped_samples = []
+    # 🚀 핵심: 환자 ID(sample_name)를 기준으로 데이터를 통합할 그릇
+    grouped_samples = {}
+    
     for r in selected_rows:
-        dna_qc = str(r.get('dna_qc', r.get('sample_qc', r.get('current_status', 'PASS')))).strip().upper()
-        rna_qc = str(r.get('rna_qc', r.get('sample_qc', r.get('current_status', 'PASS')))).strip().upper()
+        # sample_name(Patient ID)을 무조건적인 그룹핑 키로 사용
+        patient_id = str(r.get('sample_name', '')).strip()
         
-        sample_data = {
-            'Sample Name': r.get('sample_name', r.get('sample_id', '')),
-            'DNA_QC': dna_qc, 'RNA_QC': rna_qc,
-            'DNA_Conc': r.get('dna_concentration', r.get('concentration', '-')),
-            'DNA_Vol': r.get('dna_volume', r.get('volume', '15.0')),
-            'DNA_Total': r.get('dna_total_amount', r.get('total_amount', '-')),
-            'Purity': r.get('purity', '-'),
-            'RNA_Conc': r.get('rna_concentration', '-'),
-            'RNA_Vol': r.get('rna_volume', '35.0'),
-            'RNA_Total': r.get('rna_total_amount', '-'),
-            'DV200': r.get('dv200', '-'),
-            'Comment': r.get('issue_comment', '')
-        }
-        mapped_samples.append(sample_data)
+        # 방어 코드: 만약 시스템 내에 sample_name이 누락된 경우에만 예외적으로 sample_id 활용
+        if not patient_id or patient_id == '-':
+            raw_s_id = str(r.get('sample_id', '')).upper()
+            patient_id = raw_s_id.replace('-DNA', '').replace('_DNA', '').replace('-RNA', '').replace('_RNA', '')
+            
+        # 해당 환자 ID가 처음 등장했다면 빈 통합 결과 로우(Row) 양식 생성
+        if patient_id not in grouped_samples:
+            grouped_samples[patient_id] = {
+                'Sample Name': patient_id,
+                'DNA_QC': '-', 'RNA_QC': '-',
+                'DNA_Conc': '-', 'DNA_Vol': '-', 'DNA_Total': '-', 'Purity': '-',
+                'RNA_Conc': '-', 'RNA_Vol': '-', 'RNA_Total': '-', 'DV200': '-',
+                'Comment': ''
+            }
+            
+        current = grouped_samples[patient_id]
+        
+        # 🌟 하이픈('-')이나 빈 명세가 아니고 실질적인 '실측 데이터'가 있는 값만 골라내는 헬퍼 함수
+        def get_valid_value(keys):
+            for k in keys:
+                val = r.get(k)
+                if val not in [None, "", "-", "None", "none", "PENDING", "pending"]:
+                    return val
+            return None
 
-    pass_count = sum(1 for r in mapped_samples if r['DNA_QC'] == 'PASS')
-    fail_count = sum(1 for r in mapped_samples if r['DNA_QC'] == 'FAIL')
-    hold_count = sum(1 for r in mapped_samples if r['DNA_QC'] == 'HOLD')
+        # [1] QC 결과 종합 ('-'가 아니고 실제 PASS/FAIL 등의 판정값이 있는 행에서 가져옴)
+        dna_qc_val = get_valid_value(['dna_qc', 'sample_qc'])
+        if dna_qc_val:
+            current['DNA_QC'] = str(dna_qc_val).strip().upper()
+            
+        rna_qc_val = get_valid_value(['rna_qc', 'sample_qc'])
+        if rna_qc_val:
+            current['RNA_QC'] = str(rna_qc_val).strip().upper()
+
+        # [2] 수치 메트릭 종합 (DNA 행과 RNA 행을 돌며 값이 채워진 실측 데이터만 쏙쏙 취합)
+        metric_mapping = {
+            'DNA_Conc': ['dna_concentration', 'concentration'],
+            'DNA_Vol': ['dna_volume', 'volume'],
+            'DNA_Total': ['dna_total_amount', 'total_amount'],
+            'Purity': ['purity'],
+            'RNA_Conc': ['rna_concentration'],
+            'RNA_Vol': ['rna_volume'],
+            'RNA_Total': ['rna_total_amount'],
+            'DV200': ['dv200']
+        }
+        
+        for target_key, source_keys in metric_mapping.items():
+            valid_val = get_valid_value(source_keys)
+            if valid_val is not None:
+                current[target_key] = valid_val
+
+        # [3] 특이사항 코멘트 병합 (두 행 모두 개별 메모가 적혀있을 경우 파이프 기호로 이쁘게 연결)
+        cmt_val = get_valid_value(['issue_comment', 'comment'])
+        if cmt_val:
+            existing_cmt = current['Comment']
+            if existing_cmt:
+                if cmt_val not in existing_cmt:
+                    current['Comment'] = existing_cmt + f" | {cmt_val}"
+            else:
+                current['Comment'] = cmt_val
+
+    # 딕셔너리에 완벽하게 모인 통합본들을 Jinja2 템플릿 전달용 리스트로 변환
+    mapped_samples = list(grouped_samples.values())
+
+    # 통계 및 출력을 위한 최종 기본값 세팅 (끝까지 비어있는 QC항목 방어코드)
+    for m in mapped_samples:
+        if m['DNA_QC'] == '-': m['DNA_QC'] = 'PASS'
+        if m['RNA_QC'] == '-': m['RNA_QC'] = 'PASS'
+
+    # 렌더링 통계 카운트 계산
+    pass_count = sum(1 for r in mapped_samples if r['DNA_QC'] == 'PASS' or r['RNA_QC'] == 'PASS')
+    fail_count = sum(1 for r in mapped_samples if r['DNA_QC'] == 'FAIL' or r['RNA_QC'] == 'FAIL')
+    hold_count = sum(1 for r in mapped_samples if r['DNA_QC'] == 'HOLD' or r['RNA_QC'] == 'HOLD')
     
     images = img_contents if isinstance(img_contents, list) else [img_contents] if img_contents else []
     return mapped_samples, pass_count, fail_count, hold_count, images
@@ -136,6 +192,16 @@ def register_qc_callbacks(dash_app):
                     "current_status": s.current_status,
                 }
                 
+                # 🌟 [추가된 부분] PDF 레포트 헤더(의뢰자 정보) 출력을 위한 Hidden 데이터 강제 주입!
+                if s.order:
+                    row["client_name"] = s.order.client_name or "-"
+                    row["client_team"] = s.order.client_team or "-"
+                    row["reception_date"] = str(s.order.reception_date)[:10] if s.order.reception_date else "-"
+                else:
+                    row["client_name"] = "-"
+                    row["client_team"] = "-"
+                    row["reception_date"] = "-"
+                
                 # 🌟 테이블 자동 순회 탐색 로직 (Sample -> Order -> WetLab -> Seq -> Analysis -> JSON)
                 for col in config["columns"]:
                     col_id = col["id"]
@@ -153,7 +219,6 @@ def register_qc_callbacks(dash_app):
                     row[col_id] = val if val is not None else ""
                 
                 # 🌟 PDF 레포트 출력을 위한 Hidden(숨김) 필수 컬럼 주입
-                # 화면 스키마에는 없더라도, Jinja2 템플릿이 요구하는 값은 DB에서 꺼내어 row에 숨겨 담아줍니다.
                 if s.wet_lab:
                     hidden_keys = ["dna_volume", "dna_total_amount", "purity", "rna_volume", "rna_total_amount", "dv200", "rin"]
                     for hk in hidden_keys:
@@ -194,7 +259,6 @@ def register_qc_callbacks(dash_app):
             logo_filename = "gmc_logo.png" if "gmc" in template_type.lower() else "logo.png"
             logo_path = os.path.join(template_path, logo_filename)
             logo_data_uri = f"data:image/png;base64,{base64.b64encode(open(logo_path, 'rb').read()).decode('utf-8')}" if os.path.exists(logo_path) else ""
-
             rendered_html = template.render(
                 logo_path=logo_data_uri, order_id=first_row.get('order_id', '-'), report_date=datetime.now().strftime("%Y-%m-%d"),
                 order_date=first_row.get("reception_date", "-"), customer_name=first_row.get("client_name", "-"),

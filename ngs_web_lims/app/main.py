@@ -13,6 +13,7 @@ from app.pages.batch_modify import create_batch_modify_app
 from app.pages.master_table import create_master_app
 
 from app.pages.analysis.base import create_analysis_dashboard_app
+from app.pages.analysis.check_results import create_analysis_results_app
 from app.pages.report.base import create_report_view_app
 
 from app.core.database import engine
@@ -20,6 +21,8 @@ from app.models._schema import Base
 
 # 🚀 [추가] 분리된 순수 API 라우터 모듈 불러오기
 from app.api import analysis_api
+
+from app.api.webhook import webhook_api
 
 # [MODIFIED] 전역 실행 대신 Lifespan을 통한 안전한 DB 초기화 및 자원 관리
 @asynccontextmanager
@@ -42,7 +45,6 @@ async def lifespan(app: FastAPI):
     # 필요 시 DB connection pool 해제 로직 추가
 
 app = FastAPI(title="NGS LIMS System", lifespan=lifespan)
-
 # ==========================================
 # 1. 서브 Dash 앱 마운트 (딕셔너리 기반으로 반복 제거 및 관리 용이성 확보)
 # ==========================================
@@ -56,6 +58,7 @@ dash_apps = {
     "/modify": create_batch_modify_app,
     "/chatbot": create_chatbot_app,
     "/master": create_master_app,
+    "/check_results": create_analysis_results_app,
     # 필요 시 "/billing": create_billing_dashboard_app 추가
 }
 
@@ -77,3 +80,6 @@ def read_root():
 # 🚀 분석 서버에서 LIMS로 데이터를 쏠 때 사용할 API 라우터 등록
 # 이렇게 등록하면 자동으로 /api/v1/analysis/result 주소가 활성화됩니다.
 app.include_router(analysis_api.router, prefix="/api/v1")
+# 🌟 [추가] 39번 서버가 결과를 던질 Webhook 라우터 등록!
+# webhook_api 안에 이미 '/api/analysis/complete' 경로가 선언되어 있으므로 그냥 추가만 하면 됩니다.
+app.include_router(webhook_api)

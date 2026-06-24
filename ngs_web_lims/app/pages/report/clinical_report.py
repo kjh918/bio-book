@@ -34,33 +34,56 @@ def register_clinical_callbacks(dash_app):
             return [{"label": "전체 보기", "value": "ALL"}] + [{"label": f"📦 배치: {b}", "value": b} for b in batches], "ALL"
         finally: db.close()
 
-    # 2. Grid 렌더링
+    # 2. Grid 렌더링 (🌟 틀고정 및 Base 공통 양식 완벽 적용 🌟)
     @dash_app.callback(
         Output("clinical-grid-container", "children"),
         Input("clinical-batch-select", "value")
     )
     def update_clinical_grid(selected_batch):
         config = REPORT_SCHEMA_CONFIG.get("Clinical Report", {"columns": []})
-        columnDefs = [
-            {"headerName": "선택", "field": "order_id", "pinned": "left", "width": 80, "checkboxSelection": True, "headerCheckboxSelection": True},
-            {"headerName": "Order ID", "field": "order_id", "width": 150},
-            {"headerName": "Patient ID", "field": "sample_id", "width": 160},
-            {"headerName": "패널", "field": "target_panel", "width": 120},
-            {"headerName": "현재 상태", "field": "current_status", "width": 120},
+        
+        # 🌟 LIMS 공통 베이스 컬럼 가져오기
+        base_cols = LimsDashApp.get_base_grid_columns(include_project=True)
+        if base_cols:
+            # 첫 번째 열(프로젝트명)에 체크박스 및 틀고정(좌측) 적용
+            base_cols[0]["checkboxSelection"] = True
+            base_cols[0]["headerCheckboxSelection"] = True
+            base_cols[0]["pinned"] = "left" 
+            base_cols[0]["width"] = 140
+            
+            # 두 번째 열(Sample ID)도 스크롤 시 사라지지 않도록 틀고정!
+            if len(base_cols) > 1:
+                base_cols[1]["pinned"] = "left"
+        
+        # 베이스 컬럼 뒤에 상태 및 Clinical 전용 메타데이터 컬럼 이어 붙이기
+        columnDefs = base_cols + [
+            {"headerName": "현재 상태", "field": "current_status", "width": 120, "cellStyle": {"fontWeight": "bold", "color": "#198754"}},
+            {"headerName": "분석 상태", "field": "analysis_status", "width": 120}
         ]
         columnDefs.extend([{"headerName": col["name"], "field": col["id"], "width": 130} for col in config["columns"]])
         
         db = SessionLocal()
         try:
             query = db.query(Sample)
-            if selected_batch and selected_batch != "ALL": query = query.filter(Sample.sample_id.like(f"{selected_batch}-%"))
+            if selected_batch and selected_batch != "ALL": 
+                query = query.filter(Sample.sample_id.like(f"{selected_batch}-%"))
             samples = query.all()
+            
             data = []
             for s in samples:
+                a_status = s.analysis.analysis_status if s.analysis else "대기중"
+                # base_cols가 요구하는 매핑 데이터 통합
                 row = {
-                    "sample_id": s.sample_id, "order_id": s.order_id, 
-                    "target_panel": s.target_panel, "current_status": s.current_status
+                    "id": s.id, 
+                    "project_name": s.project_name, 
+                    "order_id": s.order_id,
+                    "sample_id": s.sample_id, 
+                    "sample_name": s.sample_name, 
+                    "target_panel": s.target_panel,
+                    "current_status": s.current_status,
+                    "analysis_status": a_status
                 }
+                # 추가 메타데이터 파싱
                 for col in config["columns"]:
                     col_id = col["id"]
                     val = getattr(s, col_id, "")
@@ -68,8 +91,11 @@ def register_clinical_callbacks(dash_app):
                     row[col_id] = val
                 data.append(row)
                 
-            grid = LimsDashApp.create_standard_aggrid(id="clinical-ag-grid", columnDefs=columnDefs, height="400px")
+            # 높이를 모니터 해상도에 반응하도록 40vh로 변경
+            grid = LimsDashApp.create_standard_aggrid(id="clinical-ag-grid", columnDefs=columnDefs, height="40vh")
             grid.dashGridOptions["rowSelection"] = "multiple"
+            # 행을 클릭했을 때가 아니라 '체크박스'를 눌렀을 때만 선택되도록 설정 (실무 UI 최적화)
+            grid.dashGridOptions["suppressRowClickSelection"] = True 
             grid.rowData = data
             return grid
         finally: db.close()

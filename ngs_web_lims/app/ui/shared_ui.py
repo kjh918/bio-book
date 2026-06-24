@@ -70,6 +70,7 @@ def create_navbar():
                         dbc.DropdownMenuItem("Kanban Workflow", href="/kanban/", external_link=True),
                         dbc.DropdownMenuItem("QC Report", href="/report/", external_link=True),
                         dbc.DropdownMenuItem("Analysis Board", href="/analysis/", external_link=True),
+                        dbc.DropdownMenuItem("Analysis Reivew", href="/check_results/", external_link=True),
                         dbc.DropdownMenuItem("AI Chatbot", href="/chatbot/", external_link=True),
                     ],
                     nav=True, in_navbar=True,

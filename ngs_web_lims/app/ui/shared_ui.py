@@ -59,19 +59,25 @@ def create_navbar():
                         dbc.DropdownMenuItem("Project View", href="/pro/", external_link=True),
                         dbc.DropdownMenuItem("Project Modify", href="/modify", external_link=True),
                         dbc.DropdownMenuItem("MASTER", href="/master", external_link=True),
+                        dbc.DropdownMenuItem("AI Chatbot", href="/chatbot/", external_link=True),
                     ],
                     nav=True, in_navbar=True,
                 ),
                 dbc.DropdownMenu(
-                    label=html.Span([DashIconify(icon="carbon:flow", className="me-2", style={"verticalAlign": "middle"}), "WORKFLOW"], className="d-flex align-items-center"),
+                    label=html.Span([DashIconify(icon="carbon:flow", className="me-2", style={"verticalAlign": "middle"}), "SAMPLE"], className="d-flex align-items-center"),
                     toggle_class_name="text-dark fw-bold px-3 border-0 bg-transparent d-flex align-items-center",
                     children=[
                         dbc.DropdownMenuItem("Registration", href="/reg/", external_link=True),
-                        dbc.DropdownMenuItem("Kanban Workflow", href="/kanban/", external_link=True),
                         dbc.DropdownMenuItem("QC Report", href="/report/", external_link=True),
+                    ],
+                    nav=True, in_navbar=True,
+                ),
+                dbc.DropdownMenu(
+                    label=html.Span([DashIconify(icon="carbon:report", className="me-2", style={"verticalAlign": "middle"}), "ANALYSIS"], className="d-flex align-items-center"),
+                    toggle_class_name="text-dark fw-bold px-3 border-0 bg-transparent d-flex align-items-center",
+                    children=[
                         dbc.DropdownMenuItem("Analysis Board", href="/analysis/", external_link=True),
                         dbc.DropdownMenuItem("Analysis Reivew", href="/check_results/", external_link=True),
-                        dbc.DropdownMenuItem("AI Chatbot", href="/chatbot/", external_link=True),
                     ],
                     nav=True, in_navbar=True,
                 ),

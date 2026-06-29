@@ -252,12 +252,12 @@ def register_qc_callbacks(dash_app):
             mapped_samples, pass_count, fail_count, hold_count, images = prepare_qc_jinja_data(selected_rows, img_contents)
             first_row = selected_rows[0]
 
-            template_path = os.path.join(BASE_DIR, "app", "templates", "reports")
+            template_path = os.path.join(BASE_DIR, "app", "templates", "reports", "qc")
             env = Environment(loader=FileSystemLoader(template_path))
             template = env.get_template(f"{template_type}.html")
 
             logo_filename = "gmc_logo.png" if "gmc" in template_type.lower() else "logo.png"
-            logo_path = os.path.join(template_path, logo_filename)
+            logo_path = os.path.join(BASE_DIR, "app", "templates", "reports", logo_filename)
             logo_data_uri = f"data:image/png;base64,{base64.b64encode(open(logo_path, 'rb').read()).decode('utf-8')}" if os.path.exists(logo_path) else ""
             rendered_html = template.render(
                 logo_path=logo_data_uri, order_id=first_row.get('order_id', '-'), report_date=datetime.now().strftime("%Y-%m-%d"),

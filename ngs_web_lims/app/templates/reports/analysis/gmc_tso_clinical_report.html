@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  @page {
+    size: A4;
+    margin: 12mm 10mm 12mm 10mm;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-size: 12px;
+    font-family: Arial, sans-serif;
+    color: #000;
+  }
+
+  /* ========================================================
+     HEADER
+     ======================================================== */
+  .report-header-block {
+    display: block;
+    width: 100%;
+    margin: 0 0 8px 0;
+    padding: 0;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .report-header-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    margin: 0;
+    padding: 0;
+  }
+
+  .report-header-title {
+    width: 75%;
+    padding: 0;
+    color: #000;
+    font-size: 25px;
+    font-weight: bold;
+    line-height: 1.15;
+    text-align: left;
+    vertical-align: bottom;
+    white-space: nowrap;
+  }
+
+  .report-header-logo {
+    width: 25%;
+    padding: 0;
+    text-align: right;
+    vertical-align: bottom;
+  }
+
+  .report-header-logo img {
+    display: inline-block;
+    width: 70px;
+    height: auto;
+    vertical-align: bottom;
+  }
+
+  .report-header-line {
+    border: 0;
+    border-top: 2px solid #06615c;
+    margin: 2px 0 10px 0;
+    padding: 0;
+  }
+
+  /* ========================================================
+     BODY LAYOUT
+     WeasyPrint 안정성을 위해 flex 대신 table layout 사용
+     ======================================================== */
+  .layout-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    margin: 0;
+    padding: 0;
+  }
+
+  .left-panel {
+    width: 30%;
+    vertical-align: top;
+    padding: 0 12px 0 0;
+  }
+
+  .right-panel {
+    width: 70%;
+    vertical-align: top;
+    padding: 0 0 0 20px;
+  }
+
+  .section-title-main {
+    color: #000;
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0;
+    padding: 0;
+  }
+
+  .section-line {
+    border: 0;
+    border-top: 1px solid #d6d6d6;
+    margin: 5px 0 10px 0;
+    padding: 0;
+  }
+
+  /* ========================================================
+     BASIC TABLES
+     ======================================================== */
+  caption {
+    font-size: 12px !important;
+    font-weight: bold;
+    color: #000;
+    text-align: left;
+    border-bottom: 1px solid #d6d6d6;
+    padding-bottom: 5px;
+    margin-bottom: 8px;
+  }
+
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: Arial, sans-serif;
+    font-size: 10px;
+    margin-bottom: 12px;
+  }
+
+  .table td,
+  .table th {
+    padding: 4px 6px;
+  }
+
+  .info-label {
+    width: 48%;
+    font-weight: bold;
+    color: #000;
+    border-bottom: 1px solid #eaeaea;
+    text-align: left;
+  }
+
+  .info-value {
+    width: 52%;
+    border-bottom: 1px solid #eaeaea;
+    text-align: right;
+  }
+
+  .qc-label {
+    width: 62%;
+    font-weight: bold;
+    color: #000;
+    border-bottom: 1px solid #d6d6d6;
+    border-top: 1px solid #d6d6d6;
+    text-align: left;
+  }
+
+  .qc-value {
+    width: 38%;
+    border-bottom: 1px solid #d6d6d6;
+    border-top: 1px solid #d6d6d6;
+    text-align: right;
+  }
+
+  /* ========================================================
+     BIOMARKER SECTION
+     ======================================================== */
+  .biomarker-section-title {
+    font-size: 15px;
+    font-weight: bold;
+    color: #000;
+    margin-top: 14px;
+    margin-bottom: 4px;
+  }
+
+  .biomarker-kv {
+    font-size: 10px;
+    margin-top: 6px;
+  }
+
+  .biomarker-kv-label {
+    font-size: 10px;
+  }
+
+  .biomarker-kv-value {
+    font-size: 11px;
+    font-weight: bold;
+  }
+
+  .biomarker-kv-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10px;
+    margin-bottom: 6px;
+  }
+
+  .biomarker-kv-table td {
+    padding: 3px 4px;
+    border-bottom: 1px solid #eeeeee;
+    vertical-align: top;
+  }
+
+  .biomarker-kv-table .kv-key {
+    width: 42%;
+    font-weight: normal;
+    color: #000;
+  }
+
+  .biomarker-kv-table .kv-value {
+    width: 58%;
+    font-weight: bold;
+    color: #000;
+  }
+
+  /* ========================================================
+     VARIANT TABLES
+     ======================================================== */
+  .variant-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: Arial, sans-serif;
+    font-size: 8px;
+    margin-bottom: 10px;
+    table-layout: fixed;
+  }
+
+  .variant-table th {
+    padding: 3px 4px;
+    color: #fff;
+    font-size: 8px;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .variant-table td {
+    padding: 3px 4px;
+    font-size: 8px;
+    border-bottom: 1px solid #e0e0e0;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: normal;
+    overflow-wrap: normal;
+  }
+
+  /* Small Variants: A4 폭 안에 맞추고 줄바꿈 방지 */
+  .small-variant-table-wrap {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .small-variant-table {
+    width: 100%;
+    max-width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 6.3px;
+    margin-bottom: 10px;
+  }
+
+  .small-variant-table th,
+  .small-variant-table td {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: normal;
+    overflow-wrap: normal;
+    line-height: 1.12;
+    vertical-align: middle;
+  }
+
+  .small-variant-table th {
+    padding: 2px 2px;
+    font-size: 6.1px;
+    letter-spacing: -0.2px;
+  }
+
+  .small-variant-table td {
+    padding: 2px 2px;
+    font-size: 6.3px;
+  }
+
+  .small-variant-table .sv-col-gene { width: 8%; }
+  .small-variant-table .sv-col-pos { width: 14%; }
+  .small-variant-table .sv-col-refalt { width: 8%; }
+  .small-variant-table .sv-col-depth { width: 6%; }
+  .small-variant-table .sv-col-vaf { width: 7%; }
+  .small-variant-table .sv-col-csq { width: 15%; }
+  .small-variant-table .sv-col-reference { width: 13%; }
+  .small-variant-table .sv-col-hgvsc { width: 14%; }
+  .small-variant-table .sv-col-hgvsp { width: 15%; }
+
+  /* ========================================================
+     FOOTER
+     ======================================================== */
+  .report-footer-line {
+    border: 0;
+    border-top: 1px solid #06615c;
+    margin-top: 22px;
+    margin-bottom: 5px;
+  }
+
+  .report-footer {
+    color: #5b5b5b;
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  .page-break {
+    page-break-after: always;
+  }
+</style>
+</head>
+
+<body>
+
+<!-- ========================================================
+     HEADER
+     ======================================================== -->
+<div class="report-header-block">
+  <table class="report-header-table">
+    <tr>
+      <td class="report-header-title">NGS Cancer Panel Report</td>
+      <td class="report-header-logo">
+        {% if logo_path %}
+        <img src="{{ logo_path }}" alt="logo">
+        {% endif %}
+      </td>
+    </tr>
+  </table>
+  <hr class="report-header-line">
+</div>
+
+
+<!-- ========================================================
+     BODY
+     ======================================================== -->
+<table class="layout-table">
+  <tr>
+    <!-- LEFT PANEL -->
+    <td class="left-panel">
+
+      <!-- Patient Information -->
+      <table class="table">
+        <caption>Patient Information</caption>
+        <tbody>
+          <tr>
+            <td class="info-label">Patient Name</td>
+            <td class="info-value">{{ patient_name | default('-', true) }}</td>
+          </tr>
+          <tr>
+            <td class="info-label">Patient ID</td>
+            <td class="info-value">{{ patient_id | default('-', true) }}</td>
+          </tr>
+          <tr>
+            <td class="info-label">Cancer type</td>
+            <td class="info-value">{{ cancer_type | default('-', true) }}</td>
+          </tr>
+          <tr>
+            <td class="info-label">Specimen type</td>
+            <td class="info-value">{{ specimen_type | default('-', true) }}</td>
+          </tr>
+          <tr>
+            <td class="info-label">Specimen site</td>
+            <td class="info-value">{{ specimen_site | default('-', true) }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Order Information -->
+      <table class="table">
+        <caption>Order Information</caption>
+        <tbody>
+          <tr>
+            <td class="info-label">Medical facility</td>
+            <td class="info-value">{{ facility | default('-', true) }}</td>
+          </tr>
+          <tr>
+            <td class="info-label">Medical facility ID</td>
+            <td class="info-value">{{ facility_id | default('-', true) }}</td>
+          </tr>
+          <tr>
+            <td class="info-label">Physician</td>
+            <td class="info-value">{{ physician | default('-', true) }}</td>
+          </tr>
+          <tr>
+            <td class="info-label">Pathologist</td>
+            <td class="info-value">{{ pathologist | default('-', true) }}</td>
+          </tr>
+          <tr>
+            <td class="info-label">Date of order</td>
+            <td class="info-value">{{ date_of_order | default('-', true) }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Specimen Information -->
+      <table class="table">
+        <caption>Specimen Information</caption>
+        <tbody>
+          <tr>
+            <td class="info-label">Specimen ID</td>
+            <td class="info-value">{{ specimen_id | default('-', true) }}</td>
+          </tr>
+          <tr>
+            <td class="info-label">Tumor purity (%)</td>
+            <td class="info-value">{{ tumor_purity | default('-', true) }}</td>
+          </tr>
+          <tr>
+            <td class="info-label">Date of collection</td>
+            <td class="info-value">{{ date_of_collection | default('-', true) }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Case Information -->
+      <table class="table">
+        <caption>Case Information</caption>
+        <tbody>
+          <tr>
+            <td class="info-label">Panel</td>
+            <td class="info-value">{{ panel | default('-', true) }}</td>
+          </tr>
+          <tr>
+            <td class="info-label">Pipeline</td>
+            <td class="info-value">{{ pipeline | default('-', true) }}</td>
+          </tr>
+          <tr>
+            <td class="info-label">Pipeline version</td>
+            <td class="info-value">{{ pipeline_version | default('-', true) }}</td>
+          </tr>
+          <tr>
+            <td class="info-label">Analyst</td>
+            <td class="info-value">{{ analyst | default('-', true) }}</td>
+          </tr>
+          <tr>
+            <td class="info-label">Date of Receipt</td>
+            <td class="info-value">{{ date_of_receipt | default('-', true) }}</td>
+          </tr>
+          <tr>
+            <td class="info-label">Date of report</td>
+            <td class="info-value">{{ date_of_report | default('-', true) }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- NGS QC Metrics -->
+      <table class="table">
+        <caption>NGS QC Metrics</caption>
+        <tbody>
+          {% if qc_metrics %}
+            {% for item in qc_metrics %}
+            <tr>
+              <td class="qc-label">{{ item.Metric | default('-', true) }}</td>
+              <td class="qc-value">{{ item.Value | default('-', true) }}</td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td class="qc-label">&nbsp;</td>
+              <td class="qc-value">&nbsp;</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+
+    </td>
+
+    <!-- RIGHT PANEL -->
+    <td class="right-panel">
+
+      <div class="section-title-main">Genomic Biomarker Details</div>
+      <hr class="section-line">
+
+      <!-- Small Variants -->
+      <div style="font-size:13px; font-weight:bold; color:#06615c; margin-bottom:6px;">
+        Small Variants
+        {% if small_variants %}
+        <span style="font-size:10px; font-weight:normal; color:#555;">
+          (보고 {{ small_variants | length }}건)
+        </span>
+        {% endif %}
+      </div>
+
+      <div class="small-variant-table-wrap">
+        <table class="variant-table small-variant-table">
+          <colgroup>
+            <col class="sv-col-gene">
+            <col class="sv-col-pos">
+            <col class="sv-col-refalt">
+            <col class="sv-col-depth">
+            <col class="sv-col-vaf">
+            <col class="sv-col-csq">
+            <col class="sv-col-reference">
+            <col class="sv-col-hgvsc">
+            <col class="sv-col-hgvsp">
+          </colgroup>
+          <thead>
+            <tr>
+              {% for col in small_variant_cols | default(["Gene", "Pos [chr]:[pos]", "REF->ALT", "Depth", "VAF", "Consequence", "Reference", "HGVSc", "HGVSp"], true) %}
+              <th style="background:#06615c;" title="{{ col }}">{{ col }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% if small_variants %}
+              {% for v in small_variants %}
+              <tr>
+                {% for col in small_variant_cols | default(["Gene", "Pos [chr]:[pos]", "REF->ALT", "Depth", "VAF", "Consequence", "Reference", "HGVSc", "HGVSp"], true) %}
+                <td title="{{ v.get(col, '') }}">{{ v.get(col, '') }}</td>
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                {% for col in small_variant_cols | default(["Gene", "Pos [chr]:[pos]", "REF->ALT", "Depth", "VAF", "Consequence", "Reference", "HGVSc", "HGVSp"], true) %}
+                <td>&nbsp;</td>
+                {% endfor %}
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+
+      <hr class="section-line">
+
+      <!-- TMB: 값 없어도 항상 표시 -->
+      <div class="biomarker-section-title">Tumor Mutational Burden (TMB)</div>
+      <hr class="section-line">
+
+      <table class="biomarker-kv-table">
+        <tbody>
+          {% if tmb %}
+            {% for k, v in tmb.items() %}
+            <tr>
+              <td class="kv-key">{{ k.replace('_', ' ') }}</td>
+              <td class="kv-value">{{ v | default('-', true) }}</td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td class="kv-key">&nbsp;</td>
+              <td class="kv-value">&nbsp;</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+
+      <hr class="section-line">
+
+      <!-- MSI: 값 없어도 항상 표시 -->
+      <div class="biomarker-section-title">Microsatellite Instability (MSI)</div>
+      <hr class="section-line">
+
+      <table class="biomarker-kv-table">
+        <tbody>
+          {% if msi %}
+            {% for k, v in msi.items() %}
+            <tr>
+              <td class="kv-key">{{ k.replace('_', ' ') }}</td>
+              <td class="kv-value">{{ v | default('-', true) }}</td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td class="kv-key">&nbsp;</td>
+              <td class="kv-value">&nbsp;</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+
+      <hr class="section-line">
+
+      <!-- Gene Amplifications -->
+      {% set gene_amplification_cols = gene_amplification_cols | default(["Gene", "Fold Change", "Copy Number"], true) %}
+      <div class="biomarker-section-title" style="color:#4f46e5;">Gene Amplifications</div>
+      <hr class="section-line">
+
+      <table class="variant-table">
+        <thead>
+          <tr>
+            {% for col in gene_amplification_cols %}
+            <th style="background:#4f46e5;">{{ col }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% if gene_amplifications %}
+            {% for v in gene_amplifications %}
+            <tr>
+              {% for col in gene_amplification_cols %}
+              <td>{{ v.get(col, '') }}</td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              {% for col in gene_amplification_cols %}
+              <td>&nbsp;</td>
+              {% endfor %}
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+
+      <hr class="section-line">
+
+      <!-- Splice Variants -->
+      {% set splice_variant_cols = splice_variant_cols | default(["Gene", "Pos [chr]:[pos]", "REF->ALT", "Depth", "VAF", "Consequence", "Reference", "HGVSc", "HGVSp"], true) %}
+      <div class="biomarker-section-title" style="color:#d97706;">Splice Variants</div>
+      <hr class="section-line">
+
+      <table class="variant-table">
+        <thead>
+          <tr>
+            {% for col in splice_variant_cols %}
+            <th style="background:#d97706;">{{ col }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% if splice_variants %}
+            {% for v in splice_variants %}
+            <tr>
+              {% for col in splice_variant_cols %}
+              <td>{{ v.get(col, '') }}</td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              {% for col in splice_variant_cols %}
+              <td>&nbsp;</td>
+              {% endfor %}
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+
+      <hr class="section-line">
+
+      <!-- Fusions -->
+      {% set fusion_cols = fusion_cols | default(["Gene Pair", "Breakpoint 1", "Breakpoint 2", "Fusion", "Supporting Reads"], true) %}
+      <div class="biomarker-section-title" style="color:#9333ea;">Fusions</div>
+      <hr class="section-line">
+
+      <table class="variant-table">
+        <thead>
+          <tr>
+            {% for col in fusion_cols %}
+            <th style="background:#9333ea;">{{ col }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% if fusions %}
+            {% for v in fusions %}
+            <tr>
+              {% for col in fusion_cols %}
+              <td>{{ v.get(col, '') }}</td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              {% for col in fusion_cols %}
+              <td>&nbsp;</td>
+              {% endfor %}
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+
+    </td>
+  </tr>
+</table>
+
+
+<!-- ========================================================
+     FOOTER
+     ======================================================== -->
+<hr class="report-footer-line">
+<div class="report-footer">GMC Medical Center</div>
+<div class="report-footer">
+  (08394) Room 216, 2nd floor, Hanhwa BizMetro, 242, Digital-ro, Guro-gu, Seoul, KOREA
+</div>
+<div class="report-footer">
+  TEL: 070-7425-0529 &nbsp;|&nbsp; FAX: 02-2621-7037 &nbsp;|&nbsp;
+  NGS Lab: 070-4762-9837 &nbsp;|&nbsp; E-mail: gmcinfo@gmcmedi.com
+</div>
+
+</body>
+</html>

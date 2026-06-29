@@ -98,8 +98,8 @@ def create_shared_report_layout(prefix: str, title: str, template_options: list)
 
 def create_report_view_layout():
     # 🚀 함수 내부(Local)에서 import를 수행하여 순환 참조를 회피합니다!
-    from app.pages.report.qc_report import get_qc_report_layout
-    from app.pages.report.clinical_report import get_clinical_report_layout
+    from app.pages.report.qc.qc_report import get_qc_report_layout
+    from app.pages.report.analysis.clinical_report import get_clinical_report_layout
 
     return html.Div([
         # 페이지 공통 헤더
@@ -129,8 +129,8 @@ def create_report_view_app(requests_pathname_prefix: str):
     app = lims.get_app() 
     
     # 🚀 함수 내부(Local)에서 콜백 등록 함수를 import 합니다!
-    from app.pages.report.qc_report import register_qc_callbacks
-    from app.pages.report.clinical_report import register_clinical_callbacks
+    from app.pages.report.qc.qc_report import register_qc_callbacks
+    from app.pages.report.analysis.clinical_report import register_clinical_callbacks
 
     register_qc_callbacks(app)
     register_clinical_callbacks(app)

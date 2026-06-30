@@ -5,16 +5,13 @@
 <style>
   @page {
     size: A4;
-    margin: 12mm 10mm 12mm 10mm;
+    margin: 12mm 10mm 10mm 10mm;
   }
 
   html,
   body {
     margin: 0;
     padding: 0;
-  }
-
-  body {
     font-size: 12px;
     font-family: Arial, sans-serif;
     color: #000;
@@ -319,6 +316,125 @@
   .page-break {
     page-break-after: always;
   }
+    .last-page-block {
+    page-break-before: always;
+    break-before: page;
+
+    min-height: 270mm;
+    box-sizing: border-box;
+
+    display: flex;
+    flex-direction: column;
+    }
+
+    /* Appendix 내용 */
+    .appendix-block {
+    flex: 0 0 auto;
+    }
+
+    .appendix-title {
+    color: #000000;
+    font-size: 20px;
+    font-weight: bold;
+    margin: 0 0 4px 0;
+    }
+
+    .appendix-line {
+    border: 0;
+    border-top: 2px solid #898989;
+    margin: 0 0 10px 0;
+    }
+
+    /* 양쪽 컬럼 동일 폭 */
+    .appendix-two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 30px;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 12px;
+    }
+
+    .appendix-col {
+    width: 100%;
+    box-sizing: border-box;
+    }
+
+    .appendix-section-title {
+    color: #000000;
+    font-size: 16px;
+    font-weight: bold;
+    margin: 0 0 6px 0;
+    }
+
+    .appendix-performance-title {
+    margin-top: 10px;
+    }
+
+    /* table 폭을 컬럼 안에서 100%로 고정 */
+    .appendix-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 9px;
+    font-family: Arial, sans-serif;
+    }
+
+    .appendix-table th {
+    text-align: center;
+    font-weight: bold;
+    font-size: 10px;
+    padding: 4px 5px;
+    border-bottom: 1px solid #e0e0e0;
+    }
+
+    .appendix-table td {
+    padding: 4px 5px;
+    border-top: 1px solid #e0e0e0;
+    border-bottom: 1px solid #e0e0e0;
+    box-sizing: border-box;
+    }
+
+    /* 첫 번째 열 */
+    .appendix-key {
+    text-align: left;
+    font-weight: bold;
+    color: #000000 !important;
+    }
+
+    /* 값 열 */
+    .appendix-value {
+    text-align: right;
+    }
+
+    .appendix-center {
+    text-align: center;
+    }
+
+    /* Appendix 끝난 뒤 남은 공간을 밀어냄 */
+    .footer-spacer {
+    flex: 1 1 auto;
+    }
+
+    /* Footer: 문서 마지막 페이지에만 1회 출력 */
+    .last-page-footer {
+    flex: 0 0 auto;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    }
+
+    .report-footer-line {
+    border: 0;
+    border-top: 1px solid #898989;
+    margin: 0 0 4px 0;
+    }
+
+    .report-footer {
+    color: #555555;
+    font-size: 7.5px;
+    line-height: 1.25;
+    text-align: left;
+    }
 </style>
 </head>
 
@@ -456,10 +572,28 @@
 
       <!-- NGS QC Metrics -->
       <table class="table">
-        <caption>NGS QC Metrics</caption>
+        <caption>DNA QC Metrics</caption>
         <tbody>
-          {% if qc_metrics %}
-            {% for item in qc_metrics %}
+          {% if dna_qc_metrics %}
+            {% for item in dna_qc_metrics %}
+            <tr>
+              <td class="qc-label">{{ item.Metric | default('-', true) }}</td>
+              <td class="qc-value">{{ item.Value | default('-', true) }}</td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td class="qc-label">&nbsp;</td>
+              <td class="qc-value">&nbsp;</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+      <table class="table">
+        <caption>RNA QC Metrics</caption>
+        <tbody>
+          {% if rna_qc_metrics %}
+            {% for item in rna_qc_metrics %}
             <tr>
               <td class="qc-label">{{ item.Metric | default('-', true) }}</td>
               <td class="qc-value">{{ item.Value | default('-', true) }}</td>
@@ -685,19 +819,135 @@
     </td>
   </tr>
 </table>
+<div class="last-page-block">
 
+  <div class="appendix-block">
+    <div class="appendix-title">Appendix</div>
+    <hr class="appendix-line">
 
-<!-- ========================================================
-     FOOTER
-     ======================================================== -->
-<hr class="report-footer-line">
-<div class="report-footer">GMC Medical Center</div>
-<div class="report-footer">
-  (08394) Room 216, 2nd floor, Hanhwa BizMetro, 242, Digital-ro, Guro-gu, Seoul, KOREA
-</div>
-<div class="report-footer">
-  TEL: 070-7425-0529 &nbsp;|&nbsp; FAX: 02-2621-7037 &nbsp;|&nbsp;
-  NGS Lab: 070-4762-9837 &nbsp;|&nbsp; E-mail: gmcinfo@gmcmedi.com
+    <div class="appendix-two-col">
+      <div class="appendix-col">
+        <div class="appendix-section-title">Sequencing Information</div>
+
+        <table class="appendix-table">
+          <tbody>
+            <tr>
+              <td class="appendix-key">Library kit</td>
+              <td class="appendix-value">TruSight Oncology 500 kit [ Illumina ]</td>
+            </tr>
+            <tr>
+              <td class="appendix-key">Capture methods</td>
+              <td class="appendix-value">Hybridization capture-based</td>
+            </tr>
+            <tr>
+              <td class="appendix-key">Sequencer</td>
+              <td class="appendix-value">Nextseq550 Dx [ Illumina ]</td>
+            </tr>
+            <tr>
+              <td class="appendix-key">Assembly version</td>
+              <td class="appendix-value">GRCh37/hg19</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="appendix-col">
+        <div class="appendix-section-title">Limit of Detection</div>
+
+        <table class="appendix-table">
+          <tbody>
+            <tr>
+              <td class="appendix-key">Small Variants</td>
+              <td class="appendix-value">VAF &gt;= 0.05</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="appendix-section-title appendix-performance-title">
+      Performance specification
+    </div>
+
+    <div class="appendix-two-col">
+      <div class="appendix-col">
+        <table class="appendix-table">
+          <thead>
+            <tr>
+              <th>Variant type</th>
+              <th>Sensitivity</th>
+              <th>Specificity</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="appendix-key">Small variants</td>
+              <td class="appendix-center">&gt;= 96%</td>
+              <td class="appendix-center">&gt;= 99%</td>
+            </tr>
+            <tr>
+              <td class="appendix-key">CNV</td>
+              <td class="appendix-center">.</td>
+              <td class="appendix-center">.</td>
+            </tr>
+            <tr>
+              <td class="appendix-key">Fusion</td>
+              <td class="appendix-center">91.2%</td>
+              <td class="appendix-center">&gt;= 99%</td>
+            </tr>
+            <tr>
+              <td class="appendix-key">Splice variants</td>
+              <td class="appendix-center">&gt;= 99%</td>
+              <td class="appendix-center">&gt;= 99%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="appendix-col">
+        <table class="appendix-table">
+          <thead>
+            <tr>
+              <th>Variant type</th>
+              <th>PPA</th>
+              <th>NPA</th>
+              <th>Correlation coefficient</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="appendix-key">TMB</td>
+              <td class="appendix-center">94.7%</td>
+              <td class="appendix-center">96.1%</td>
+              <td class="appendix-center">0.931</td>
+            </tr>
+            <tr>
+              <td class="appendix-key">MSI</td>
+              <td class="appendix-center">96.2%</td>
+              <td class="appendix-center">.</td>
+              <td class="appendix-center">.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 남은 공간을 footer 위에서 채움 -->
+  <div class="footer-spacer"></div>
+
+  <div class="last-page-footer">
+    <hr class="report-footer-line">
+    <div class="report-footer">GMC Medical Center</div>
+    <div class="report-footer">
+      (08394) Room 216, 2nd floor, Hanhwa BizMetro, 242, Digital-ro, Guro-gu, Seoul, KOREA
+    </div>
+    <div class="report-footer">
+      TEL: 070-7425-0529 &nbsp;|&nbsp; FAX: 02-2621-7037 &nbsp;|&nbsp;
+      NGS Lab: 070-4762-9837 &nbsp;|&nbsp; E-mail: gmcinfo@gmcmedi.com
+    </div>
+  </div>
+
 </div>
 
 </body>

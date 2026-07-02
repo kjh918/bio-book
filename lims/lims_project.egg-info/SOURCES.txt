@@ -1,0 +1,5 @@
+setup.py
+lims_project.egg-info/PKG-INFO
+lims_project.egg-info/SOURCES.txt
+lims_project.egg-info/dependency_links.txt
+lims_project.egg-info/top_level.txt

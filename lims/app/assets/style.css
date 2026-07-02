@@ -1,0 +1,108 @@
+/* 1. 웹 폰트 불러오기 (Pretendard) */
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css");
+
+:root {
+    --bs-font-sans-serif: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif !important;
+    --bs-body-font-family: var(--bs-font-sans-serif) !important;
+}
+
+body {
+    font-family: var(--bs-font-sans-serif) !important;
+    background-color: #F4F7F9 !important; /* 바깥쪽 배경색 */
+    color: #1a2a40 !important; 
+    font-size: 0.85rem !important; 
+}
+
+.dropdown-item, .nav-link { font-size: 0.85rem !important; }
+h2 { font-size: clamp(1.2rem, 2.5vw, 2rem) !important; }
+
+.dash-spreadsheet-container .dash-spreadsheet-inner td.fixed-column {
+    z-index: 100 !important;
+    background-color: white !important;
+}
+
+/* =========================================================
+   🚀 [테마 디자인] 카드, 버튼, 스크롤바
+   ========================================================= */
+
+.card {
+    background-color: #ffffff !important;
+    border: 1px solid #e2e8f0 !important; 
+    border-radius: 12px !important;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04) !important; 
+    transition: all 0.2s ease-in-out;
+}
+
+.card:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+}
+
+.btn { border-radius: 8px !important; font-weight: 600 !important; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+/* =========================================================
+   🚀 [레이아웃] 상단바 & 사이드바 (#DFF5E1 기반 반투명 효과)
+   ========================================================= */
+
+.top-navbar {
+    position: fixed !important;
+    top: 0; left: 0; right: 0;
+    height: 60px;
+    z-index: 1030; 
+    background-color: rgba(223, 245, 225, 0.7) !important; 
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border-bottom: 1px solid rgba(190, 220, 195, 0.5);     
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
+
+.side-navbar {
+    position: fixed;
+    top: 60px; left: 0; bottom: 0;
+    width: 5rem !important; 
+    padding: 1.5rem 0.5rem !important;
+    background-color: rgba(223, 245, 225, 0.7) !important; 
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    color: #475569; 
+    border-right: 1px solid rgba(190, 220, 195, 0.5); 
+    box-shadow: 2px 0 8px rgba(0,0,0,0.03);
+    z-index: 1020;
+    display: flex; flex-direction: column; align-items: center; 
+    overflow-y: auto; 
+}
+
+/* 사이드바 내부 아이콘 호버 효과 */
+.side-navbar a:hover, .side-navbar .nav-link:hover, .side-navbar .nav-link.active {
+    background-color: #DFF5E1 !important; /* 배경을 연한 녹색으로 */
+    color: #18bc9c !important; /* 텍스트와 아이콘 색상을 진한 민트로 강조 */
+}
+
+/* 🚀 마우스 올렸을 때 아이콘 색상도 자동으로 민트색으로 변하게 강제 */
+.side-navbar a:hover svg, .side-navbar .nav-link:hover svg, .side-navbar .nav-link.active svg {
+    color: #18bc
+}
+
+/* Python style 딕셔너리로 완전히 제어하므로 CSS 클래스 비움 (충돌 방지) */
+.main-content {
+    /* controlled natively by shared_ui.py CONTENT_STYLE */
+}
+
+/* =========================================================
+   🚀 [디테일 업그레이드] 페이지 구분선
+   ========================================================= */
+
+.page-title-header {
+    background-color: transparent; /* 하얀 페이지 안에 있으므로 투명 처리 */
+    padding: 0 0 1.5rem 0; 
+    margin: 0 0 1.5rem 0; 
+    border-bottom: 1px solid #e2e8f0; /* 하단 얇은 줄만 남김 */
+    display: flex; justify-content: space-between; align-items: flex-end;
+}
+
+.page-title-header h2 { margin: 1.5; font-weight: 700; margin-bottom: 3rem !important; color: #0f172a; letter-spacing: -0.5px; }
+.page-title-header p { margin: 1.5; margin-top: 0.25rem; color: #0f172a; font-size: 0.85rem; }

@@ -1,0 +1,28 @@
+# [1단계: 등록]
+sample_info:
+  internal_sample_id: "GNC_BRCA_001"
+  external_sample_id: "KNUH_T1"
+  host_subject_id: "P001"
+
+# [2단계: 매출]
+sales_info:
+  contract_id: "CONT_2026_01"
+  unit_price: 500000
+  billing_status: "Paid"
+
+# [3단계: 실험]
+lab_info:
+  concentration: 45.2
+  qc_result: "Pass"
+  storage_location: "F-A-1"
+  operator: "김철수"
+
+# [4단계: 분석]
+analysis_info:
+  sequencing_status: ["2026-04-01: NovaSeq Run Completed"]
+  data_path: "/data/runs/run01/"
+
+# [5단계: 리포트]
+report_info:
+  diagnostic_result: "Pathogenic variant detected in BRCA1"
+  pdf_path: "/reports/GNC_BRCA_001_v1.pdf"

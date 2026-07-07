@@ -1,6 +1,6 @@
 # app/core/rules.py
 
-class LimsRules:
+class StageRules:
     """LIMS 시스템 전체에서 사용되는 비즈니스 규칙 및 상태값 정의"""
 
     # 1. 상태 및 단계 (Kanban Stages)

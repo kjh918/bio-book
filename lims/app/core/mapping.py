@@ -53,7 +53,7 @@ def get_full_mapping_for_panel(panel_type):
     return full_map
 
 FACILITY_MAPPING = {
-    #"C00": {"facility": "Unknown", "team": ""},
+    "C00": {"facility": "Unknown", "team": ""},
     "C01": {"facility": "GCX", "team": "NGS"},
     "C02": {"facility": "GMC", "team": "NGS"},
     "C03": {"facility": "GCX", "team": "연구소"},

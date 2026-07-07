@@ -7,27 +7,19 @@ import io
 import os
 import traceback
 from pathlib import Path
-import openpyxl # 🚀 엑셀 템플릿 수정을 위한 라이브러리 추가
+import openpyxl
 
 from app.pages.base import LimsDashApp  
 from app.core.database import SessionLocal
-from app.models._schema import Order, Sample
-from app.core.mapping import FACILITY_MAPPING, get_full_mapping_for_panel
+from app.schema.objects import Order, Sample #, PanelMaster
+from app.core.mapping import FACILITY_MAPPING, SPECIAL_MAPPING, get_full_mapping_for_panel
 
-# 🚀 검사 선택값에 따른 엑셀 양식 파일명 매핑 사전
-TEMPLATE_MAP = {
-    "WGS": "wgs_request",
-    "WES": "wes_request",
-    "WTS": "wts_request",
-    "TSO500": "tso_request",
-    "dPCR": "dPCR_request"
-}
 
-# ==========================================
-# [1] 화면 레이아웃
-# ==========================================
 def create_registration_layout():
+    # 실제로는 Facility 테이블을 조회하는 것이 좋으나 기존 문맥 유지를 위해 MAPPING 사용
     facility_opts = [{"label": f"[{code}] {data['facility']} ({data['team']})", "value": code} for code, data in FACILITY_MAPPING.items()]
+    # facility_opts = [{"label": f"[{code}] {data['facility']} ({data['team']})", "value": code} for code, data in SPECIAL_MAPPING.items()]
+
 
     return html.Div([
         html.H3("📥 검사 의뢰서 신규 접수", className="fw-bold mb-4 text-secondary"),
@@ -37,7 +29,6 @@ def create_registration_layout():
             dbc.CardBody([
                 html.H5("1. 접수 기본 정보 및 의뢰자 정보", className="fw-bold text-primary mb-3"),
                 
-                # 🚀 기관 및 패널 선택
                 dbc.Row([
                     dbc.Col([
                         html.Label("1-1. 의뢰 기관 (필수)", className="fw-bold text-danger small mb-2"),
@@ -45,17 +36,10 @@ def create_registration_layout():
                     ], width=6),
                     dbc.Col([
                         html.Label("1-2. 검사 종류 (필수)", className="fw-bold text-danger small mb-2"),
-                        dcc.Dropdown(id="reg-panel-select", options=[
-                            {"label": "WGS", "value": "WGS"},
-                            {"label": "WES", "value": "WES"},
-                            {"label": "WTS", "value": "WTS"},
-                            {"label": "TSO500", "value": "TSO500"},
-                            {"label": "dPCR", "value": "dPCR"}
-                        ], placeholder="검사 종류를 선택하면 아래에 양식이 나타납니다...", className="shadow-sm mb-3")
+                        dcc.Dropdown(id="reg-panel-select", options=[], placeholder="DB에서 활성화된 검사 종류를 불러오는 중...", className="shadow-sm mb-3")
                     ], width=6)
                 ]),
                 
-                # 🚀 의뢰자 정보 입력 (입력 후 다운로드 시 양식에 반영됨)
                 html.Div("💡 아래 의뢰자 정보를 먼저 입력하고 양식을 다운로드하면, 해당 정보가 엑셀에 자동으로 채워진 상태로 생성됩니다.", className="text-muted small mb-2"),
                 dbc.Row([
                     dbc.Col([
@@ -74,7 +58,7 @@ def create_registration_layout():
 
                 dbc.Row([
                     dbc.Col([
-                        dbc.Button("📥 의뢰자 정보가 포함된 양식 다운로드", id="btn-download-template", outline=True, color="primary", className="w-100 fw-bold shadow-sm"),
+                        dbc.Button("📥 DB 기준 맞춤 양식 다운로드", id="btn-download-template", outline=True, color="primary", className="w-100 fw-bold shadow-sm"),
                         dcc.Download(id="download-template-file")
                     ], width=12)
                 ], className="mb-3"),
@@ -118,21 +102,40 @@ def create_registration_layout():
 # ==========================================
 def register_registration_callbacks(dash_app):
     
+    # 🚀 [MODIFIED] 페이지 로드 시 DB에서 Panel Master 목록을 조회하여 드롭다운 구성
+    @dash_app.callback(Output("reg-panel-select", "options"), Input("reg-panel-select", "id"))
+    def load_panel_options(_):
+        db = SessionLocal()
+        try:
+            panels = db.query(PanelMaster).filter(PanelMaster.is_active == 1).all()
+            return [{"label": f"{p.panel_name} ({p.panel_code})", "value": p.panel_code} for p in panels]
+        finally:
+            db.close()
+            
+    # 🚀 [MODIFIED] 선택된 패널의 DB 설정값(request_template_name)에 따라 엑셀 템플릿 로드
     @dash_app.callback(Output("template-preview-container", "children"), Input("reg-panel-select", "value"))
-    def update_template_preview(panel_type):
-        if not panel_type: return html.Div("👆 검사 종류(1-2)를 선택하시면 의뢰서 미리보기가 나타납니다.", className="text-muted small text-center py-2")
-        template_name = TEMPLATE_MAP.get(panel_type, "wgs_request")
+    def update_template_preview(panel_code):
+        if not panel_code: return html.Div("👆 검사 종류(1-2)를 선택하시면 의뢰서 미리보기가 나타납니다.", className="text-muted small text-center py-2")
+        
+        db = SessionLocal()
+        try:
+            panel = db.query(PanelMaster).filter(PanelMaster.panel_code == panel_code).first()
+            if not panel: return html.Div("⚠️ 등록되지 않은 검사 항목입니다.", className="text-danger small")
+            template_name = panel.request_template_name
+        finally:
+            db.close()
+            
         excel_file_path = os.path.join(Path(__file__).parent.parent / "templates" / "requests", f"{template_name}.xlsx")
-        if not os.path.exists(excel_file_path): return html.Div(f"⚠️ 양식 파일 없음: {template_name}.xlsx", className="text-danger small")
+        if not os.path.exists(excel_file_path): return html.Div(f"⚠️ 매핑된 양식 파일이 서버에 없습니다: {template_name}.xlsx", className="text-danger small")
+        
         try:
             df_raw = pd.read_excel(excel_file_path, header=None)
             header_idx = next((r for r in range(min(25, len(df_raw))) if "patientid" in "".join(df_raw.iloc[r].astype(str).tolist()).replace(" ", "").lower()), 15)
             df_preview = pd.read_excel(excel_file_path, header=header_idx).dropna(axis=1, how='all').head(5)
             df_preview.columns = [str(c) if not str(c).startswith('Unnamed') else '' for c in df_preview.columns]
-            return html.Div([html.H6(f"[{panel_type}] 양식 미리보기", className="fw-bold text-primary mb-2"), dash_table.DataTable(columns=[{"name": str(i), "id": str(i)} for i in df_preview.columns if str(i)], data=df_preview.to_dict('records'), style_table={'overflowX': 'auto', 'border': '1px solid #dee2e6'}, style_cell={'textAlign': 'center', 'padding': '10px', 'fontSize': '12px'}, style_header={'backgroundColor': '#e9ecef', 'fontWeight': 'bold'})])
+            return html.Div([html.H6(f"[{panel.panel_name}] 지정 양식 미리보기", className="fw-bold text-primary mb-2"), dash_table.DataTable(columns=[{"name": str(i), "id": str(i)} for i in df_preview.columns if str(i)], data=df_preview.to_dict('records'), style_table={'overflowX': 'auto', 'border': '1px solid #dee2e6'}, style_cell={'textAlign': 'center', 'padding': '10px', 'fontSize': '12px'}, style_header={'backgroundColor': '#e9ecef', 'fontWeight': 'bold'})])
         except Exception as e: return html.Div(f"⚠️ 미리보기 오류: {e}", className="text-danger small")
 
-    # 🚀 웹에 입력한 정보를 바탕으로 엑셀 파일 수정 후 다운로드 제공
     @dash_app.callback(
         Output("download-template-file", "data"), 
         Input("btn-download-template", "n_clicks"), 
@@ -142,26 +145,28 @@ def register_registration_callbacks(dash_app):
          State("reg-client-email", "value")], 
         prevent_initial_call=True
     )
-    def download_excel_template(n_clicks, panel_type, client_name, client_phone, client_email):
-        if not panel_type: return no_update
+    def download_excel_template(n_clicks, panel_code, client_name, client_phone, client_email):
+        if not panel_code: return no_update
         
-        template_name = TEMPLATE_MAP.get(panel_type, 'wgs_request')
+        db = SessionLocal()
+        try:
+            panel = db.query(PanelMaster).filter(PanelMaster.panel_code == panel_code).first()
+            template_name = panel.request_template_name if panel else "default_request"
+        finally:
+            db.close()
+            
         excel_file_path = os.path.join(Path(__file__).parent.parent / "templates" / "requests", f"{template_name}.xlsx")
         
-        # 파일이 없을 경우 빈 DataFrame 반환
         if not os.path.exists(excel_file_path): 
             return dcc.send_data_frame(pd.DataFrame().to_excel, f"{template_name}.xlsx", index=False)
             
         try:
-            # openpyxl을 통해 기존 템플릿 오픈
             wb = openpyxl.load_workbook(excel_file_path)
             ws = wb.active
             
-            # 상단 15줄 이내에서 '실무자성명', '연락처', 'e-mail' 칸을 찾아 우측(가로) 셀에 값 기입
             for row in ws.iter_rows(min_row=1, max_row=15):
                 for cell in row:
                     if not cell.value: continue
-                    
                     val = str(cell.value).replace(" ", "").lower()
                     if "실무자성명" in val:
                         ws.cell(row=cell.row, column=cell.column + 1).value = client_name or ""
@@ -170,23 +175,17 @@ def register_registration_callbacks(dash_app):
                     elif "e-mail" in val or "email" in val:
                         ws.cell(row=cell.row, column=cell.column + 1).value = client_email or ""
 
-            # 메모리에 엑셀 파일을 임시 저장
             out = io.BytesIO()
             wb.save(out)
             out.seek(0)
-            
-            # 파일명에 의뢰자 이름 추가 (예: 홍길동_tso_request.xlsx)
             prefix = f"{client_name.replace(' ', '')}_" if client_name else ""
             download_name = f"{prefix}_{template_name}.xlsx"
-            
             return dcc.send_bytes(out.getvalue(), download_name)
             
         except Exception as e:
             print(f"템플릿 수정 중 에러 발생: {e}")
-            # 에러 발생 시 원본 파일 그대로 전송
             return dcc.send_file(excel_file_path)
     
-    # 🚀 엑셀 파싱 시, 기존 엑셀에 있던 의뢰자 정보도 추출하여 화면(Input)에 반영
     @dash_app.callback(
         [Output("parsed-data-container", "style"), Output("upload-filename-display", "children"), Output("order-info-alert", "children"), Output("parsed-sample-table", "columns"), Output("parsed-sample-table", "data"),
          Output("reg-client-name", "value"), Output("reg-client-phone", "value"), Output("reg-client-email", "value")],
@@ -203,7 +202,6 @@ def register_registration_callbacks(dash_app):
             
             df_raw = pd.read_excel(io.BytesIO(decoded), header=None)
             
-            # 🚀 엑셀 상단 영역에서 의뢰자 정보(성명, 폰, 이메일) 파싱
             client_name, client_phone, client_email = "", "", ""
             for r in range(2, min(12, len(df_raw))): 
                 row_vals = df_raw.iloc[r].dropna().astype(str).str.strip().tolist()
@@ -212,11 +210,9 @@ def register_registration_callbacks(dash_app):
                 if "실무자성명" in row_nospace:
                     idx_name = row_nospace.index("실무자성명")
                     if idx_name + 1 < len(row_vals): client_name = row_vals[idx_name + 1]
-                    
                     if "연락처" in row_nospace:
                         idx_phone = row_nospace.index("연락처")
                         if idx_phone + 1 < len(row_vals): client_phone = row_vals[idx_phone + 1]
-                        
                     if r + 1 < len(df_raw):
                         next_row_vals = df_raw.iloc[r+1].dropna().astype(str).str.strip().tolist()
                         next_row_nospace = [x.replace(" ", "").lower() for x in next_row_vals]
@@ -224,11 +220,6 @@ def register_registration_callbacks(dash_app):
                             idx_email = next_row_nospace.index("e-mail") if "e-mail" in next_row_nospace else next_row_nospace.index("email")
                             if idx_email + 1 < len(next_row_vals): client_email = next_row_vals[idx_email + 1]
 
-            client_name = client_name if client_name.lower() != 'nan' else ""
-            client_phone = client_phone if client_phone.lower() != 'nan' else ""
-            client_email = client_email if client_email.lower() != 'nan' else ""
-
-            # 샘플 데이터 테이블 파싱
             header_idx = next((r for r in range(5, min(25, len(df_raw))) if "patientid" in "".join(df_raw.iloc[r].astype(str).tolist()).replace(" ", "").lower()), 15)
             df_samples = pd.read_excel(io.BytesIO(decoded), header=header_idx).dropna(axis=1, how='all')
             df_samples.columns = [str(c) if not str(c).startswith('Unnamed') else f"col_{i}" for i, c in enumerate(df_samples.columns)]
@@ -246,8 +237,6 @@ def register_registration_callbacks(dash_app):
                 html.Strong("📂 타겟: "), html.Span(f"[{facility_code}] {fac_info['facility']} ({fac_info['team']}) / {panel_code}", className="me-3 text-primary"),
                 html.Strong("📊 추출: "), html.Span(f"{len(table_data)}건")
             ])
-            
-            # 🚀 의뢰자 정보를 3개의 UI Input으로 동시에 던져줍니다. (입력 안 한 항목만 채우려면 수정 가능하나 현재는 덮어씀)
             return {"display": "block"}, f"✅ {filename} 파싱 성공!", alert_ui, dynamic_cols, table_data, client_name, client_phone, client_email
             
         except Exception as e:
@@ -285,6 +274,11 @@ def register_registration_callbacks(dash_app):
 
         db = SessionLocal()
         try:
+            # 🚀 [MODIFIED] PanelMaster에서 핵심 제어 변수 가져오기
+            panel_info = db.query(PanelMaster).filter(PanelMaster.panel_code == panel_code).first()
+            if not panel_info:
+                return dbc.Alert("🚨 DB에 해당 패널 정보가 존재하지 않습니다.", color="danger")
+                
             today_str = datetime.now().strftime("%y%m%d")
             fac_info = FACILITY_MAPPING.get(facility_code, {"facility": "Unknown", "team": "Unknown"})
             
@@ -301,6 +295,7 @@ def register_registration_callbacks(dash_app):
                 client_email=final_client_email,    
                 client_phone=final_client_phone,    
                 reception_date=datetime.utcnow().date(), 
+                reception_type="일반",
                 sales_unit_price=0
             )
             db.add(new_order)
@@ -308,8 +303,8 @@ def register_registration_callbacks(dash_app):
             
             mapping_rule = get_full_mapping_for_panel(panel_code)
             
-            sample_seq_counter = 0  # 🌟 엑셀 행(고유 검체) 기준 카운터 (001, 002...)
-            db_insert_count = 0     # 🌟 실제 DB에 쪼개져서 들어간 총 레코드 수
+            sample_seq_counter = 0 
+            db_insert_count = 0     
             
             for raw_row in sample_data:
                 base_data, extra_metadata = {}, {}
@@ -334,16 +329,15 @@ def register_registration_callbacks(dash_app):
                 sample_seq_counter += 1
                 sample_seq = str(sample_seq_counter).zfill(3) 
 
-                na_raw = str(get_fuzzy_val(raw_row, "Nucleic Acid Type") or get_fuzzy_val(raw_row, "검사물질") or "").upper().replace(" ", "")
-                
-                if "DNA/RNA" in na_raw or "BOTH" in na_raw:
+                # 🚀 [MODIFIED] 하드코딩된 'if TSO500' 대신 PanelMaster의 설정값을 읽어 DNA/RNA 생성 여부 결정
+                target_na = panel_info.target_nucleic_acid.upper()
+                types_to_create = []
+                if "BOTH" in target_na or "DNA/RNA" in target_na:
                     types_to_create = ["DNA", "RNA"]
-                elif "RNA" in na_raw:
+                elif "RNA" in target_na:
                     types_to_create = ["RNA"]
-                elif "DNA" in na_raw:
-                    types_to_create = ["DNA"]
                 else:
-                    types_to_create = ["DNA", "RNA"] if panel_code == "TSO500" else ["DNA"]
+                    types_to_create = ["DNA"]
 
                 for na_type in types_to_create:
                     internal_sample_id = f"ACC-{today_str}-{batch_seq}-{sample_seq}-{na_type}"
@@ -358,10 +352,12 @@ def register_registration_callbacks(dash_app):
                         sample_name=base_data["sample_name"], 
                         cancer_type=base_data.get("cancer_type"), 
                         specimen=base_data.get("specimen"),
-                        project_name=base_data.get("sample_group"), 
+                        project_name=base_data.get("sample_group") or "Default_Project", 
                         pairing_info=base_data.get("pairing_info"), 
                         outside_id_1=base_data.get("outside_id_1"),
                         issue_comment=base_data.get("issue_comment"), 
+                        sample_received="대기중",
+                        visual_inspection="대기중",
                         panel_metadata=extra_metadata
                     )
                     db.add(new_sample)
@@ -372,7 +368,7 @@ def register_registration_callbacks(dash_app):
                 return dbc.Alert("🚨 엑셀에서 유효한 검체 정보(Patient ID)를 찾지 못했습니다. 매핑 양식을 확인해 주세요.", color="danger")
 
             db.commit() 
-            return dbc.Alert(f"🎉 성공! 의뢰자[{final_client_name}]님의 원본 검체 {sample_seq_counter}건 (DNA/RNA 분할 총 {db_insert_count}건) 등록이 완료되었습니다.", color="success")
+            return dbc.Alert(f"🎉 성공! 의뢰자[{final_client_name}]님의 원본 검체 {sample_seq_counter}건 (총 {db_insert_count}개 튜브) 등록이 완료되었습니다.", color="success")
         
         except Exception as e:
             db.rollback()

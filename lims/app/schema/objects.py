@@ -1,27 +1,55 @@
 from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, DateTime, JSON, UniqueConstraint
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.orm import declarative_base, relationship, declared_attr
 from datetime import datetime, timezone, timedelta
 
 Base = declarative_base()
 
+class PanelMaster(Base):
+    """
+    검사 종류(Panel)에 따른 접수 양식, 필수 핵산, 분석 버전, 리포트 양식을 중앙 관리합니다.
+    """
+    __tablename__ = "panel_master"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    panel_code = Column(String, unique=True, index=True, nullable=False) # 예: TSO500, WES
+    panel_name = Column(String, nullable=False)                          # 예: TruSight Oncology 500
+    
+    # 접수 로직 제어
+    target_nucleic_acid = Column(String, nullable=False)                 # DNA, RNA, BOTH (접수 시 자동 분할 기준)
+    request_template_name = Column(String, nullable=False)               # 엑셀 양식 파일명 (예: tso_request)
+    
+    # 분석 및 리포트 제어
+    default_analysis_version = Column(String, nullable=False)            # 예: v2.1.0
+    report_schema_type = Column(String, nullable=False)                  # 예: Clinical Report, Standard Report
+    
+    is_active = Column(Integer, nullable=False)       
 
-class Order(Base):
+class TrackingMixin:
+    """DB 레벨에서의 등록/수정 일시 및 공통 메타데이터 관리"""
+    # DB 기록용이므로 여기서는 시스템 기본값을 사용하되, 비즈니스 데이터의 default는 제거함
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone(timedelta(hours=9))).replace(tzinfo=None))
+    updated_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone(timedelta(hours=9))).replace(tzinfo=None), 
+                        onupdate=lambda: datetime.now(timezone(timedelta(hours=9))).replace(tzinfo=None))
+    creator_id = Column(String, nullable=True) # 등록자 사번/ID
+    updater_id = Column(String, nullable=True) # 수정자 사번/ID
+
+
+class Order(Base, TrackingMixin):
     __tablename__ = "orders"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     order_id = Column(String, unique=True, index=True, nullable=False)
 
     facility = Column(String, nullable=False)
-    client_team = Column(String)
-    client_name = Column(String)
-    client_email = Column(String)
-    client_phone = Column(String)
+    client_team = Column(String, nullable=False) # [MODIFIED] 필수값으로 변경
+    client_name = Column(String, nullable=False)
+    client_email = Column(String, nullable=False)
+    client_phone = Column(String, nullable=False)
 
     reception_date = Column(Date, nullable=False)
-    reception_type = Column(String, default="미정")
-    sales_unit_price = Column(Integer, default=0)
+    reception_type = Column(String, nullable=False) # [MODIFIED] default="미정" 제거
+    sales_unit_price = Column(Integer, nullable=False) # [MODIFIED] default=0 제거
 
-    # 수정: Order는 여러 Sample을 가질 수 있음
     samples = relationship(
         "Sample",
         back_populates="order",
@@ -29,7 +57,7 @@ class Order(Base):
     )
 
 
-class Sample(Base):
+class Sample(Base, TrackingMixin):
     __tablename__ = "samples"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -37,35 +65,27 @@ class Sample(Base):
     order_pk = Column(Integer, ForeignKey("orders.id"), nullable=False)
     order_id = Column(String, index=True, nullable=False)
 
-    # 수정: sample_id unique 제거
-    # 이유: 같은 sample_id가 다른 order에 들어올 가능성을 고려하려면
-    #      전체 DB unique보다는 order_pk + sample_id 조합 unique가 더 안전함
     sample_id = Column(String, index=True, nullable=False)
-
-    project_name = Column(String, default="Default_Project")
+    project_name = Column(String, nullable=False) # [MODIFIED] default="Default_Project" 제거
 
     sample_name = Column(String, nullable=False)
-    outside_id_1 = Column(String)
-    cancer_type = Column(String)
-    specimen = Column(String)
+    type = Column(String, nullable=False) # DNA, RNA 등 (필수)
+    origin = Column(String, nullable=False) # 검체 유래 (Tissue, Blood 등)
     pairing_info = Column(String)
 
-    sample_received = Column(String, default="대기중")
+    outside_id_1 = Column(String)
+    sample_received = Column(String, nullable=False) # [MODIFIED] default 제거, 강제 주입
     receiver_name = Column(String)
-    visual_inspection = Column(String, default="대기중")
+    visual_inspection = Column(String, nullable=False)
     storage_location = Column(String)
     initial_volume = Column(Float)
-    nucleic_acid_type = Column(String)
 
-    current_status = Column(String, default="접수 완료")
+    nucleic_acid_type = Column(String)
+    current_status = Column(String, nullable=False) # [MODIFIED] default="접수 완료" 제거
     issue_comment = Column(String)
 
-    # 수정: JSON default={}는 mutable object라서 callable 사용 권장
-    panel_metadata = Column(JSON, default=dict)
+    panel_metadata = Column(JSON, nullable=False) # [MODIFIED] default=dict 제거
 
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    # 수정: 같은 주문 안에서는 sample_id 중복 방지
     __table_args__ = (
         UniqueConstraint(
             "order_pk",
@@ -76,66 +96,32 @@ class Sample(Base):
 
     order = relationship("Order", back_populates="samples")
 
-    # 신규: 하나의 검체에서 WGS/WTS/WES/Panel 등 여러 분석 요청 가능
     analysis_requests = relationship(
         "SampleAnalysisRequest",
         back_populates="sample",
         cascade="all, delete-orphan",
     )
 
-    # 기존 관계 유지
-    # 주의: wet_lab/sequencing/analysis가 검체 단위인지, 검사 단위인지에 따라
-    #      아래 관계는 SampleAnalysisRequest로 이동하는 것이 더 적절할 수 있음
     logs = relationship("ActionLog", backref="sample")
 
 
-class SampleAnalysisRequest(Base):
-    """
-    신규 테이블
-
-    하나의 Sample에 대해 실제 수행할 검사 단위를 저장.
-    예:
-        sample_id = S001
-            - WGS
-            - WTS
-            - WES
-
-    기존 Sample.target_panel을 이 테이블로 분리한 구조.
-    """
-
+class SampleAnalysisRequest(Base, TrackingMixin):
     __tablename__ = "sample_analysis_requests"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-
     sample_pk = Column(Integer, ForeignKey("samples.id"), nullable=False)
 
-    # 수정: 기존 Sample.target_panel을 여기로 이동
-    # 예: WGS, WTS, WES, TSO500, CBNIPT, RNAseq 등
     target_panel = Column(String, nullable=False)
-
-    # 신규: 검사 타입을 별도 관리
-    # 예: DNA, RNA, WGS, WES, WTS, Panel, CNV, Fusion 등
     assay_type = Column(String, nullable=False)
 
-    # 신규: 동일 검체에서 여러 분석이 생기므로 분석별 상태 필요
-    current_status = Column(String, default="접수 완료")
-
-    # 신규: 분석별 프로젝트명/워크플로우 버전 관리 가능
-    project_name = Column(String, default="Default_Project")
-    workflow_version = Column(String)
-
-    # 신규: 분석별 단가가 다를 수 있으면 여기에 저장
-    sales_unit_price = Column(Integer, default=0)
-
-    # 신규: 분석별 comment
+    current_status = Column(String, nullable=False) # [MODIFIED] default 제거
+    project_name = Column(String, nullable=False)   # [MODIFIED] default 제거
+    workflow_version = Column(String, nullable=False)
+    
+    sales_unit_price = Column(Integer, nullable=False)
     issue_comment = Column(String)
+    analysis_metadata = Column(JSON, nullable=False)
 
-    # 신규: 분석별 metadata
-    analysis_metadata = Column(JSON, default=dict)
-
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    # 수정: 같은 sample에서 같은 target_panel/assay_type 중복 등록 방지
     __table_args__ = (
         UniqueConstraint(
             "sample_pk",
@@ -146,28 +132,31 @@ class SampleAnalysisRequest(Base):
     )
 
     sample = relationship("Sample", back_populates="analysis_requests")
+    data_files = relationship("Data", back_populates="analysis_request", cascade="all, delete-orphan")
 
-    # 수정 권장:
-    # 기존 WetLabQC / Sequencing / Analysis가 실제로는 검체 단위가 아니라
-    # WGS/WTS/WES 각각에 따라 달라지는 결과라면 Sample이 아니라
-    # SampleAnalysisRequest에 연결하는 것이 더 적절함
-    wet_lab = relationship(
-        "WetLabQC",
-        back_populates="analysis_request",
-        uselist=False,
-    )
-    sequencing = relationship(
-        "Sequencing",
-        back_populates="analysis_request",
-        uselist=False,
-    )
-    analysis = relationship(
-        "Analysis",
-        back_populates="analysis_request",
-        uselist=False,
-    )
+
+class Data(Base, TrackingMixin):
+    """
+    🚀 [MODIFIED] 신규: 생성된 결과 파일(Raw, Bam, Vcf 등)의 메타데이터와 물리적 경로를 추적
+    """
+    __tablename__ = "data"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    analysis_request_pk = Column(Integer, ForeignKey("sample_analysis_requests.id"), nullable=False)
     
+    file_name = Column(String, nullable=False)
+    file_type = Column(String, nullable=False) # 예: FASTQ, BAM, VCF, JSON_REPORT
+    file_path = Column(String, nullable=False) # 스토리지 내 절대/상대 경로
+    file_size_bytes = Column(Integer)
+    md5_checksum = Column(String)              # 데이터 무결성 검증용
+    
+    is_archived = Column(Integer, nullable=False) # 1=보관됨, 0=활성 (default 제외, boolean 대체용 int)
+
+    analysis_request = relationship("SampleAnalysisRequest", back_populates="data_files")
+
+
 class ActionLog(Base):
+    """이력은 수정되지 않으므로 TrackingMixin 제외, 생성 시간만 기록"""
     __tablename__ = "action_logs"
     id = Column(Integer, primary_key=True, autoincrement=True)
     sample_id = Column(Integer, ForeignKey("samples.id"), nullable=False)
@@ -175,4 +164,4 @@ class ActionLog(Base):
     previous_state = Column(String)
     new_state = Column(String)
     details = Column(String)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone(timedelta(hours=9))).replace(tzinfo=None))
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone(timedelta(hours=9))).replace(tzinfo=None))

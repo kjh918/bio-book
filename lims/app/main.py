@@ -4,8 +4,9 @@ from fastapi.responses import RedirectResponse
 from starlette.middleware.wsgi import WSGIMiddleware
 
 from app.pages.kanban import create_kanban_app 
+from app.pages.registration import create_registration_app 
 from app.core.database import engine
-from app.models._schema import Base
+from app.schema.objects import Base
 
 ## 🚀 [추가] 분리된 순수 API 라우터 모듈 불러오기
 #from app.api import analysis_api
@@ -38,7 +39,7 @@ app = FastAPI(title="NGS LIMS System", lifespan=lifespan)
 # ==========================================
 dash_apps = {
     "/kanban": create_kanban_app,
-    #"/reg": create_registration_app,
+    "/reg": create_registration_app,
     #"/data_reg": create_data_registry_app,
     #"/pro": create_project_view_app,
     #"/report": create_report_view_app,
@@ -54,20 +55,20 @@ for path, app_factory in dash_apps.items():
     dash_app_instance = app_factory(requests_pathname_prefix=f"{path}/")
     app.mount(path, WSGIMiddleware(dash_app_instance.server))
 
-# ==========================================
-# 2. 루트 접속 시 자동 이동 (Redirect)
-# ==========================================
+## ==========================================
+## 2. 루트 접속 시 자동 이동 (Redirect)
+## ==========================================
 @app.get("/", include_in_schema=False)
 def read_root():
     # 사용자가 localhost:8000 으로만 접속해도 알아서 칸반 보드로 넘겨줍니다.
     return RedirectResponse(url="/kanban")
 
-# ==========================================
-# 3. Native FastAPI API Endpoints (기계 간 통신용)
-# ==========================================
-# 🚀 분석 서버에서 LIMS로 데이터를 쏠 때 사용할 API 라우터 등록
-# 이렇게 등록하면 자동으로 /api/v1/analysis/result 주소가 활성화됩니다.
-app.include_router(analysis_api.router, prefix="/api/v1")
-# 🌟 [추가] 39번 서버가 결과를 던질 Webhook 라우터 등록!
-# webhook_api 안에 이미 '/api/analysis/complete' 경로가 선언되어 있으므로 그냥 추가만 하면 됩니다.
-app.include_router(webhook_api)
+## ==========================================
+## 3. Native FastAPI API Endpoints (기계 간 통신용)
+## ==========================================
+## 🚀 분석 서버에서 LIMS로 데이터를 쏠 때 사용할 API 라우터 등록
+## 이렇게 등록하면 자동으로 /api/v1/analysis/result 주소가 활성화됩니다.
+#app.include_router(analysis_api.router, prefix="/api/v1")
+## 🌟 [추가] 39번 서버가 결과를 던질 Webhook 라우터 등록!
+## webhook_api 안에 이미 '/api/analysis/complete' 경로가 선언되어 있으므로 그냥 추가만 하면 됩니다.
+#app.include_router(webhook_api)

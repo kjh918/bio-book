@@ -8,7 +8,7 @@ ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy()) # 호스트 키 자동
 ssh.connect('192.168.0.39', username='gmctso', password='tso@gmc!!')
 
 # 명령어 실행
-stdin, stdout, stderr = ssh.exec_command('pwd')
+stdin, stdout, stderr = ssh.exec_command('ls /data/ngs/nextseq550dx_output')
 
 # 결과 확인
 lines = stdout.readlines()

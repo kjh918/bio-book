@@ -6,6 +6,10 @@ import io
 import os
 import base64
 import traceback
+import json
+
+# 🚀 [MODIFIED] SSH 원격 접속을 위한 라이브러리 추가
+import paramiko 
 
 from app.core.database import SessionLocal
 from app.models._schema import Sample, Analysis
@@ -13,15 +17,71 @@ from app.pages.base import LimsDashApp
 from app.core.config import BASE_DIR
 from app.pages.analysis.base import create_shared_analysis_layout
 
-# 🚀 1. TSO500 전용 레이아웃 생성
+# ==========================================
+# ⚙️ [MODIFIED] 원격 서버 설정 (환경변수 또는 Config 처리 권장)
+# ==========================================
+REMOTE_HOST = "192.168.0.39"
+REMOTE_USER = "gmctso" # 실제 접속 계정으로 변경 필요
+REMOTE_PW = "tso@gmc!!" # 실제 비밀번호 또는 Key 파일 경로로 변경 필요
+REMOTE_BASE_DIR = "/data/ngs/nextseq550dx_output" # 39번 서버의 분석 결과 최상위 경로
+REMOTE_SAVED_RESOURCES_DIR = "/data/tso/test/metadata"
+
+
+from dash import html, dcc, Input, Output, State, no_update, ctx
+import dash_bootstrap_components as dbc
+from datetime import datetime
+import pandas as pd
+import io
+import os
+import base64
+import traceback
+import json
+
+# 🚀 [MODIFIED] SSH 원격 접속 및 제어를 위한 라이브러리 추가
+import paramiko 
+
+from app.core.database import SessionLocal
+from app.models._schema import Sample, Analysis
+from app.pages.base import LimsDashApp
+from app.core.config import BASE_DIR
+from app.pages.analysis.base import create_shared_analysis_layout
+
+
 def get_tso_setup_layout():
-    return create_shared_analysis_layout(
+    # 기본 분석 셋업 레이아웃
+    base_layout = create_shared_analysis_layout(
         prefix="tso-setup",
         title="TSO500 Analysis Run Setup",
         description="Illumina TSO500 패널의 DNA/RNA 통합 분석 셋업 및 SampleSheet 발행 화면입니다.",
         panel_options=[{"label": "🧬 TSO500", "value": "TSO500"}],
         pipeline_options=[{"label": "DNA/RNA Integrated", "value": "DNA/RNA 통합"}]
     )
+    
+    # 🚀 [MODIFIED] 분석 서버 원격 모니터링 카드 추가 (검색 후 선택 방식으로 변경)
+    remote_sync_card = dbc.Card([
+        dbc.CardHeader([
+            html.H5("🌐 분석 서버(192.168.0.39) 데이터 동기화", className="mb-0 fw-bold text-info")
+        ]),
+        dbc.CardBody([
+            html.P("39번 분석 서버를 검색하여 분석이 완료된(Results.json 생성됨) 폴더 목록을 불러오고, LIMS로 메타데이터를 수집합니다.", className="text-muted small"),
+            dbc.Row([
+                dbc.Col([
+                    dbc.Button("🔍 1. 원격 서버 결과 폴더 검색", id="tso-setup-btn-remote-search", color="secondary", className="fw-bold shadow-sm w-100")
+                ], width=4),
+            ], className="mb-3"),
+            dbc.Row([
+                dbc.Col([
+                    dcc.Dropdown(id="tso-setup-remote-dir-dropdown", multi=True, placeholder="검색 버튼을 눌러 분석 완료 폴더를 선택하세요...")
+                ], width=8),
+                dbc.Col([
+                    dbc.Button("⬇️ 2. 선택 데이터 LIMS 수집", id="tso-setup-btn-remote-sync", color="info", className="fw-bold text-white shadow-sm w-100")
+                ], width=4)
+            ]),
+            html.Div(id="tso-setup-remote-status-msg", className="mt-3")
+        ])
+    ], className="mt-4 shadow-sm border-0")
+
+    return html.Div([remote_sync_card, base_layout])
 
 # 🚀 2. TSO500 전용 콜백 등록 (Prefix: tso-setup)
 def register_tso_setup_callbacks(dash_app):
@@ -128,9 +188,10 @@ def register_tso_setup_callbacks(dash_app):
     @dash_app.callback(
         Output("tso-setup-grid-container", "children"),
         [Input("tso-setup-panel-select", "value"),
-         Input("tso-setup-execute-status", "children")] 
+         Input("tso-setup-execute-status", "children"),
+         Input("tso-setup-remote-status-msg", "children")] # 🚀 [MODIFIED] 리모트 체크 완료 후 그리드 리프레시 트리거 추가
     )
-    def load_pending_grid(panel, _):
+    def load_pending_grid(panel, _, __):
         if not panel: return no_update
         
         base_cols = LimsDashApp.get_base_grid_columns(include_project=True)
@@ -147,12 +208,11 @@ def register_tso_setup_callbacks(dash_app):
         
         db = SessionLocal()
         try:
+            # 분석 상태와 상관없이 분석 진행 스테이지에 있는 것들을 보여주거나 필요 시 조율 가능
             samples = db.query(Sample).filter(Sample.target_panel == panel, Sample.current_status == "분석 진행").all()
             data = []
             for s in samples:
                 a_status = s.analysis.analysis_status if s.analysis else "대기중"
-                if a_status != "대기중": continue 
-                
                 data.append({
                     "id": s.id, "project_name": s.project_name, "order_id": s.order_id,
                     "sample_id": s.sample_id, "sample_name": s.sample_name, "target_panel": s.target_panel,
@@ -166,7 +226,7 @@ def register_tso_setup_callbacks(dash_app):
             return grid
         finally: db.close()
 
-    # 🚀 [콜백 4] 매칭 실행 + SampleSheet & Metadata 동시 발행!
+    # [콜백 4] 매칭 실행 + SampleSheet & Metadata 동시 발행
     @dash_app.callback(
         [Output("tso-setup-execute-status", "children"),
          Output("tso-setup-download-samplesheet", "data"),
@@ -175,10 +235,11 @@ def register_tso_setup_callbacks(dash_app):
         [State("tso-setup-aggrid", "selectedRows"),
          State("tso-setup-uploaded-store", "data"),
          State("tso-setup-panel-select", "value"),
-         State("tso-setup-pipeline-select", "value")],
+         State("tso-setup-pipeline-select", "value"),
+         State("tso-setup-remote-dir-dropdown", "value")],
         prevent_initial_call=True
     )
-    def execute_analysis_setup(n_clicks, selected_rows, metadata_list, panel, pipeline):
+    def execute_analysis_setup(n_clicks, selected_rows, metadata_list, panel, pipeline, remote_selection):
         if not selected_rows: return dbc.Alert("⚠️ Grid에서 분석할 샘플을 먼저 선택해주세요.", color="warning"), no_update, no_update
         if not metadata_list: return dbc.Alert("⚠️ Step 2에서 메타데이터 파일을 먼저 업로드해주세요.", color="warning"), no_update, no_update
             
@@ -186,7 +247,9 @@ def register_tso_setup_callbacks(dash_app):
             val = meta.get(key, default)
             if pd.isna(val) or str(val).strip().lower() == "nan": return default
             return val
-
+        
+        dir_name = remote_selection[0] if isinstance(remote_selection, list) else remote_selection
+        
         db = SessionLocal()
         success_count = 0
         fail_msgs = []
@@ -308,28 +371,38 @@ def register_tso_setup_callbacks(dash_app):
                 
                 df_meta = pd.DataFrame(metadata_rows)
                 raw_meta_str = df_meta.to_csv(index=False)
-
-                # 🌟 [추가된 로직] 서버 지정 경로에 물리 파일(Physical File)로 저장!
-                # 예시: 프로젝트 최상단 폴더 아래에 'exports/TSO500' 폴더를 만들어 저장합니다. 
-                # (실제 서버의 절대경로, 예: '/data/sequencer_run/' 등으로 변경하셔도 됩니다)
-                server_export_dir = os.path.join(BASE_DIR, "exports", "TSO500")
-                os.makedirs(server_export_dir, exist_ok=True) # 폴더가 없으면 자동 생성
                 
-                # 서버 하드디스크에 한글이 깨지지 않게 utf-8-sig 모드로 물리적 쓰기(Write)
-                with open(os.path.join(server_export_dir, ss_filename), 'w', encoding='utf-8-sig') as f:
-                    f.write(raw_ss_str)
+                ssh = paramiko.SSHClient()
+                ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                ssh.connect(REMOTE_HOST, username=REMOTE_USER, password=REMOTE_PW)
+                sftp = ssh.open_sftp()
+                
+                try:
+                    # dir_name 설정 (현재 실험 이름과 동일하게)
+                    remote_dir = f"{REMOTE_SAVED_RESOURCES_DIR}/{dir_name}"
                     
-                with open(os.path.join(server_export_dir, meta_filename), 'w', encoding='utf-8-sig') as f:
-                    f.write(raw_meta_str)
-
-                # 3. 연구원 브라우저로도 동시 다운로드 쏴주기 (기존과 동일, 수동 BOM 추가)
+                    # 1) 원격 디렉토리 생성 (없으면 생성)
+                    try:
+                        sftp.stat(remote_dir)
+                    except IOError:
+                        sftp.mkdir(remote_dir)
+                    
+                    # 2) 파일 전송 (write)
+                    with sftp.open(f"{remote_dir}/{ss_filename}", "w") as f:
+                        f.write(raw_ss_str)
+                    with sftp.open(f"{remote_dir}/{meta_filename}", "w") as f:
+                        f.write(raw_meta_str)
+                finally:
+                    sftp.close()
+                    ssh.close()
+                    
                 ss_payload = dcc.send_string("\ufeff" + raw_ss_str, ss_filename)
                 meta_payload = dcc.send_string("\ufeff" + raw_meta_str, meta_filename)
                 
                 if fail_msgs:
                     return dbc.Alert([f"⚠️ {success_count}건 처리 완료 (일부 누락 발생):"] + [html.Br()] + fail_msgs, color="warning"), ss_payload, meta_payload
                 else:
-                    return dbc.Alert(f"🎉 완벽합니다! 서버 경로({server_export_dir})에 파일이 저장되었으며, 브라우저 다운로드도 완료되었습니다.", color="success"), ss_payload, meta_payload
+                    return dbc.Alert(f"🎉 완벽합니다! 서버 경로에 파일이 저장되었으며, 브라우저 다운로드도 완료되었습니다.", color="success"), ss_payload, meta_payload
             else:
                 return dbc.Alert("❌ 에러: 매칭에 성공한 건이 없습니다.", color="danger"), no_update, no_update
             
@@ -339,3 +412,106 @@ def register_tso_setup_callbacks(dash_app):
             return dbc.Alert(f"❌ 시스템 에러: {str(e)}", color="danger"), no_update, no_update
         finally:
             db.close()
+
+    # 🚀 [MODIFIED] [콜백 5] 39번 분석 서버 SSH 접속 및 폴더 검색 후 데이터 동기화
+    @dash_app.callback(
+        [Output("tso-setup-remote-dir-dropdown", "options"),
+         Output("tso-setup-remote-status-msg", "children")],
+        [Input("tso-setup-btn-remote-search", "n_clicks"),
+         Input("tso-setup-btn-remote-sync", "n_clicks")],
+        State("tso-setup-remote-dir-dropdown", "value"),
+        prevent_initial_call=True
+    )
+    def handle_remote_sync(btn_search, btn_sync, selected_dirs):
+        triggered_id = ctx.triggered_id
+        if not triggered_id: return no_update, no_update
+
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        
+        try:
+            ssh.connect(REMOTE_HOST, username=REMOTE_USER, password=REMOTE_PW, timeout=5)
+        except Exception as e:
+            return no_update, dbc.Alert(f"❌ 39번 분석 서버 SSH 접속 실패: {e}", color="danger")
+            
+        try:
+            # 1️⃣ 원격 서버 폴더 검색 모드
+            if triggered_id == "tso-setup-btn-remote-search":
+                # ls 명령어로 RunInfo.xml이 있는 폴더 목록만 가져오기
+                command = f"ls -1 {REMOTE_BASE_DIR}/*/RunInfo.xml 2>/dev/null"
+                stdin, stdout, stderr = ssh.exec_command(command)
+                lines = stdout.readlines()
+                
+                options = []
+                for line in lines:
+                    line = line.strip()
+                    if line:
+                        # 경로 예: /data/results/TSO500/ACC-260623-01-001-DNA/Results.json -> ACC-260623-01-001-DNA
+                        folder_name = line.split('/')[-2]
+                        options.append({"label": f"📂 {folder_name}", "value": folder_name})
+                        
+                if not options:
+                    msg = dbc.Alert("⚠️ 분석 완료된 폴더(Results.json)를 찾을 수 없습니다.", color="warning")
+                else:
+                    msg = dbc.Alert(f"✅ {len(options)}개의 분석 완료 폴더를 찾았습니다. 드롭다운에서 선택 후 수집을 진행하세요.", color="success")
+                    
+                # 폴더 이름을 역순(가장 최근 것이 위로 오게)으로 정렬하여 반환
+                return sorted(options, key=lambda x: x["label"], reverse=True), msg
+
+            # 2️⃣ 선택된 폴더 데이터 수집 모드
+            elif triggered_id == "tso-setup-btn-remote-sync":
+                if not selected_dirs:
+                    return no_update, dbc.Alert("⚠️ 수집할 폴더를 먼저 선택해주세요.", color="warning")
+                    
+                messages = []
+                db = SessionLocal()
+                try:
+                    for dir_name in selected_dirs:
+                        target_file = f"{REMOTE_BASE_DIR}/{dir_name}/RunInfo.xml"
+                        
+                        # cat 명령어로 JSON 읽기
+                        stdin, stdout, stderr = ssh.exec_command(f"cat {target_file}")
+                        exit_status = stdout.channel.recv_exit_status()
+                        
+                        if exit_status == 0:
+                            raw_json = stdout.read().decode('utf-8')
+                            try:
+                                parsed_metadata = json.loads(raw_json)
+                                
+                                # 폴더명과 동일한 sample_id 찾기
+                                sample = db.query(Sample).filter(Sample.sample_id == dir_name).first()
+                                if sample and sample.analysis:
+                                    sample.analysis.analysis_status = "분석 완료"
+                                    existing_results = sample.analysis.analysis_results or {}
+                                    if isinstance(existing_results, str): existing_results = json.loads(existing_results)
+                                    existing_results.update(parsed_metadata)
+                                    sample.analysis.analysis_results = existing_results
+                                    
+                                    from sqlalchemy.orm.attributes import flag_modified
+                                    flag_modified(sample.analysis, "analysis_results")
+                                    
+                                    messages.append(html.Div(f"✅ [{dir_name}] 메타데이터 수집 및 DB 업데이트 완료", className="text-success small fw-bold"))
+                                else:
+                                    messages.append(html.Div(f"⚠️ [{dir_name}] DB에서 해당 샘플을 찾을 수 없습니다. (폴더명과 Sample ID 불일치)", className="text-danger small"))
+                            except json.JSONDecodeError:
+                                messages.append(html.Div(f"⚠️ [{dir_name}] JSON 파일 파싱 실패", className="text-warning small"))
+                        else:
+                            messages.append(html.Div(f"❌ [{dir_name}] Results.json 파일 읽기 실패", className="text-danger small"))
+                    
+                    db.commit()
+                    return no_update, dbc.Alert([html.Strong("📡 데이터 수집 결과:")] + messages, color="info")
+                finally:
+                    db.close()
+                    
+        except Exception as e:
+            traceback.print_exc()
+            return no_update, dbc.Alert(f"❌ 원격 동기화 중 에러 발생: {e}", color="danger")
+        finally:
+            ssh.close()
+
+def create_tso_setup_app(requests_pathname_prefix: str):
+    lims = LimsDashApp(__name__, requests_pathname_prefix)
+    lims.set_content(get_tso_setup_layout)
+    app = lims.get_app()
+    register_tso_setup_callbacks(app)
+    return app

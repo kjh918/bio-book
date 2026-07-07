@@ -1,5 +1,5 @@
 from .objects import Base, Order, Sample, ActionLog
-from .process import WetLabQC, Sequencing, Analysis
+from .process import Registration, Procedure, SamplePreparation, LibraryQC, Sequencing, Analysis, Report
 from .workflow import workflow_manager, StandardWorkflow
 
 __all__ = [
@@ -7,9 +7,13 @@ __all__ = [
     "Order",
     "Sample",
     "ActionLog",
-    "WetLabQC",
+    "Registration",
+    "Procedure",
+    "SamplePreparation",
+    "LibraryQC",
     "Sequencing",
     "Analysis",
+    "Report",
     "workflow_manager",
     "StandardWorkflow"
 ]

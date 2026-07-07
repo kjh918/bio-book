@@ -1,23 +1,54 @@
 import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-# 🚀 중요: 모델 파일(Base)을 가져와야 테이블을 생성할 수 있습니다.
-from app.models._schema import Base 
 
-# 🟢 핵심 수정 포인트: 환경변수가 없으면 무조건 에러를 내는 대신,
-# 기본값으로 "sqlite:///./lims.db"를 사용하도록 융통성을 줍니다!
+# 수정: 현재 프로젝트 기준 Base는 objects.py에서 관리
+from app.schema.objects import Base
+
 DATABASE_URL = os.getenv("LIMS_DATABASE_URL", "sqlite:///./lims.db")
 
-connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
-engine = create_engine(DATABASE_URL, connect_args=connect_args, pool_pre_ping=True)
+connect_args = {
+    "check_same_thread": False
+} if DATABASE_URL.startswith("sqlite") else {}
 
-# 🚀 테이블 생성: 데이터베이스에 테이블이 없으면 자동으로 만들어줍니다!
-Base.metadata.create_all(bind=engine)
+engine = create_engine(
+    DATABASE_URL,
+    connect_args=connect_args,
+    pool_pre_ping=True,
+)
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+)
+
+
+# 수정: import 시점 자동 create_all 제거
+# Base.metadata.create_all(bind=engine)
+
+
+def init_db():
+    """
+    현재 등록된 SQLAlchemy model 기준으로 테이블 생성.
+    서버 시작 시 필요하면 명시적으로 호출.
+    """
+    Base.metadata.create_all(bind=engine)
+
+
+def drop_db():
+    """
+    개발용: 현재 등록된 테이블 삭제.
+    SQLite 파일 삭제 방식이 더 깔끔하지만,
+    필요 시 metadata 기준 drop 가능.
+    """
+    Base.metadata.drop_all(bind=engine)
+
 
 def get_db():
     db = SessionLocal()
+
     try:
         yield db
     finally:

@@ -141,7 +141,11 @@
     color: #000;
     border-bottom: 1px solid #eaeaea;
     text-align: left;
-  }
+    font-size: 12px; /* MODIFIED: Reduced font size */
+    white-space: nowrap; /* MODIFIED: Prevents text from wrapping to the next line */
+    overflow: hidden; /* MODIFIED: Hides excess text that overflows the container's width */
+    text-overflow: ellipsis; /* MODIFIED: Adds an ellipsis (...) to truncated text */
+   }
 
   .info-value {
     width: 52%;
@@ -554,10 +558,6 @@
           <tr>
             <td class="info-label">Pipeline version</td>
             <td class="info-value">{{ pipeline_version | default('-', true) }}</td>
-          </tr>
-          <tr>
-            <td class="info-label">Analyst</td>
-            <td class="info-value">{{ analyst | default('-', true) }}</td>
           </tr>
           <tr>
             <td class="info-label">Date of Receipt</td>

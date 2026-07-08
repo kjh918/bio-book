@@ -1,0 +1,29 @@
+color_palette:
+    "primary_lime_green": 
+        "name": "Lime Green"
+        "hex": "#B8CC00"
+        "rgb": (184, 204, 0)
+    "accent_orange": 
+        "name": "Orange"
+        "hex": "#E6A722"
+        "rgb": 230, 167, 34
+    "olive_green": 
+        "name": "Olive Green"
+        "hex": "#7B882E"
+        "rgb": 123, 136, 46
+    "dark_olive_green":
+        "name": "Dark Olive Green"
+        "hex": "#444F26"
+        "rgb": 68, 79, 38
+    "light_gray": 
+        "name": "Light Gray"
+        "hex": "#EAEAEA"
+        "rgb": 234, 234, 234
+    "gray": 
+        "name": "Gray"
+        "hex": "#D9D9D9"
+        "rgb": 217, 217, 217
+    "dark_gray":
+        "name": "Dark Gray"
+        "hex": "#404040"
+        "rgb": 64, 64, 64

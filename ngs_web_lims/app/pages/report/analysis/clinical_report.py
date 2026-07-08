@@ -235,6 +235,17 @@ def _merge_flat_data(dna_flat, rna_flat):
 # ============================================================
 # 섹션 5: QC 메트릭 빌더 (DNA / RNA 각각)
 # ============================================================
+def _validate_and_convert_to_float(metric_name: str, value: any, ndigits: int = 2) -> float:
+    """
+    [MODIFIED] Rule 0 반영: default 값(예: 0.0 이나 '-') 부여를 차단하고, 
+    값이 누락되거나 형식에 맞지 않으면 파이프라인/DB 데이터를 고칠 수 있도록 즉시 명시적 에러를 발생시킵니다.
+    """
+    if value is None or str(value).strip() in ["", "-", "NA", "N/A"]:
+        raise ValueError(f"🚨 QC 검증 에러: '{metric_name}' 값이 누락되었거나 부적절한 기호입니다. (입력값: '{value}')")
+    try:
+        return round(float(value), ndigits)
+    except (ValueError, TypeError):
+        raise ValueError(f"🚨 QC 검증 에러: '{metric_name}' 항목은 숫자로 변환 가능해야 합니다. (입력값: '{value}')")
 
 def _build_dna_qc_metrics(dna_flat):
     """
@@ -270,7 +281,7 @@ def _build_dna_qc_metrics(dna_flat):
         {"Metric": "Exon ≥50x (%)",             "Value": get("Pct_exon_50x")},
         {"Metric": "Target ≥100x (%)",          "Value": get("Pct_target_100x")},
         {"Metric": "Total PF reads",             "Value": get("Total_pf_reads")},
-        {"Metric": "Uniformity (%)",             "Value": round(float(get("Uniformity")),2)},
+        {"Metric": "Uniformity (%)",             "Value": get("Uniformity")},
         {"Metric": "Chimeric reads (%)",         "Value": get("Pct_chimeric_reads")},
     ]
 

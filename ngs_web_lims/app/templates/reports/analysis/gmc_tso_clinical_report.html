@@ -82,16 +82,23 @@
     padding: 0;
   }
 
-  .left-panel {
-    width: 30%;
+  .layout-table > tbody > tr > td,
+  .layout-table > tr > td {
     vertical-align: top;
-    padding: 0 12px 0 0;
+  }
+
+  .left-panel {
+    width: 34%;
+    vertical-align: top;
+    padding: 0 10px 0 0;
+    box-sizing: border-box;
   }
 
   .right-panel {
-    width: 70%;
+    width: 66%;
     vertical-align: top;
-    padding: 0 0 0 20px;
+    padding: 0 0 0 10px;
+    box-sizing: border-box;
   }
 
   .section-title-main {
@@ -134,41 +141,125 @@
   .table th {
     padding: 4px 6px;
   }
+    .left-panel .table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 12px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    }
 
-  .info-label {
-    width: 48%;
-    font-weight: bold;
-    color: #000;
-    border-bottom: 1px solid #eaeaea;
+    .left-panel .table caption {
+    caption-side: top;
     text-align: left;
-    font-size: 12px; /* MODIFIED: Reduced font size */
-    white-space: nowrap; /* MODIFIED: Prevents text from wrapping to the next line */
-    overflow: hidden; /* MODIFIED: Hides excess text that overflows the container's width */
-    text-overflow: ellipsis; /* MODIFIED: Adds an ellipsis (...) to truncated text */
-   }
-
-  .info-value {
-    width: 52%;
-    border-bottom: 1px solid #eaeaea;
-    text-align: right;
-  }
-
-  .qc-label {
-    width: 62%;
     font-weight: bold;
-    color: #000;
-    border-bottom: 1px solid #d6d6d6;
-    border-top: 1px solid #d6d6d6;
+    font-size: 13px;
+    color: #404040;
+    padding: 4px 0 6px 0;
+    border-bottom: 2px solid #404040;
+    margin-bottom: 0;
+    }
+
+    .left-panel .table tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    }
+
+    .info-label {
+    width: 42%;
+    font-weight: bold;
+    color: #404040;
+    background-color: #EAEAEA;
+    border-bottom: 1px solid #D9D9D9;
+    padding: 6px 8px;
+    font-size: 9px;
+    vertical-align: middle;
+    }
+
+    .info-value {
+    width: 58%;
+    color: #222;
+    background-color: #FFFFFF;
+    border-bottom: 1px solid #D9D9D9;
+    padding: 6px 8px;
+    font-size: 9px;
+    vertical-align: middle;
+    }
+
+    /* QC Metrics 전용 */
+    
+    .qc-metrics-table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+    border-collapse: collapse;
+    box-sizing: border-box;
+    overflow: hidden;
+    }
+
+    /* QC에서는 기존 info-label/info-value width를 무효화 */
+    .qc-metrics-table .info-label,
+    .qc-metrics-table .info-value,
+    .qc-metrics-table th,
+    .qc-metrics-table td {
+    width: auto !important;
+    box-sizing: border-box;
+    padding: 4px 4px !important;
+    font-size: 8.5px !important;
+    line-height: 1.15;
+    white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+    }
+
+    /* QC 컬럼 비율 */
+    .qc-metrics-table .qc-metric-header,
+    .qc-metrics-table tbody td:first-child {
+    width: 56% !important;
     text-align: left;
-  }
+    }
 
-  .qc-value {
-    width: 38%;
-    border-bottom: 1px solid #d6d6d6;
-    border-top: 1px solid #d6d6d6;
-    text-align: right;
-  }
+    .qc-metrics-table .qc-value-header,
+    .qc-metrics-table tbody td:nth-child(2),
+    .qc-metrics-table tbody td:nth-child(3) {
+    width: 22% !important;
+    text-align: center;
+    }
 
+    /* Metric 이름 컬럼은 너무 길면 줄바꿈 허용 */
+    .qc-metrics-table tbody td:first-child {
+    background-color: #EAEAEA;
+    font-weight: bold;
+    color: #404040;
+    white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+    }
+
+    /* DNA/RNA 값 컬럼 */
+    .qc-metrics-table tbody td:nth-child(2),
+    .qc-metrics-table tbody td:nth-child(3) {
+    background-color: #FFFFFF;
+    color: #222222;
+    }
+
+    /* 헤더 */
+    .qc-metrics-table thead th {
+    background-color: #EAEAEA;
+    color: #000000;
+    font-weight: bold;
+    border-bottom: 1px solid #404040;
+    }
+
+    /* left panel 밖으로 넘침 방지 */
+    .left-panel {
+    overflow: hidden;
+    }
+
+    .left-panel .table {
+    max-width: 100%;
+    box-sizing: border-box;
+    }
   /* ========================================================
      BIOMARKER SECTION
      ======================================================== */
@@ -428,17 +519,222 @@
     }
 
     .report-footer-line {
-    border: 0;
-    border-top: 1px solid #898989;
-    margin: 0 0 4px 0;
+        border: 0;
+        border-top: 1px solid #06615c; /* 리포트 메인 색상과 매칭 */
+        margin: 5px 0 5px 0;
     }
 
     .report-footer {
-    color: #555555;
-    font-size: 7.5px;
-    line-height: 1.25;
-    text-align: left;
+        color: #5b5b5b;
+        font-size: 10px;
+        line-height: 1.25;
+        text-align: left;
     }
+
+    .signature-block {
+        margin-top: 50px;
+        text-align: right;
+        padding-right: 20px;
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+
+    .signature-table {
+        margin-left: auto;
+        border-collapse: collapse;
+    }
+
+    .signature-label {
+        text-align: right;
+        padding-right: 15px;
+        vertical-align: middle;
+        font-size: 14px;
+        font-weight: bold;
+        color: #000;
+    }
+
+    .signature-image-cell {
+        vertical-align: middle;
+        border-bottom: 1px solid #000;
+        width: 130px;
+        height: 50px;
+        text-align: center;
+        padding: 0 5px;
+    }
+
+    .signature-image {
+        max-height: 45px;
+        max-width: 120px;
+        object-fit: contain;
+        vertical-align: middle;
+    }
+
+    .signature-seal {
+        vertical-align: bottom;
+        padding-left: 5px;
+        font-size: 13px;
+        color: #000;
+    }
+
+
+  /* ========================================================
+     FINAL OVERRIDES
+     - left / appendix table: black text + transparent background
+     - Splice / Fusion: allow line wrapping instead of ellipsis
+     ======================================================== */
+
+  html,
+  body {
+    color: #000000 !important;
+  }
+
+  .left-panel,
+  .left-panel *,
+  .appendix-block,
+  .appendix-block *,
+  .last-page-footer,
+  .last-page-footer * {
+    color: #000000 !important;
+  }
+
+  .left-panel .table,
+  .left-panel .table caption,
+  .left-panel .table thead,
+  .left-panel .table tbody,
+  .left-panel .table tr,
+  .left-panel .table th,
+  .left-panel .table td,
+  .appendix-table,
+  .appendix-table thead,
+  .appendix-table tbody,
+  .appendix-table tr,
+  .appendix-table th,
+  .appendix-table td {
+    background-color: transparent !important;
+    background: transparent !important;
+  }
+
+  .left-panel .table caption {
+    border-bottom: 1px solid #000000 !important;
+  }
+
+  .info-label,
+  .info-value,
+  .qc-metrics-table th,
+  .qc-metrics-table td {
+    background-color: transparent !important;
+    background: transparent !important;
+    color: #000000 !important;
+  }
+
+  .appendix-table th,
+  .appendix-table td,
+  .appendix-key,
+  .appendix-value,
+  .appendix-center {
+    color: #000000 !important;
+    background-color: transparent !important;
+    background: transparent !important;
+  }
+
+  .appendix-value {
+    text-align: right;
+    font-weight: normal;
+  }
+
+  .lod-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    margin-bottom: 8px;
+  }
+
+  .lod-table .appendix-key {
+    width: 45%;
+    text-align: left;
+    font-weight: bold;
+    vertical-align: top;
+  }
+
+  .lod-table .appendix-value {
+    width: 55%;
+    text-align: right;
+    vertical-align: top;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+    line-height: 1.25;
+  }
+.wrap-variant-table {
+  width: 100% !important;
+  max-width: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+}
+
+/* header도 줄바꿈 허용 */
+.wrap-variant-table th {
+  padding: 3px 3px;
+  color: #ffffff;
+  font-size: 6.3px;
+  line-height: 1.15;
+  text-align: center;
+  vertical-align: middle;
+
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+}
+
+/* body도 줄바꿈 허용 */
+.wrap-variant-table td {
+  padding: 3px 3px;
+  font-size: 6.8px;
+  line-height: 1.2;
+  color: #000000;
+  background: transparent !important;
+  border-bottom: 1px solid #e0e0e0;
+  text-align: left;
+  vertical-align: top;
+
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+}
+
+/* right panel 밖으로 table이 나가지 않게 */
+.right-panel {
+  overflow: hidden;
+}
+
+.right-panel table {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Splice table 컬럼 폭 */
+.splice-variant-table col:nth-child(1) { width: 10%; }
+.splice-variant-table col:nth-child(2) { width: 11%; }
+.splice-variant-table col:nth-child(3) { width: 13%; }
+.splice-variant-table col:nth-child(4) { width: 13%; }
+.splice-variant-table col:nth-child(5) { width: 15%; }
+.splice-variant-table col:nth-child(6) { width: 13%; }
+.splice-variant-table col:nth-child(7) { width: 10%; }
+.splice-variant-table col:nth-child(8) { width: 15%; }
+
+/* Fusion table 컬럼 폭 */
+.fusion-variant-table col:nth-child(1) { width: 18%; }
+.fusion-variant-table col:nth-child(2) { width: 20%; }
+.fusion-variant-table col:nth-child(3) { width: 20%; }
+.fusion-variant-table col:nth-child(4) { width: 22%; }
+.fusion-variant-table col:nth-child(5) { width: 20%; }
 </style>
 </head>
 
@@ -467,149 +763,144 @@
      ======================================================== -->
 <table class="layout-table">
   <tr>
-    <!-- LEFT PANEL -->
     <td class="left-panel">
 
-      <!-- Patient Information -->
-      <table class="table">
+    <!-- Patient Information -->
+    <table class="table">
         <caption>Patient Information</caption>
         <tbody>
-          <tr>
+        <tr>
             <td class="info-label">Patient Name</td>
             <td class="info-value">{{ patient_name | default('-', true) }}</td>
-          </tr>
-          <tr>
+        </tr>
+        <tr>
             <td class="info-label">Patient ID</td>
             <td class="info-value">{{ patient_id | default('-', true) }}</td>
-          </tr>
-          <tr>
-            <td class="info-label">Cancer type</td>
+        </tr>
+        <tr>
+            <td class="info-label">Gender</td>
+            <td class="info-value">{{ sex | default('-', true) }}</td>
+        </tr>
+        <tr>
+            <td class="info-label">Diagnosis</td>
             <td class="info-value">{{ cancer_type | default('-', true) }}</td>
-          </tr>
-          <tr>
-            <td class="info-label">Specimen type</td>
-            <td class="info-value">{{ specimen_type | default('-', true) }}</td>
-          </tr>
-          <tr>
-            <td class="info-label">Specimen site</td>
-            <td class="info-value">{{ specimen_site | default('-', true) }}</td>
-          </tr>
+        </tr>
         </tbody>
-      </table>
+    </table>
 
-      <!-- Order Information -->
-      <table class="table">
+    <!-- Order Information -->
+    <table class="table">
         <caption>Order Information</caption>
         <tbody>
-          <tr>
+        <tr>
             <td class="info-label">Medical facility</td>
             <td class="info-value">{{ facility | default('-', true) }}</td>
-          </tr>
-          <tr>
+        </tr>
+        <tr>
             <td class="info-label">Medical facility ID</td>
             <td class="info-value">{{ facility_id | default('-', true) }}</td>
-          </tr>
-          <tr>
+        </tr>
+        <tr>
             <td class="info-label">Physician</td>
             <td class="info-value">{{ physician | default('-', true) }}</td>
-          </tr>
-          <tr>
+        </tr>
+        <tr>
             <td class="info-label">Pathologist</td>
             <td class="info-value">{{ pathologist | default('-', true) }}</td>
-          </tr>
-          <tr>
+        </tr>
+        <tr>
             <td class="info-label">Date of order</td>
             <td class="info-value">{{ date_of_order | default('-', true) }}</td>
-          </tr>
+        </tr>
         </tbody>
-      </table>
+    </table>
 
-      <!-- Specimen Information -->
-      <table class="table">
+    <!-- Specimen Information -->
+    <table class="table">
         <caption>Specimen Information</caption>
         <tbody>
-          <tr>
+        <tr>
             <td class="info-label">Specimen ID</td>
             <td class="info-value">{{ specimen_id | default('-', true) }}</td>
-          </tr>
-          <tr>
+        </tr>
+        <tr>
+            <td class="info-label">Specimen type</td>
+            <td class="info-value">{{ specimen_type | default('-', true) }}</td>
+        </tr>
+        <tr>
+            <td class="info-label">Specimen site</td>
+            <td class="info-value">{{ specimen_site | default('-', true) }}</td>
+        </tr>
+        <tr>
             <td class="info-label">Tumor purity (%)</td>
             <td class="info-value">{{ tumor_purity | default('-', true) }}</td>
-          </tr>
-          <tr>
+        </tr>
+        <tr>
             <td class="info-label">Date of collection</td>
             <td class="info-value">{{ date_of_collection | default('-', true) }}</td>
-          </tr>
+        </tr>
         </tbody>
-      </table>
+    </table>
 
-      <!-- Case Information -->
-      <table class="table">
+    <!-- Case Information -->
+    <table class="table">
         <caption>Case Information</caption>
         <tbody>
-          <tr>
+        <tr>
             <td class="info-label">Panel</td>
             <td class="info-value">{{ panel | default('-', true) }}</td>
-          </tr>
-          <tr>
+        </tr>
+        <tr>
             <td class="info-label">Pipeline</td>
-            <td class="info-value">{{ pipeline | default('-', true) }}</td>
-          </tr>
-          <tr>
-            <td class="info-label">Pipeline version</td>
+            <td class="info-value">{{ pipeline | default('TruSight Oncology 500', true) }}</td>
+        </tr>
+        <tr>
+            <td class="info-label">Workflow</td>
             <td class="info-value">{{ pipeline_version | default('-', true) }}</td>
-          </tr>
-          <tr>
+        </tr>
+        <tr>
             <td class="info-label">Date of Receipt</td>
             <td class="info-value">{{ date_of_receipt | default('-', true) }}</td>
-          </tr>
-          <tr>
+        </tr>
+        <tr>
             <td class="info-label">Date of report</td>
             <td class="info-value">{{ date_of_report | default('-', true) }}</td>
-          </tr>
+        </tr>
         </tbody>
-      </table>
+    </table>
 
-      <!-- NGS QC Metrics -->
-      <table class="table">
-        <caption>DNA QC Metrics</caption>
+    <!-- NGS QC Metrics -->
+    <table class="table qc-metrics-table">
+        <caption>NGS QC Metrics</caption>
+        <thead>
+        <tr>
+            <th class="info-label qc-metric-header">Metric</th>
+            <th class="info-value qc-value-header">DNA</th>
+            <th class="info-value qc-value-header">RNA</th>
+        </tr>
+        </thead>
         <tbody>
-          {% if dna_qc_metrics %}
-            {% for item in dna_qc_metrics %}
-            <tr>
-              <td class="qc-label">{{ item.Metric | default('-', true) }}</td>
-              <td class="qc-value">{{ item.Value | default('-', true) }}</td>
-            </tr>
-            {% endfor %}
-          {% else %}
-            <tr>
-              <td class="qc-label">&nbsp;</td>
-              <td class="qc-value">&nbsp;</td>
-            </tr>
-          {% endif %}
-        </tbody>
-      </table>
-      <table class="table">
-        <caption>RNA QC Metrics</caption>
-        <tbody>
-          {% if rna_qc_metrics %}
-            {% for item in rna_qc_metrics %}
-            <tr>
-              <td class="qc-label">{{ item.Metric | default('-', true) }}</td>
-              <td class="qc-value">{{ item.Value | default('-', true) }}</td>
-            </tr>
-            {% endfor %}
-          {% else %}
-            <tr>
-              <td class="qc-label">&nbsp;</td>
-              <td class="qc-value">&nbsp;</td>
-            </tr>
-          {% endif %}
-        </tbody>
-      </table>
+        {% if dna_qc_metrics %}
+        {% for item in dna_qc_metrics %}
+        <tr>
+            <td>{{ item.Metric | default('-', true) }}</td>
+            <td>{{ item.Value | default('-', true) }}</td>
+            <td>
+            {{ rna_qc_metrics[loop.index0].Value if rna_qc_metrics and rna_qc_metrics|length > loop.index0 else '-' }}
+            </td>
+        </tr>
+        {% endfor %}
+        {% else %}
+        <tr>
+            <td>-</td>
+            <td>-</td>
+            <td>-</td>
+        </tr>
+        {% endif %}
+    </tbody>
+    </table>
 
     </td>
-
     <!-- RIGHT PANEL -->
     <td class="right-panel">
 
@@ -751,73 +1042,98 @@
       <hr class="section-line">
 
       <!-- Splice Variants -->
-      {% set splice_variant_cols = splice_variant_cols | default(["Gene", "Pos [chr]:[pos]", "REF->ALT", "Depth", "VAF", "Consequence", "Reference", "HGVSc", "HGVSp"], true) %}
-      <div class="biomarker-section-title" style="color:#d97706;">Splice Variants</div>
-      <hr class="section-line">
+    {% set splice_variant_cols = splice_variant_cols | default(["Gene", "Affected_Exon", "Breakpoint_1", "Breakpoint_2", "Splice_Supporting_Reads", "Reference_Reads", "Reads", "Transcript"], true) %}
+    {% set splice_variant_headers = splice_variant_headers | default(["Gene", "Affected Exon", "Breakpoint 1", "Breakpoint 2", "Splice Supporting Reads", "Reference Reads", "Reads", "Transcript"], true) %}
 
-      <table class="variant-table">
-        <thead>
-          <tr>
+    <div class="biomarker-section-title" style="color:#d97706;">Splice Variants</div>
+    <hr class="section-line">
+
+    <table class="variant-table wrap-variant-table splice-variant-table">
+    <colgroup>
+        <col>
+        <col>
+        <col>
+        <col>
+        <col>
+        <col>
+        <col>
+        <col>
+    </colgroup>
+
+    <thead>
+        <tr>
+        {% for header in splice_variant_headers %}
+        <th style="background:#d97706;">{{ header }}</th>
+        {% endfor %}
+        </tr>
+    </thead>
+
+    <tbody>
+        {% if splice_variants %}
+        {% for v in splice_variants %}
+        <tr>
             {% for col in splice_variant_cols %}
-            <th style="background:#d97706;">{{ col }}</th>
+            <td>{{ v.get(col, '') }}</td>
             {% endfor %}
-          </tr>
-        </thead>
-        <tbody>
-          {% if splice_variants %}
-            {% for v in splice_variants %}
-            <tr>
-              {% for col in splice_variant_cols %}
-              <td>{{ v.get(col, '') }}</td>
-              {% endfor %}
-            </tr>
+        </tr>
+        {% endfor %}
+        {% else %}
+        <tr>
+            {% for col in splice_variant_cols %}
+            <td>&nbsp;</td>
             {% endfor %}
-          {% else %}
-            <tr>
-              {% for col in splice_variant_cols %}
-              <td>&nbsp;</td>
-              {% endfor %}
-            </tr>
-          {% endif %}
-        </tbody>
-      </table>
+        </tr>
+        {% endif %}
+    </tbody>
+    </table>
 
-      <hr class="section-line">
+</div>
+    <hr class="section-line">
 
-      <!-- Fusions -->
-      {% set fusion_cols = fusion_cols | default(["Gene Pair", "Breakpoint 1", "Breakpoint 2", "Fusion", "Supporting Reads"], true) %}
-      <div class="biomarker-section-title" style="color:#9333ea;">Fusions</div>
-      <hr class="section-line">
+{% set fusion_cols = fusion_cols | default(["Gene_Pair", "Breakpoint 1", "Breakpoint 2", "Fusion_Supporting_Reads", "Gene_1_Reference_Reads"], true) %}
+{% set fusion_headers = fusion_headers | default(["Gene Pair", "Breakpoint 1", "Breakpoint 2", "Fusion Supporting Reads", "Gene 1 Reference Reads"], true) %}
 
-      <table class="variant-table">
-        <thead>
-          <tr>
-            {% for col in fusion_cols %}
-            <th style="background:#9333ea;">{{ col }}</th>
-            {% endfor %}
-          </tr>
-        </thead>
-        <tbody>
-          {% if fusions %}
-            {% for v in fusions %}
-            <tr>
-              {% for col in fusion_cols %}
-              <td>{{ v.get(col, '') }}</td>
-              {% endfor %}
-            </tr>
-            {% endfor %}
-          {% else %}
-            <tr>
-              {% for col in fusion_cols %}
-              <td>&nbsp;</td>
-              {% endfor %}
-            </tr>
-          {% endif %}
-        </tbody>
-      </table>
+<div class="biomarker-section-title" style="color:#9333ea;">Fusions</div>
+<hr class="section-line">
 
-    </td>
-  </tr>
+<table class="variant-table wrap-variant-table fusion-variant-table">
+  <colgroup>
+    <col>
+    <col>
+    <col>
+    <col>
+    <col>
+  </colgroup>
+
+  <thead>
+    <tr>
+      {% for header in fusion_headers %}
+      <th style="background:#9333ea;">{{ header }}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+
+  <tbody>
+    {% if fusions %}
+      {% for v in fusions %}
+      <tr>
+        {% for col in fusion_cols %}
+        <td>{{ v.get(col, '') }}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    {% else %}
+      <tr>
+        {% for col in fusion_cols %}
+        <td>&nbsp;</td>
+        {% endfor %}
+      </tr>
+    {% endif %}
+  </tbody>
+
+</table>
+</td>
+</tr>
 </table>
 <div class="last-page-block">
 
@@ -854,16 +1170,46 @@
       <div class="appendix-col">
         <div class="appendix-section-title">Limit of Detection</div>
 
-        <table class="appendix-table">
-          <tbody>
+        <table class="appendix-table lod-table">
+            <tbody>
             <tr>
-              <td class="appendix-key">Small Variants</td>
-              <td class="appendix-value">VAF &gt;= 0.05</td>
+                <td class="appendix-key">Small Variants</td>
+                <td class="appendix-value">
+                    VAF &ge; 0.05<br>
+                    gnomAD AF &lt; 0.01
+                </td>
             </tr>
-          </tbody>
+            <tr>
+                <td class="appendix-key">Copy Number Variant (CNV)</td>
+                <td class="appendix-value">
+                Gain: Fold change &ge; 2.199<br>
+                Loss: Fold change &lt; 0.05
+                </td>
+            </tr>
+            <tr>
+                <td class="appendix-key">RNA Splice Variant</td>
+                <td class="appendix-value">Supporting reads &ge; 5</td>
+            </tr>
+            <tr>
+                <td class="appendix-key">RNA Structure Variant</td>
+                <td class="appendix-value">Supporting reads &ge; 5</td>
+            </tr>
+            <tr>
+                <td class="appendix-key">RNA Fusion Variant</td>
+                <td class="appendix-value">Supporting reads &ge; 5</td>
+            </tr>
+            <tr>
+                <td class="appendix-key">MSI</td>
+                <td class="appendix-value">Unstable MSI regions >= 40</td>
+            </tr>
+            <tr>
+                <td class="appendix-key">TMB</td>
+                <td class="appendix-value">.</td>
+            </tr>
+            </tbody>
         </table>
       </div>
-    </div>
+      </div>
 
     <div class="appendix-section-title appendix-performance-title">
       Performance specification
@@ -933,7 +1279,21 @@
     </div>
   </div>
 
-  <!-- 남은 공간을 footer 위에서 채움 -->
+  <!-- 서명란 -->
+  <div class="signature-block">
+    <table class="signature-table">
+      <tr>
+        <td class="signature-label">
+          <div>서명란</div>
+        </td>
+        <td class="signature-image-cell">
+          <img src="/storage/home/jhkim/scripts/bio-book/ngs_web_lims/app/templates/reports/gmc_sign.png" alt="Signature" class="signature-image">
+        </td>
+        <td class="signature-seal">(인)</td>
+      </tr>
+    </table>
+  </div>
+
   <div class="footer-spacer"></div>
 
   <div class="last-page-footer">

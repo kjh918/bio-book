@@ -247,7 +247,7 @@ def _validate_and_convert_to_float(metric_name: str, value: any, ndigits: int = 
     except (ValueError, TypeError):
         raise ValueError(f"🚨 QC 검증 에러: '{metric_name}' 항목은 숫자로 변환 가능해야 합니다. (입력값: '{value}')")
 
-def _build_dna_qc_metrics(dna_flat):
+def _build_dna_qc_metrics(sample, dna_flat):
     """
     DNA QC 메트릭을 flat_data["QC"] + flat_data["Sample_Info"] 기준으로 구성합니다.
 
@@ -269,20 +269,24 @@ def _build_dna_qc_metrics(dna_flat):
 
     sample_info = _get_section(dna_flat, "Sample_Info", default={})
     conc        = _display(sample_info.get("Concentration")) if isinstance(sample_info, dict) else "-"
-
+    r1_q_value = round(float(qc.get('Q30').get('value').split('/')[0]),1)
+    r2_q_value = round(float(qc.get('Q30').get('value').split('/')[1]),1)
+    q_value = f'{r1_q_value}/{r2_q_value}'
+    print(sample.panel_metadata['dna_concentration'])
     return [
-        {"Metric": "Sample conc. (ng/µL)",      "Value": conc},
-        {"Metric": "Q30 R1/R2 (%)",             "Value": get("Q30")},
-        {"Metric": "GC R1/R2 (%)",              "Value": get("GC")},
-        {"Metric": "Mean target coverage (x)",  "Value": get("Mean_target_coverage")},
-        {"Metric": "Median target coverage (x)","Value": get("Median_target_coverage")},
-        {"Metric": "Median insert size (bp)",   "Value": get("Median_insert_size")},
-        {"Metric": "Read enrichment (%)",        "Value": get("Pct_read_enrichment")},
-        {"Metric": "Exon ≥50x (%)",             "Value": get("Pct_exon_50x")},
-        {"Metric": "Target ≥100x (%)",          "Value": get("Pct_target_100x")},
-        {"Metric": "Total PF reads",             "Value": get("Total_pf_reads")},
-        {"Metric": "Uniformity (%)",             "Value": get("Uniformity")},
-        {"Metric": "Chimeric reads (%)",         "Value": get("Pct_chimeric_reads")},
+        {"Metric": "Sample conc. (ng/µL)",      "Value": sample.panel_metadata['dna_concentration']},
+        {"Metric": "Q30 R1/R2 (%)",             "Value": q_value},
+        {"Metric": "GC R1/R2 (%)",              "Value": qc.get('GC').get('value')},
+        {"Metric": "Total PF reads",             "Value": qc.get('Total_pf_reads').get('value')},
+        {"Metric": "Mean target coverage (x)",  "Value": qc.get('Mean_target_coverage').get('value')},
+        {"Metric": "Median target coverage (x)","Value": qc.get('Median_target_coverage').get('value')},
+        {"Metric": "Median insert size (bp)",   "Value": qc.get('Median_insert_size').get('value')},
+        {"Metric": "Read enrichment (%)",        "Value": qc.get('PCT_READ_ENRICHMENT_Pct').get('value')},
+        {"Metric": "Exon ≥50x (%)",             "Value": qc.get('PCT_EXON_50X_Pct').get('value')},
+        {"Metric": "Target ≥100x (%)",          "Value": qc.get('PCT_TARGET_100X_Pct').get('value')},
+        {"Metric": "Uniformity (%)",             "Value": qc.get('Uniformity').get('value')},
+        {"Metric": "Contamination Score",        "Value": qc.get('CONTAMINATION_SCORE_NA').get('value')},
+        {"Metric": "Chimeric reads (%)",         "Value": qc.get('PCT_CHIMERIC_READS_Pct').get('value')},
     ]
 
 
@@ -308,7 +312,6 @@ def _build_rna_qc_metrics(rna_flat):
 
     sample_info = _get_section(rna_flat, "Sample_Info", default={})
     conc        = _display(sample_info.get("Concentration")) if isinstance(sample_info, dict) else "-"
-
     return [
         {"Metric": "Sample conc. (ng/µL)",        "Value": conc},
         {"Metric": "Q30 R1/R2 (%)",               "Value": get("Q30")},
@@ -691,6 +694,8 @@ def build_clinical_report_context(sample_or_samples):
 
     samples = _sort_by_modality(samples)
     sample  = _primary_sample(samples)
+    
+
     if sample is None:
         raise ValueError("리포트를 생성할 Sample이 없습니다.")
 
@@ -698,7 +703,7 @@ def build_clinical_report_context(sample_or_samples):
     merged_flat        = _merge_flat_data(dna_flat, rna_flat)
     pm                 = _merge_panel_metadata(samples)
     order              = sample.order
-
+    print(sample.panel_metadata)
     # ── Small Variants ──────────────────────────────────────
     raw_svs                  = _pick_rows(merged_flat, "Small_Variants", "Small Variants", "small_variants")
     included_svs, _excl_svs  = filter_small_variants(raw_svs)
@@ -710,10 +715,10 @@ def build_clinical_report_context(sample_or_samples):
 
     # ── DNA-side 바이오마커 ─────────────────────────────────
     gene_amplifications = _pick_rows(dna_flat or merged_flat,
-                                     "Gene_Amplifications", "Gene Amplifications", "CNV", "CNVs")
+                                     "Gene_Amplifications", "Gene Amplifications")
 
     # ── 컬럼 정의 ───────────────────────────────────────────
-    gene_amp_cols   = _fixed_columns(gene_amplifications,   ["Gene", "Fold_Change", "Copy_Number", "CN"])
+    gene_amp_cols   = _fixed_columns(gene_amplifications,   ["Gene", "Fold_Change"])
     splice_cols     = _fixed_columns(splice_variants,       ["Gene", "Affected_Exon", "Breakpoint_1",
                                                               "Breakpoint_2", "Splice_Supporting_Reads",
                                                               "Reference", "Reads", "Transcript"])
@@ -747,17 +752,17 @@ def build_clinical_report_context(sample_or_samples):
 
         # Patient  (DB → Sample_Info 보완)
         "patient_name":     _display(sample.sample_name or _si("Patient_Name")),
-        "patient_id":       _display(_report_sample_id(samples)),
-        "cancer_type":      _display(getattr(sample, "cancer_type", None) or _si("Diagnosis")),
+        "patient_id":       '-',#_display(_report_sample_id(samples)),
+        "cancer_type":      '-', #_display(getattr(sample, "cancer_type", None) or _si("Diagnosis")),
         "specimen_type":    _display(getattr(sample, "specimen", None) or _si("Specimen_type")),
         "specimen_site":    _display(_si("Specimen_Site") or _si("Specimen site")
                                      or getattr(sample, "specimen", None)),
 
         # Order
-        "facility":         _display(getattr(order, "facility", None) if order else None),
-        "facility_id":      _display(_si("Facility_ID") or _si("Facility ID")),
-        "physician":        _display(getattr(order, "client_name", None) if order else None),
-        "pathologist":      _display(_si("Pathologist")),
+        "facility":         '젠큐릭스',#_display(getattr(order, "facility", None) if order else None),
+        "facility_id":      '-',#_display(_si("Facility_ID") or _si("Facility ID")),
+        "physician":        '-',#_display(getattr(order, "client_name", None) if order else None),
+        "pathologist":      '-',#_display(_si("Pathologist")),
         # date_of_order: DB reception_date → Sample_Info.Date_of_order 순
         "date_of_order":    _display(
             (getattr(order, "reception_date", None) if order else None)
@@ -783,7 +788,7 @@ def build_clinical_report_context(sample_or_samples):
         "date_of_report":   datetime.now().strftime("%Y-%m-%d"),
 
         # QC  –  DNA 단독이면 rna_qc_metrics == []
-        "dna_qc_metrics":   _build_dna_qc_metrics(dna_flat),
+        "dna_qc_metrics":   _build_dna_qc_metrics(sample, dna_flat),
         "rna_qc_metrics":   _build_rna_qc_metrics(rna_flat),
 
         # Variants

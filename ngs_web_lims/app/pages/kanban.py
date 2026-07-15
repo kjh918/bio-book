@@ -568,24 +568,27 @@ def register_kanban_callbacks(dash_app):
 
     # ── 일괄 변경 & 엑셀 덮어쓰기 ───────────────────────────
     @dash_app.callback(
-        Output("modal-datatable", "rowData", allow_duplicate=True),
-        [Input("btn-bulk-apply",         "n_clicks"),
-         Input("upload-overwrite-excel", "contents")],
-        [State("bulk-col-select",   "value"),
-         State("bulk-val-input",    "value"),
-         State("modal-datatable",   "rowData")],
-        prevent_initial_call=True
+    [Output("modal-datatable", "rowData", allow_duplicate=True),
+     Output("modal-rowdata-synced", "data", allow_duplicate=True)],   # ← 추가
+    [Input("btn-bulk-apply",         "n_clicks"),
+     Input("upload-overwrite-excel", "contents")],
+    [State("bulk-col-select",   "value"),
+     State("bulk-val-input",    "value"),
+     State("modal-datatable",   "rowData")],
+    prevent_initial_call=True
     )
     def bulk_and_overwrite(_, upload_contents, col, val, row_data):
         if not row_data:
-            return no_update
+            return no_update, no_update
+
         tid = ctx.triggered[0]["prop_id"].split(".")[0]
 
         if tid == "btn-bulk-apply":
             if not col or val is None:
-                return no_update
+                return no_update, no_update
             val_str = str(val).strip()
-            return [{**row, col: val_str} for row in row_data]
+            new_data = [{**row, col: val_str} for row in row_data]
+            return new_data, new_data          # ← 동일 데이터 두 곳에 반영
 
         if tid == "upload-overwrite-excel" and upload_contents:
             _, content_string = upload_contents.split(",")
@@ -597,7 +600,7 @@ def register_kanban_callbacks(dash_app):
                 new_row = row.copy()
                 match = next(
                     (u for u in up_dict
-                     if str(u.get("sample_name")) == str(row.get("sample_name"))),
+                    if str(u.get("sample_name")) == str(row.get("sample_name"))),
                     None)
                 if match:
                     for k, v in match.items():
@@ -605,9 +608,9 @@ def register_kanban_callbacks(dash_app):
                                 and k not in ["id", "sample_name", "target_panel"]):
                             new_row[k] = str(v).strip()
                 new_data.append(new_row)
-            return new_data
+            return new_data, new_data          # ← 동일 데이터 두 곳에 반영
 
-        return no_update
+        return no_update, no_update
 
     # ── 저장 / 드래그&드롭 ──────────────────────────────────
     @dash_app.callback(

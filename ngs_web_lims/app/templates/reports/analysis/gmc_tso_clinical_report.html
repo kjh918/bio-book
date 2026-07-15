@@ -881,15 +881,15 @@
         </thead>
         <tbody>
         {% if dna_qc_metrics %}
-        {% for item in dna_qc_metrics %}
-        <tr>
-            <td>{{ item.Metric | default('-', true) }}</td>
-            <td>{{ item.Value | default('-', true) }}</td>
-            <td>
-            {{ rna_qc_metrics[loop.index0].Value if rna_qc_metrics and rna_qc_metrics|length > loop.index0 else '-' }}
-            </td>
-        </tr>
-        {% endfor %}
+            {% for item in dna_qc_metrics %}
+            <tr>
+                <td>{{ item.Metric | default('-', true) }}</td>
+                <td>{{ item.Value | default('-', true) }}</td>
+                <td>
+                {{ rna_qc_metrics[loop.index0].Value if rna_qc_metrics and rna_qc_metrics|length > loop.index0 else '-' }}
+                </td>
+            </tr>
+            {% endfor %}
         {% else %}
         <tr>
             <td>-</td>

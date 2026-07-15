@@ -1,0 +1,55 @@
+main:
+  title: cbNIPT Analysis Report
+  subtitle: Chromosome 13 Trisomy Detection, Sample NIPT-2026-0143
+  writer: 지훈
+  team: Clinical Bioinformatics Team
+  date: 2026-07-08   # optional; if omitted, defaults to today's date
+
+slides:
+  contents:               # order of this list == TOC order == slide order
+
+    - Summary:
+        purpose:
+          - Non-invasive detection of fetal chromosomal aneuploidy from maternal plasma cfDNA
+        results:
+          - Chromosome 13 Z-score = 3.8 (positive for trisomy 13)
+        conclusion:
+          - Result is consistent with Trisomy 13; confirmatory testing recommended
+        further_study:
+          - Karyotype or CMA confirmation via amniocentesis recommended
+
+    - Introduction:
+        workflow:
+          workflow_png:
+            path: data/workflow.png
+            position: [0.5, 1.5]     # left, top (inches)
+            size: [9.0, 3.0]         # width, height (inches)
+        Sample Information:
+          sample_info_table:
+            path: data/sample_info_table.tsv
+            position: [0.5, 1.5]
+            size: [9.0, 1.0]
+
+    - Results:
+        items:
+          - title: Chromosome 13 Z-score Overview
+            image:
+              path: data/result_chr13.png
+              position: [0.7, 1.6]
+              size: [8.5, 3.8]
+          - title: Chromosomal Aneuploidy Call Summary
+            table:
+              path: data/result_summary.tsv
+              position: [0.7, 1.8]
+              size: [8.5, 2.5]
+
+    - Conclusion:
+        title: Chromosome 13 Trisomy Detected
+        Conclusion:
+          text:
+            - Z-score of 3.8 on chromosome 13 exceeds the +3.0 clinical threshold
+            - Fetal fraction (11.2%) is within the validated range for reliable calling
+        Further study:
+          text:
+            - Recommend confirmatory diagnostic testing (amniocentesis / CVS)
+            - Genetic counseling referral advised prior to further testing
